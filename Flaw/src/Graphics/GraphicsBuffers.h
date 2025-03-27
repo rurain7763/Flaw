@@ -1,0 +1,85 @@
+#pragma once
+
+#include "Core.h"
+#include "GraphicsType.h"
+
+namespace flaw {
+	class VertexBuffer {
+	public:
+		struct Descriptor {
+			UsageFlag usage;
+			uint32_t elmSize;
+			uint32_t count;
+			const void* initialData;
+		};
+
+		VertexBuffer() = default;
+		virtual ~VertexBuffer() = default;
+
+		virtual void Update(const void* data, uint32_t elmSize, uint32_t count) = 0;
+
+		virtual void Bind() = 0;
+	};
+
+	class IndexBuffer {
+	public:
+		struct Descriptor {
+			UsageFlag usage; 
+		};
+
+		IndexBuffer() = default;
+		virtual ~IndexBuffer() = default;
+		virtual void Update(const uint32_t* indices, uint32_t count) = 0;
+		virtual void Bind() = 0;
+
+		virtual uint32_t IndexCount() const = 0;	
+	};
+
+	// what is constant buffer?
+	// limit size
+	// allighn size with 16
+	// create once
+	class ConstantBuffer {
+	public:
+		ConstantBuffer() = default;
+		virtual ~ConstantBuffer() = default;
+		virtual void Update(const void* data, int32_t size) = 0;
+
+		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
+		virtual void BindToComputeShader(const uint32_t slot) = 0;
+
+		virtual void Unbind() = 0;
+
+		virtual uint32_t Size() const = 0;
+	};
+
+	// what is structured buffer?
+	// no limit size
+	// no allighn size
+	// create multiple times with different size
+	class StructuredBuffer {
+	public:
+		struct Descriptor {
+			uint32_t elmSize;
+			uint32_t count;
+			uint32_t bindFlags;
+			uint32_t accessFlags;
+			const void* initialData;
+		};
+
+		StructuredBuffer() = default;
+		virtual ~StructuredBuffer() = default;
+
+		virtual void Create(const Descriptor& desc) = 0;
+
+		virtual void Update(const void* data, uint32_t size) = 0;
+		virtual void Fetch(void* data, uint32_t size) = 0;
+
+		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
+		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
+
+		virtual void Unbind() = 0;
+
+		virtual uint32_t Size() const = 0;
+	};
+}

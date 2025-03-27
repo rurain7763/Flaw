@@ -1,0 +1,11 @@
+.vs/
+.vscode/
+bin/
+bin-int/
+Projects/
+obj/
+
+*.pdb
+*.user
+*.cache
+*.log
