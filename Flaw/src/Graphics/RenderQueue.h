@@ -1,4 +1,5 @@
 #pragma once
+#if false
 
 #include "Core.h"
 
@@ -69,3 +70,4 @@ namespace flaw {
 		int32_t _itemCount = 0;
 	};
 }
+#endif

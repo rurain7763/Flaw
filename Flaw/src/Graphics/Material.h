@@ -1,5 +1,7 @@
 #pragma once
 
+#if false
+
 #include "Core.h"
 #include "Shader.h"
 #include "Texture.h"
@@ -144,3 +146,4 @@ namespace flaw {
 		std::unordered_map<uint32_t, StructuredData> _structuredDatas;
 	};
 }
+#endif

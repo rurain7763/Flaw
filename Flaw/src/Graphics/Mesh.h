@@ -1,4 +1,5 @@
 #pragma once
+#if false
 
 #include "GraphicsData.h"
 #include "GraphicsType.h"
@@ -49,3 +50,4 @@ namespace flaw {
 		Ref<IndexBuffer> _indexBuffer;
 	};
 }
+#endif

@@ -11,6 +11,7 @@
 #include <mono/metadata/reflection.h>
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/mono-debug.h>
+#include <fmt/format.h>
 
 namespace flaw {
 	static MonoDomain* s_rootDomain = nullptr;
@@ -53,7 +54,7 @@ namespace flaw {
 		if (!obj) {
 			throw std::runtime_error("mono_object_new failed");
 		}
-		// 생성자 호출
+
 		mono_runtime_object_init(obj);
 		return obj;
 	}
@@ -123,7 +124,6 @@ namespace flaw {
 			throw std::runtime_error("Method not found: " + std::string(methodName));
 		}
 
-		// 예외 정보 추적
 		MonoObject* exception = nullptr;
 		MonoObject* result = mono_runtime_invoke(method, _obj, args, &exception);
 

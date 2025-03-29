@@ -24,7 +24,7 @@ namespace flaw {
 		_mvpCBuff = _context.CreateConstantBuffer(sizeof(MVPMatrices));
 		_constCBuff = _context.CreateConstantBuffer(sizeof(ConstDatas));
 
-		Ref<GraphicsShader> shader = _context.CreateGraphicsShader("Contents/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		Ref<GraphicsShader> shader = _context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
 		shader->AddInputElement<float>("TEXCOORD", 2);
 		shader->AddInputElement<uint32_t>("ID", 1);

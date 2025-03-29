@@ -5,6 +5,7 @@
 #include "Log/Log.h"
 
 #include <windowsx.h>
+#include <codecvt>
 
 namespace flaw {
 	KeyCode TranslateKeyCode(WPARAM wParam) {
@@ -225,15 +226,15 @@ namespace flaw {
 		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 		wcex.lpszMenuName = nullptr;
-		wcex.lpszClassName = "CLIENT";
+		wcex.lpszClassName = L"CLIENT";
 		wcex.hIconSm = NULL;
 
 		RegisterClassEx(&wcex);
 
 		_hWnd = CreateWindowEx(
 			0,
-			"CLIENT",
-			title,
+			L"CLIENT",
+			std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(title).c_str(),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -273,7 +274,7 @@ namespace flaw {
 
 	WindowsContext::~WindowsContext() {
 		DestroyWindow(_hWnd);
-		UnregisterClass("CLIENT", GetModuleHandleA(nullptr));
+		UnregisterClass(L"CLIENT", GetModuleHandleA(nullptr));
 	}
 
 	void WindowsContext::CalculateFrameBufferSize() {

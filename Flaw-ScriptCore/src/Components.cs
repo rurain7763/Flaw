@@ -1,5 +1,5 @@
 ﻿namespace Flaw {
-    public class TransformComponent : ScriptableComponent
+    public class TransformComponent : EntityComponent
     {
         public Vec3 position
         {
@@ -41,7 +41,7 @@
         }
     }
 
-    public class Rigidbody2DComponent : ScriptableComponent
+    public class Rigidbody2DComponent : EntityComponent
     {
         
     }

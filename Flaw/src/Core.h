@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-#ifdef FL_PLATFORM_WINDOWS
+#ifdef _WIN32
 #ifdef FL_DYNAMIC_LIB
 	#ifdef FL_DLL_EXPORT
 		#define FAPI __declspec(dllexport)

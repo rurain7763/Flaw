@@ -1,25 +1,25 @@
 ﻿namespace Flaw
 {
-    public class ScriptableComponent
+    public class EntityComponent
     {
         internal Entity entity;
 
-        public ScriptableComponent()
+        public EntityComponent()
         {
             entity = new Entity();
         }
 
-        internal ScriptableComponent(uint id)
+        internal EntityComponent(uint id)
         {
             entity = new Entity(id);
         }
 
-        public bool HasComponent<T>() where T : ScriptableComponent, new()
+        public bool HasComponent<T>() where T : EntityComponent, new()
         {
             return entity.HasComponent<T>();
         }
 
-        public T? GetComponent<T>() where T : ScriptableComponent, new()
+        public T GetComponent<T>() where T : EntityComponent, new()
         {
             return entity.GetComponent<T>();
         }

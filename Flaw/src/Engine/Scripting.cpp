@@ -8,9 +8,11 @@
 #include "Time/Time.h"
 #include "Platform/FileWatch.h"
 #include "Application.h"
+#include "Project.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
+#include <fmt/format.h>
 
 namespace flaw {
 	#define ADD_INTERNAL_CALL(func) MonoScripting::RegisterInternalCall("Flaw.InternalCalls::"#func, func)
@@ -20,7 +22,8 @@ namespace flaw {
 	static Scope<MonoScriptDomain> s_monoScriptDomain;
 	static std::unordered_map<MonoType*, std::function<bool(const Entity&)>> s_hasComponentFuncs;
 
-	static Scene* s_scene = nullptr;
+	static Application* s_app;
+	static Scene* s_scene;
 	static std::unordered_map<uint32_t, Ref<MonoScriptObject>> s_monoScriptObjects;
 
 	// ======================== <internal calls> ========================
@@ -138,6 +141,8 @@ namespace flaw {
 	}
 
 	void Scripting::Init(Application& app) {
+		s_app = &app;
+
 		MonoScripting::Init();
 
 		// Register internal calls
@@ -159,26 +164,6 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetKey);
 
 		LoadMonoScripts();
-
-		// TODO: this is must be configurable by user
-		const std::string sandboxPath = "Resources/Scripts/Sandbox.dll";
-		s_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
-			sandboxPath,
-			[&app](const std::string& path, filewatch::Event ev) {		
-				if (ev == filewatch::Event::modified) {
-					static std::filesystem::file_time_type lastWriteTime;
-
-					std::string fullPath = fmt::format("Resources/Scripts/{}", path);
-					auto current = std::filesystem::last_write_time(fullPath);
-
-					if (current - lastWriteTime >= std::chrono::milliseconds(1000)) {
-						app.AddTask([fullPath]() { Scripting::Reload(); });
-					}
-
-					lastWriteTime = current;
-				}
-			}
-		);
 	}
 
 	void Scripting::Reload() {
@@ -195,12 +180,14 @@ namespace flaw {
 
 		s_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		s_monoScriptDomain->PrintMonoAssemblyInfo(0);
-		s_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "ScriptableComponent", 0);
+		s_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 0);
 
-		// TODO: this is must be configurable by user
-		s_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Sandbox.dll", true);
+		auto& projectConfig = Project::GetConfig();
+		std::string projectMonoAssemblyPath = fmt::format("{}/Binaries/{}.dll", projectConfig.path, projectConfig.name);
+
+		s_monoScriptDomain->AddMonoAssembly(projectMonoAssemblyPath.c_str(), true);
 		s_monoScriptDomain->PrintMonoAssemblyInfo(1);
-		s_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "ScriptableComponent", 1);
+		s_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 1);
 
 		// Register components
 		RegisterComponent<TransformComponent>();
@@ -210,6 +197,23 @@ namespace flaw {
 		RegisterComponent<Rigidbody2DComponent>();
 		RegisterComponent<BoxCollider2DComponent>();
 		RegisterComponent<CameraComponent>();
+
+		s_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
+			projectMonoAssemblyPath.c_str(),
+			[projectMonoAssemblyPath](const std::string& path, filewatch::Event ev) {
+				if (ev == filewatch::Event::modified) {
+					static std::filesystem::file_time_type lastWriteTime;
+
+					auto current = std::filesystem::last_write_time(projectMonoAssemblyPath);
+
+					if (current - lastWriteTime >= std::chrono::milliseconds(1000)) {
+						s_app->AddTask(Scripting::Reload);
+					}
+
+					lastWriteTime = current;
+				}
+			}
+		);
 	}
 
 	void Scripting::Cleanup() {

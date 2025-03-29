@@ -1,5 +1,6 @@
 #pragma once
 
+#if false
 #include "Core.h"
 
 #include "Math.h"
@@ -126,3 +127,4 @@ namespace flaw {
 		int32_t padding;
 	};	
 }
+#endif

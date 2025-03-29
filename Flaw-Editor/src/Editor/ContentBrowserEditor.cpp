@@ -1,5 +1,6 @@
 #include "ContentBrowserEditor.h"
 
+#include <Windows.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -18,7 +19,7 @@ namespace flaw {
 		CreateIcon(FileType::Png, "Resources/Icons/PngFile.png");
 
 		_changeHandle = FindFirstChangeNotification(
-			_currentDirectory.generic_string().c_str(),
+			_currentDirectory.wstring().c_str(),
 			true,
 			FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_ACTION_ADDED | FILE_ACTION_REMOVED
 		);

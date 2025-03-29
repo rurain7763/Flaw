@@ -1,6 +1,8 @@
-﻿namespace Flaw
+﻿using System;
+
+namespace Flaw
 {
-    public struct Entity
+    public class Entity
     {
         internal uint id;
 
@@ -14,7 +16,7 @@
             this.id = id;
         }
 
-        public bool HasComponent<T>() where T : ScriptableComponent, new()
+        public bool HasComponent<T>() where T : EntityComponent, new()
         {
             Type type = typeof(T);
 
@@ -28,7 +30,7 @@
             }
         }
 
-        public T? GetComponent<T>() where T : ScriptableComponent, new()
+        public T GetComponent<T>() where T : EntityComponent, new()
         {
             Type type = typeof(T);
 
