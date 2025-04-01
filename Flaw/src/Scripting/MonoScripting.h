@@ -35,7 +35,14 @@ namespace flaw {
 			return value;
 		}
 
+		MonoClassField* GetMonoClassField() const { return _field; }
+
+		MonoType* GetMonoType() const;
+
+		std::string_view GetName() const;
 		std::string_view GetTypeName() const;
+
+		operator bool() const { return _field != nullptr; }
 
 	private:
 		void GetValueImpl(MonoScriptObject* obj, void* buff);
@@ -50,11 +57,14 @@ namespace flaw {
 
 		MonoObject* CreateInstance();
 
-		void EachFields(std::function<void(std::string_view, MonoScriptClassField&)> callback);
+		MonoScriptClassField GetField(const char* fieldName);
+		void EachPublicFields(std::function<void(std::string_view, MonoScriptClassField&)> callback);
 
 		MonoMethod* GetMethod(const char* methodName, int32_t argCount);
 
-		MonoClass* GetNativeClass() const { return _clss; }
+		std::string_view GetTypeName() const;
+
+		MonoClass* GetMonoClass() const { return _clss; }
 
 	private:
 		MonoDomain* _appDomain;
@@ -74,7 +84,7 @@ namespace flaw {
 
 		MonoScriptClass* GetClass() const { return _clss; }
 
-		MonoObject* GetNativeObject() const { return _obj; }
+		MonoObject* GetMonoObject() const { return _obj; }
 
 	private:
 		MonoScriptClass* _clss;

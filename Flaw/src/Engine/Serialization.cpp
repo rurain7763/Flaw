@@ -93,6 +93,15 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::CircleCollider2DComponent>()) {
+			auto& comp = entity.GetComponent<flaw::CircleCollider2DComponent>();
+			out << YAML::Key << "CircleCollider2DComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Offset" << YAML::Value << comp.offset;
+			out << YAML::Key << "Radius" << YAML::Value << comp.radius;
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<flaw::MonoScriptComponent>()) {
 			auto& comp = entity.GetComponent<flaw::MonoScriptComponent>();
 			out << YAML::Key << "MonoScriptComponent";
@@ -203,6 +212,14 @@ namespace flaw {
 					auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 					comp.offset = component.second["Offset"].as<vec2>();
 					comp.size = component.second["Size"].as<vec2>();
+				}
+				else if (name == "CircleCollider2DComponent") {
+					if (!entity.HasComponent<CircleCollider2DComponent>()) {
+						entity.AddComponent<CircleCollider2DComponent>();
+					}
+					auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+					comp.offset = component.second["Offset"].as<vec2>();
+					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == "MonoScriptComponent") {
 					if (!entity.HasComponent<MonoScriptComponent>()) {

@@ -24,7 +24,7 @@ namespace flaw {
 
 	static Application* s_app;
 	static Scene* s_scene;
-	static std::unordered_map<uint32_t, Ref<MonoScriptObject>> s_monoScriptObjects;
+	static std::unordered_map<entt::entity, Ref<MonoScriptObject>> s_monoScriptObjects;
 
 	// ======================== <internal calls> ========================
 	static void LogInfo(MonoString* text) {
@@ -49,12 +49,12 @@ namespace flaw {
 	}
 
 	static bool IsComponentInstanceExists(entt::entity entity) {
-		return s_monoScriptObjects.find((uint32_t)entity) != s_monoScriptObjects.end();
+		return s_monoScriptObjects.find(entity) != s_monoScriptObjects.end();
 	}
 
 	static MonoObject* GetComponentInstance(entt::entity entity) {
-		FASSERT(s_monoScriptObjects.find((uint32_t)entity) != s_monoScriptObjects.end(), "Component instance not found");
-		return s_monoScriptObjects[(uint32_t)entity]->GetNativeObject();
+		FASSERT(IsComponentInstanceExists(entity), "Component instance not found");
+		return s_monoScriptObjects[entity]->GetMonoObject();
 	}
 
 	static uint32_t FindEntityByName(MonoString* name) {
@@ -118,6 +118,30 @@ namespace flaw {
 		}
 	}
 
+	static void GetBodyType_RigidBody2D(entt::entity entity, int32_t& bodyType) {
+		Entity e(entity, s_scene);
+		if (e.HasComponent<Rigidbody2DComponent>()) {
+			auto& comp = e.GetComponent<Rigidbody2DComponent>();
+			bodyType = (int32_t)comp.bodyType;
+		}
+	}
+
+	static void SetBodyType_RigidBody2D(entt::entity entity, int32_t bodyType) {
+		Entity e(entity, s_scene);
+		if (e.HasComponent<Rigidbody2DComponent>()) {
+			auto& comp = e.GetComponent<Rigidbody2DComponent>();
+			comp.bodyType = (Rigidbody2DComponent::BodyType)bodyType;
+		}
+	}
+
+	static void GetLinearVelocity_RigidBody2D(entt::entity entity, vec2& velocity) {
+		Entity e(entity, s_scene);
+		if (e.HasComponent<Rigidbody2DComponent>()) {
+			auto& comp = e.GetComponent<Rigidbody2DComponent>();
+			velocity = comp.linearVelocity;
+		}
+	}
+
 	static bool GetKeyDown(KeyCode key) {
 		return Input::GetKeyDown(key);
 	}
@@ -159,6 +183,9 @@ namespace flaw {
 		ADD_INTERNAL_CALL(SetRotation_Transform);
 		ADD_INTERNAL_CALL(GetScale_Transform);
 		ADD_INTERNAL_CALL(SetScale_Transform);
+		ADD_INTERNAL_CALL(GetBodyType_RigidBody2D);
+		ADD_INTERNAL_CALL(SetBodyType_RigidBody2D);
+		ADD_INTERNAL_CALL(GetLinearVelocity_RigidBody2D);
 		ADD_INTERNAL_CALL(GetKeyDown);
 		ADD_INTERNAL_CALL(GetKeyUp);
 		ADD_INTERNAL_CALL(GetKey);
@@ -196,6 +223,7 @@ namespace flaw {
 		RegisterComponent<MonoScriptComponent>();
 		RegisterComponent<Rigidbody2DComponent>();
 		RegisterComponent<BoxCollider2DComponent>();
+		RegisterComponent<CircleCollider2DComponent>();
 		RegisterComponent<CameraComponent>();
 
 		s_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
@@ -222,7 +250,49 @@ namespace flaw {
 		MonoScripting::Cleanup();
 	}
 
-	static Ref<MonoScriptObject> CreateMonoScriptObject(Entity& entity, const char* name) {
+	void Scripting::OnStart(Scene* scene) {
+		s_scene = scene;
+
+		auto& registry = s_scene->GetRegistry();
+		for (auto&& [entity, scriptComp] : registry.view<MonoScriptComponent>().each()) {
+			Entity entt(entity, s_scene);
+
+			auto obj = CreateMonoScriptObject(entt, scriptComp.name.c_str());
+			if (obj) {
+				obj->CallMethod("OnCreate");
+				obj->SaveMethod("OnUpdate", 0, 0);
+
+				s_monoScriptObjects[entity] = obj;
+			}
+		}
+
+		for (auto&& [entity, scriptComp] : registry.view<MonoScriptComponent>().each()) {
+			auto it = s_monoScriptObjects.find(entity);
+			if (it != s_monoScriptObjects.end()) {
+				it->second->CallMethod("OnStart");
+			}
+		}
+	}
+
+	void Scripting::OnUpdate() {
+		for (auto& [entity, obj] : s_monoScriptObjects) {
+			obj->CallMethod(0);
+		}
+	}
+
+	void Scripting::OnEnd() {
+		for (auto&& [entity, scriptComp] : s_scene->GetRegistry().view<MonoScriptComponent>().each()) {
+			auto it = s_monoScriptObjects.find(entity);
+			if (it != s_monoScriptObjects.end()) {
+				it->second->CallMethod("OnDestroy");
+			}
+		}
+		s_monoScriptObjects.clear();
+
+		s_scene = nullptr;
+	}
+
+	Ref<MonoScriptObject> Scripting::CreateMonoScriptObject(const Entity& entity, const char* name) {
 		if (!s_monoScriptDomain->IsClassExists(name)) {
 			Log::Error("Mono script class not found: %s", name);
 			return nullptr;
@@ -235,42 +305,14 @@ namespace flaw {
 		void* args[] = { &enttID };
 		obj->CallMethod(".ctor", args, 1);
 
-		s_monoScriptObjects[enttID] = obj;
-
 		return obj;
 	}
 
-	void Scripting::OnStart(Scene* scene) {
-		s_scene = scene;
-
-		auto& registry = s_scene->GetRegistry();
-		for (auto&& [entity, scriptComp] : registry.view<MonoScriptComponent>().each()) {
-			Entity entt(entity, s_scene);
-
-			auto obj = CreateMonoScriptObject(entt, scriptComp.name.c_str());
-			if (obj) {
-				obj->CallMethod("OnCreate");
-				obj->SaveMethod("OnUpdate", 0, 0);
-			}
-		}
-	}
-
-	void Scripting::OnUpdate() {
-		for (auto& [_, obj] : s_monoScriptObjects) {
-			obj->CallMethod(0);
-		}
-	}
-
-	void Scripting::OnEnd() {
-		s_monoScriptObjects.clear();
-
-		s_scene = nullptr;
-	}
-
-	Ref<MonoScriptObject> Scripting::GetMonoScriptObject(Entity entity) {
-		uint32_t enttID = (uint32_t)entity;
-		if (s_monoScriptObjects.find(enttID) != s_monoScriptObjects.end()) {
-			return s_monoScriptObjects[enttID];
+	Ref<MonoScriptObject> Scripting::GetMonoScriptObject(const Entity& entity) {
+		entt::entity enttID = (entt::entity)(uint32_t)entity;
+		auto it = s_monoScriptObjects.find(enttID);
+		if (it != s_monoScriptObjects.end()) {
+			return it->second;
 		}
 		return nullptr;
 	}

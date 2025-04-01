@@ -18,7 +18,8 @@ namespace flaw {
 		static void OnUpdate();
 		static void OnEnd();
 
-		static Ref<MonoScriptObject> GetMonoScriptObject(Entity entity);
+		static Ref<MonoScriptObject> CreateMonoScriptObject(const Entity& entity, const char* name);
+		static Ref<MonoScriptObject> GetMonoScriptObject(const Entity& entity);
 
 	private:
 		static void LoadMonoScripts();

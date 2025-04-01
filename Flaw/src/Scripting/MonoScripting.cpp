@@ -15,7 +15,7 @@
 
 namespace flaw {
 	static MonoDomain* s_rootDomain = nullptr;
-
+	
 	MonoScriptClassField::MonoScriptClassField(MonoClassField* field)
 		: _field(field)
 	{
@@ -31,11 +31,19 @@ namespace flaw {
 	}
 
 	void MonoScriptClassField::SetValue(MonoScriptObject* obj, void* value) {
-		mono_field_set_value(obj->GetNativeObject(), _field, value);
+		mono_field_set_value(obj->GetMonoObject(), _field, value);
 	}
 
 	void MonoScriptClassField::GetValueImpl(MonoScriptObject* obj, void* buff) {
-		mono_field_get_value(obj->GetNativeObject(), _field, buff);
+		mono_field_get_value(obj->GetMonoObject(), _field, buff);
+	}
+
+	MonoType* MonoScriptClassField::GetMonoType() const {
+		return mono_field_get_type(_field);
+	}
+
+	std::string_view MonoScriptClassField::GetName() const {
+		return mono_field_get_name(_field);
 	}
 
 	std::string_view MonoScriptClassField::GetTypeName() const {
@@ -59,7 +67,12 @@ namespace flaw {
 		return obj;
 	}
 
-	void MonoScriptClass::EachFields(std::function<void(std::string_view, MonoScriptClassField&)> callback) {
+	MonoScriptClassField MonoScriptClass::GetField(const char* fieldName) {
+		MonoClassField* field = mono_class_get_field_from_name(_clss, fieldName);
+		return MonoScriptClassField(field);
+	}
+
+	void MonoScriptClass::EachPublicFields(std::function<void(std::string_view, MonoScriptClassField&)> callback) {
 		void* iter = nullptr;
 		while (MonoClassField* field = mono_class_get_fields(_clss, &iter)) {
 			const char* fieldName = mono_field_get_name(field);
@@ -84,11 +97,11 @@ namespace flaw {
 			method = mono_class_get_method_from_name(clss, methodName, argCount);
 		}
 
-		if (!method) {
-			throw std::runtime_error("mono_class_get_method_from_name failed");
-		}
-
 		return method;
+	}
+
+	std::string_view MonoScriptClass::GetTypeName() const {
+		return mono_class_get_name(_clss);
 	}
 
 	MonoScriptObject::MonoScriptObject(MonoScriptClass* clss)
@@ -121,7 +134,8 @@ namespace flaw {
 	void MonoScriptObject::CallMethod(const char* methodName, void** args, int32_t argCount) {
 		MonoMethod* method = _clss->GetMethod(methodName, argCount);
 		if (!method) {
-			throw std::runtime_error("Method not found: " + std::string(methodName));
+			Log::Warn("Method never be called, because it's not found: %s", methodName);
+			return;
 		}
 
 		MonoObject* exception = nullptr;
@@ -130,7 +144,7 @@ namespace flaw {
 		if (exception) {
 			MonoString* excStr = mono_object_to_string(exception, nullptr);
 			const char* excCStr = mono_string_to_utf8(excStr);
-			std::cerr << "Exception during method invocation: " << excCStr << std::endl;
+			Log::Error("Exception during method invocation: %s", excCStr);
 			mono_free((void*)excCStr);
 		}
 	}

@@ -380,6 +380,14 @@ namespace flaw {
 				});
 			}
 
+			if (_selectedEntt.HasComponent<CircleCollider2DComponent>()) {
+				ImGui::Separator();
+				DrawComponent<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt, [](CircleCollider2DComponent& circleCollider2DComp) {
+					ImGui::DragFloat2("Offset", glm::value_ptr(circleCollider2DComp.offset), 0.1f);
+					ImGui::DragFloat("Radius", &circleCollider2DComp.radius, 0.1f);
+				});
+			}
+
 			if (_selectedEntt.HasComponent<MonoScriptComponent>()) {
 				ImGui::Separator();
 				DrawComponent<MonoScriptComponent>("Mono Script", _selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
@@ -391,7 +399,7 @@ namespace flaw {
 
 					auto obj = Scripting::GetMonoScriptObject(_selectedEntt);
 					if (obj) {
-						obj->GetClass()->EachFields([this, &obj](std::string_view fieldName, MonoScriptClassField& field) {
+						obj->GetClass()->EachPublicFields([this, &obj](std::string_view fieldName, MonoScriptClassField& field) {
 							if (field.GetTypeName() == "System.Single") {
 								float value = field.GetValue<float>(obj.get());
 								if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
@@ -416,6 +424,7 @@ namespace flaw {
 				DrawAddComponentItem<SpriteRendererComponent>("Sprite Renderer", _selectedEntt);
 				DrawAddComponentItem<Rigidbody2DComponent>("Rigidbody 2D", _selectedEntt);
 				DrawAddComponentItem<BoxCollider2DComponent>("Box Collider 2D", _selectedEntt);
+				DrawAddComponentItem<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt);
 				DrawAddComponentItem<MonoScriptComponent>("Mono Script", _selectedEntt);
 
 				ImGui::EndPopup();

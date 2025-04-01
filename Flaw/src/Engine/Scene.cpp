@@ -37,6 +37,8 @@ namespace flaw {
 			_physics2DWorld->DestroyBody((b2Body*)rigidbody2D.runtimeBody);
 		}
 
+		// TODO: mono script component를 가지고 있으면 instance를 삭제할 것
+
 		_registry.destroy((entt::entity)(uint32_t)entity);
 	}
 
@@ -67,6 +69,7 @@ namespace flaw {
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<Rigidbody2DComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntt, dstEntt);
+		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<NativeScriptComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<MonoScriptComponent>(srcEntt, dstEntt);
 
@@ -99,7 +102,7 @@ namespace flaw {
 			Entity entt(entity, this);
 
 			// TODO: 다른 콜라이더 추가 시 수정할 것
-			bool hasAnyCollider = entt.HasComponent<BoxCollider2DComponent>(); 
+			bool hasAnyCollider = entt.HasComponent<BoxCollider2DComponent>() || entt.HasComponent<CircleCollider2DComponent>();
 			if (!hasAnyCollider) {
 				continue;
 			}
@@ -119,7 +122,24 @@ namespace flaw {
 
 				b2PolygonShape shape;
 				// TODO: 부모-자식 관계를 고려한 사이즈로 변경할 것
-				shape.SetAsBox(boxCollider.size.x * transComp.scale.x * 0.5, boxCollider.size.y * transComp.scale.y * 0.5);
+				shape.SetAsBox(boxCollider.size.x * transComp.scale.x, boxCollider.size.y * transComp.scale.y);
+
+				b2FixtureDef fixtureDef;
+				fixtureDef.shape = &shape;
+				fixtureDef.density = rigidbody2DComp.density;
+				fixtureDef.friction = rigidbody2DComp.friction;
+				fixtureDef.restitution = rigidbody2DComp.restitution;
+				fixtureDef.restitutionThreshold = rigidbody2DComp.restitutionThreshold;
+
+				runtimeBody->CreateFixture(&fixtureDef);
+			}
+			else if (entt.HasComponent<CircleCollider2DComponent>()) {
+				auto& circleCollider = entt.GetComponent<CircleCollider2DComponent>();
+
+				b2CircleShape shape;
+				// TODO: 부모-자식 관계를 고려한 offset으로 변경할 것
+				shape.m_p = b2Vec2(circleCollider.offset.x, circleCollider.offset.y);
+				shape.m_radius = circleCollider.radius;
 
 				b2FixtureDef fixtureDef;
 				fixtureDef.shape = &shape;
@@ -167,6 +187,8 @@ namespace flaw {
 
 				transform.position = vec3(body->GetPosition().x, body->GetPosition().y, transform.position.z);
 				transform.rotation.z = body->GetAngle();
+
+				rigidbody2D.linearVelocity = vec2(body->GetLinearVelocity().x, body->GetLinearVelocity().y);
 			}
 		}
 

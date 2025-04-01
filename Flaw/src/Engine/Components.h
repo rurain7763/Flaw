@@ -5,6 +5,7 @@
 #include "Math/Math.h"
 #include "Graphics/Texture.h"
 #include "Scriptable.h"
+#include "Scripting.h"
 
 namespace flaw {
 	struct EntityComponent {
@@ -137,6 +138,8 @@ namespace flaw {
 		float restitution = 0.0f;
 		float restitutionThreshold = 0.5f;
 
+		vec2 linearVelocity = vec2(0.0f);
+
 		void* runtimeBody = nullptr;
 
 		Rigidbody2DComponent() = default;
@@ -162,7 +165,7 @@ namespace flaw {
 
 	struct BoxCollider2DComponent {
 		vec2 offset = vec2(0.0f);
-		vec2 size = vec2(1.0f);
+		vec2 size = vec2(0.5);
 
 		BoxCollider2DComponent() = default;
 		BoxCollider2DComponent(const BoxCollider2DComponent& other) = default;
@@ -170,7 +173,7 @@ namespace flaw {
 
 	struct CircleCollider2DComponent {
 		vec2 offset = vec2(0.0f);
-		float radius = 1.0f;
+		float radius = 0.5f;
 
 		CircleCollider2DComponent() = default;
 		CircleCollider2DComponent(const CircleCollider2DComponent& other) = default;

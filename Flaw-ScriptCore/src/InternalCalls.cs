@@ -45,6 +45,15 @@ namespace Flaw
         internal extern static void SetScale_Transform(uint id, ref Vec3 scale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void GetBodyType_RigidBody2D(uint id, out int type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void SetBodyType_RigidBody2D(uint id, int type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void GetLinearVelocity_RigidBody2D(uint id, out Vec2 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool GetKeyDown(KeyCode keyCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

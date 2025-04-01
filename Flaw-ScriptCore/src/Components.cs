@@ -1,7 +1,7 @@
 ﻿namespace Flaw {
     public class TransformComponent : EntityComponent
     {
-        public Vec3 position
+        public Vec3 Position
         {
             get
             {
@@ -14,7 +14,7 @@
             }
         }
 
-        public Vec3 rotation
+        public Vec3 Rotation
         {
             get
             {
@@ -27,7 +27,7 @@
             }
         }
 
-        public Vec3 scale
+        public Vec3 Scale
         {
             get
             {
@@ -43,6 +43,33 @@
 
     public class Rigidbody2DComponent : EntityComponent
     {
-        
+        public enum BodyType
+        {
+            Static,
+            Dynamic,
+            Kinematic
+        }
+
+        public BodyType Type
+        {
+            get
+            {
+                InternalCalls.GetBodyType_RigidBody2D(entity.id, out int type);
+                return (BodyType)type;
+            }
+            set
+            {
+                InternalCalls.SetBodyType_RigidBody2D(entity.id, (int)value);
+            }
+        }
+
+        public Vec2 LinearVelocity
+        {
+            get
+            {
+                InternalCalls.GetLinearVelocity_RigidBody2D(entity.id, out Vec2 velocity);
+                return velocity;
+            }
+        }
     }
 }

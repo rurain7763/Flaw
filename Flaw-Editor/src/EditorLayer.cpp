@@ -62,7 +62,8 @@ namespace flaw {
             _viewportEditor.SetScene(_editorScene);
 		}
 		else {
-			OpenScene(projConfig.startScene.c_str());
+			const std::string fullPath = projConfig.path + "/" + projConfig.startScene;
+			OpenScene(fullPath.c_str());
 		}
     }
 
