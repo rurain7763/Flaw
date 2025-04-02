@@ -2,29 +2,24 @@
 
 #include <Flaw.h>
 
+#include "EditorTypes.h"
 #include "EditorCamera.h"
 #include "Editor/OutlinerEditor.h"
 #include "Editor/ViewportEditor.h"
 #include "Editor/ContentBrowserEditor.h"
+#include "Editor/DetailsEditor.h"
 #include "Editor/LogEditor.h"
 
 namespace flaw {
 	class EditorLayer : public Layer {
 	public:
-		enum class Theme {
-			Orange,
-			Dark,
-			Light,
-			GrayOrange
-		};
-
 		EditorLayer(Application& app);
 
 		void OnAttatch() override;
 		void OnDetach() override;
 		void OnUpdate() override;
 
-		void SetTheme(Theme theme);
+		void SetTheme(EditorTheme theme);
 
 	private:
 		void CreateRequiredTextures();
@@ -56,12 +51,10 @@ namespace flaw {
 		OutlinerEditor _outlinerEditor;
 		ViewportEditor _viewportEditor;
 		ContentBrowserEditor _contentBrowserEditor;
+		DetailsEditor _detailsEditor;
 		LogEditor _logEditor;
 
-		enum class SceneState {
-			Edit,
-			Play,
-		} _sceneState;
+		SceneState _sceneState;
 
 		bool _pause;
 

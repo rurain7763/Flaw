@@ -96,6 +96,7 @@
   <ItemGroup>
     <ClInclude Include="src\Editor\ContentBrowserEditor.h" />
     <ClInclude Include="src\Editor\GraphEditor.h" />
+    <ClInclude Include="src\Editor\DetailsEditor.h" />
     <ClInclude Include="src\Editor\ImCurveEdit.h" />
     <ClInclude Include="src\Editor\ImGradient.h" />
     <ClInclude Include="src\Editor\ImGuizmo.h" />
@@ -108,6 +109,7 @@
     <ClInclude Include="src\EditorEvents.h" />
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\FlawEditor.h" />
+    <ClInclude Include="src\EditorTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp" />
@@ -118,6 +120,7 @@
     <ClCompile Include="src\Editor\ImSequencer.cpp" />
     <ClCompile Include="src\Editor\LogEditor.cpp" />
     <ClCompile Include="src\Editor\OutlinerEditor.cpp" />
+    <ClCompile Include="src\Editor\DetailsEditor.cpp" />
     <ClCompile Include="src\Editor\ViewportEditor.cpp" />
     <ClCompile Include="src\EditorCamera.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />

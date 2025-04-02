@@ -13,6 +13,9 @@
     <Filter Include="Event">
       <UniqueIdentifier>{E70B220D-5320-4ABE-1CA2-ED1D887546EF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Font">
+      <UniqueIdentifier>{DC58857C-C88F-860D-717C-6C105D92020F}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{1653CE33-0220-293F-2B39-17E717655ECD}</UniqueIdentifier>
     </Filter>
@@ -95,6 +98,9 @@
       <Filter>Event</Filter>
     </ClInclude>
     <ClInclude Include="src\Flaw.h" />
+    <ClInclude Include="src\Font\Font.h">
+      <Filter>Font</Filter>
+    </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h">
       <Filter>Graphics\DX11</Filter>
     </ClInclude>
@@ -207,6 +213,7 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Font\FontData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -235,6 +242,9 @@
     </ClCompile>
     <ClCompile Include="src\Event\EventDispatcher.cpp">
       <Filter>Event</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Font\Font.cpp">
+      <Filter>Font</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp">
       <Filter>Graphics\DX11</Filter>

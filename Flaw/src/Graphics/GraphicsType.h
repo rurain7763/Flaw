@@ -68,6 +68,7 @@ namespace flaw {
 		RGBA8,
 		RGBA32F,
 		RGB8,
+		BGR8,
 		RG8,
 		R8,
 		R32_UINT,

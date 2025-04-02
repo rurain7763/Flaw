@@ -15,6 +15,7 @@ namespace flaw {
 		, _outlinerEditor(app)
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
+		, _detailsEditor(app)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
     {
@@ -23,6 +24,8 @@ namespace flaw {
         int32_t frameBufferWidth, frameBufferHeight;
         platformContext.GetFrameBufferSize(frameBufferWidth, frameBufferHeight);
     }
+
+    Ref<Font> g_font;
 
     void EditorLayer::OnAttatch() {
         IMGUI_CHECKVERSION();
@@ -37,7 +40,7 @@ namespace flaw {
 		io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-Bold.ttf", 18.0f);
 		io.FontDefault = io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-Regular.ttf", 18.0f);
 
-		SetTheme(Theme::Dark);
+		SetTheme(EditorTheme::Dark);
 
         ImGuiStyle& style = ImGui::GetStyle();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -65,9 +68,13 @@ namespace flaw {
 			const std::string fullPath = projConfig.path + "/" + projConfig.startScene;
 			OpenScene(fullPath.c_str());
 		}
+
+		g_font = CreateRef<Font>("Resources/Fonts/OpenSans/OpenSans-Regular.ttf");
     }
 
     void EditorLayer::OnDetach() {
+		g_font.reset();
+
 	    ImGui_ImplDX11_Shutdown();
 	    ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -171,12 +178,6 @@ namespace flaw {
 
 					ImGui::EndMenu();
 				}
-				if (ImGui::BeginMenu("Test")) {
-                    if (ImGui::MenuItem("Reload Scripts")) {
-						Scripting::Reload();
-                    }
-					ImGui::EndMenu();
-				}
 
                 ImGui::EndMenuBar();
             }
@@ -207,6 +208,7 @@ namespace flaw {
         _outlinerEditor.OnRender();
 		_viewportEditor.OnRender();
 		_contentBrowserEditor.OnRender();
+		_detailsEditor.OnRender();
         _logEditor.OnRender();
 
 	    ImGui::Render();
@@ -222,11 +224,11 @@ namespace flaw {
 		_graphicsContext.Present();
     }
 
-    void EditorLayer::SetTheme(Theme theme) {
+    void EditorLayer::SetTheme(EditorTheme theme) {
         ImGuiStyle& style = ImGui::GetStyle();
 
         switch (theme) {
-        case Theme::Orange:
+        case EditorTheme::Orange:
         {
             // 배경색(더 어두운 주황 계열)
             style.Colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.07f, 0.03f, 1.00f);
@@ -270,7 +272,7 @@ namespace flaw {
             style.FrameBorderSize = 1.2f;
             break;
         }
-        case Theme::Dark:
+        case EditorTheme::Dark:
         {
             style.Colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
             style.Colors[ImGuiCol_TitleBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
@@ -284,7 +286,7 @@ namespace flaw {
             style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.45f, 0.45f, 0.45f, 1.00f);
             break;
         }
-        case Theme::Light:
+        case EditorTheme::Light:
         {
             style.Colors[ImGuiCol_WindowBg] = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
             style.Colors[ImGuiCol_TitleBg] = ImVec4(0.85f, 0.85f, 0.85f, 1.00f);
@@ -298,7 +300,7 @@ namespace flaw {
             style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
             break;
         }
-        case Theme::GrayOrange: // 회색 + 주황 테마
+        case EditorTheme::GrayOrange: // 회색 + 주황 테마
         {
             style.Colors[ImGuiCol_WindowBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f); // 전체 배경 (짙은 회색)
 
@@ -384,12 +386,12 @@ namespace flaw {
         auto& renderer2D = _app.GetRenderer2D();
         auto& enttRegistry = scene->GetRegistry();
 
-        const mat4 viewMatrix = _camera.GetViewMatrix();
-        const mat4 projectionMatrix = _camera.GetProjectionMatrix();
-
         // draw sprite
+        renderer2D.Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+
+		renderer2D.DrawString(100, mat4(1.0f), L"Hello, World!\nNow we can use new line\n\tNow we can use tab", g_font, vec4(1.0f));
+
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
-            renderer2D.Begin(viewMatrix, projectionMatrix);
 
             if (sprComp.texture == nullptr) {
                 renderer2D.DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.color);
@@ -397,9 +399,9 @@ namespace flaw {
             else {
                 renderer2D.DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.texture);
             }
-
-            renderer2D.End();
         }
+
+        renderer2D.End();
 
         _camera.OnUpdate();
     }
@@ -430,8 +432,6 @@ namespace flaw {
 		Ref<DXTexture2D> dxTexture = std::static_pointer_cast<DXTexture2D>(currentTexture);
 
 		const ImVec2 buttonSizeEach = ImVec2(24, 24);
-
-		ImGui::SetNextWindowSize(ImVec2(24, 24));
 
 		if (ImGui::ImageButton(
             "##SceneStateButton",
@@ -538,24 +538,32 @@ namespace flaw {
 		_viewportEditor.SetScene(_runtimeScene);
 
 		_sceneState = SceneState::Play;
+
+        _app.GetEventDispatcher().Dispatch<OnSceneStateChangeEvent>(_sceneState);
 	}
 
     void EditorLayer::OnScenePause() {
 		_pause = true;
+
+		_app.GetEventDispatcher().Dispatch<OnScenePauseEvent>(_pause);
     }
 
     void EditorLayer::OnSceneResume() {
         _pause = false;
+
+		_app.GetEventDispatcher().Dispatch<OnScenePauseEvent>(_pause);
     }
 
     void EditorLayer::OnSceneStop() {
-		_sceneState = SceneState::Edit;
-
 		_runtimeScene->OnEnd();
 		_runtimeScene = nullptr;
 
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
+
+		_sceneState = SceneState::Edit;
+
+		_app.GetEventDispatcher().Dispatch<OnSceneStateChangeEvent>(_sceneState);
     }
 }
 

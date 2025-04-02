@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Graphics/GraphicsContext.h"
+#include "Font/Font.h"
 #include "Math/Math.h"
 
 namespace flaw {
@@ -13,6 +14,8 @@ namespace flaw {
 
 		void DrawQuad(const uint32_t id, const mat4& transform, const vec4& color);
 		void DrawQuad(const uint32_t id, const mat4& transform, const Ref<Texture>& texture);
+
+		void DrawString(const uint32_t id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const vec4& color);
 
 	private:
 		GraphicsContext& _context;
@@ -48,6 +51,7 @@ namespace flaw {
 		Ref<ConstantBuffer> _mvpCBuff;
 		Ref<ConstantBuffer> _constCBuff;
 		Ref<GraphicsPipeline> _pipeline;
+		Ref<GraphicsPipeline> _textPipeline;
 
 		MVPMatrices _mvp;
 		ConstDatas _constDatas;

@@ -70,7 +70,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16d.lib;freetyped.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\debug\lib;Vendor\lib\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -97,7 +97,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16.lib;freetype.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\lib;Vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -117,6 +117,8 @@
     <ClInclude Include="src\Engine\UUID.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
     <ClInclude Include="src\Flaw.h" />
+    <ClInclude Include="src\Font\Font.h" />
+    <ClInclude Include="src\Font\FontData.h" />
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h" />
     <ClInclude Include="src\Graphics\DX11\DXConstantBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXContext.h" />
@@ -166,6 +168,7 @@
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\UUID.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
+    <ClCompile Include="src\Font\Font.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXConstantBuffer.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXContext.cpp" />

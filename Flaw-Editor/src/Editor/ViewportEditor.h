@@ -23,7 +23,9 @@ namespace flaw {
 		PlatformContext& _platformContext;
 		GraphicsContext& _graphicsContext;
 		EventDispatcher& _eventDispatcher;
-		EditorCamera& _camera;
+		EditorCamera& _editorCamera;
+
+		bool _useEditorCamera;
 
 		Ref<Scene> _scene;
 		Entity _selectedEntt;

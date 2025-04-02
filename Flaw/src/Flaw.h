@@ -27,6 +27,8 @@
 
 #include "Math/Math.h"
 
+#include "Font/Font.h"
+
 #include "Image/Image.h"
 
 #include "Debug/Instrumentor.h"	

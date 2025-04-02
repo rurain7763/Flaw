@@ -27,6 +27,10 @@ project "Flaw"
     links {
         "box2d.lib",
         "libmono-static-sgen.lib",
+        "msdfgen-core.lib",
+        "msdfgen-ext.lib",
+        "msdf-atlas-gen.lib",
+        "skia.dll.lib",
         "version.lib",
         "bcrypt.lib"
     }
@@ -51,6 +55,8 @@ project "Flaw"
         }
 
         links {
+            "libpng16d.lib",
+            "freetyped.lib",
             "fmtd.lib",
             "spdlogd.lib",
             "yaml-cppd.lib",
@@ -66,6 +72,8 @@ project "Flaw"
         }
 
         links {
+            "libpng16.lib",
+            "freetype.lib",
             "fmt.lib",
             "spdlog.lib",
             "yaml-cpp.lib",

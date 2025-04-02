@@ -201,10 +201,7 @@ namespace flaw {
 
 			std::map<uint32_t, CameraMatrices> sortedCameras;
 			for (auto&& [entity, transform, camera] : _registry.view<TransformComponent, CameraComponent>().each()) {
-				mat4 viewMatrix = ViewMatrix(transform.position, transform.rotation);
-				mat4 projectionMatrix = camera.GetProjectionMatrix();
-
-				sortedCameras.insert({ camera.depth, { viewMatrix, projectionMatrix } });
+				sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
 			}
 
 			auto& renderer2D = _app.GetRenderer2D();

@@ -270,6 +270,9 @@ namespace flaw {
 			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
 
 			MonoClass* clss = mono_class_from_name(image, nameSpace, name);
+			if (!clss) {
+				continue;
+			}
 
 			if (baseClass != clss && mono_class_is_subclass_of(clss, baseClass, false)) {
 				std::string fullName = fmt::format("{}.{}", nameSpace, name);
