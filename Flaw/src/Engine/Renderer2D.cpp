@@ -143,6 +143,7 @@ namespace flaw {
 		float fsScale = 1.0f / (metrics.ascenderY - metrics.descenderY);
 		float y = 0.0f;
 		float lineOffset = 0.0f;
+		float kerningOffset = 0.0f;
 
 		for (int32_t i = 0; i < text.size(); ++i) {
 			uint32_t uniChar = text[i];
@@ -162,7 +163,17 @@ namespace flaw {
 				if (blankGlyph) {
 					double advance = blankGlyph->getAdvance();
 					fontData.geometry.getAdvance(advance, ' ', 0);
-					x += advance * fsScale * 4;
+					x += (advance * fsScale + kerningOffset) * 4;
+					continue;
+				}
+			}
+
+			if (uniChar == L' ') {
+				auto blankGlyph = fontData.geometry.getGlyph(' ');
+				if (blankGlyph) {
+					double advance = blankGlyph->getAdvance();
+					fontData.geometry.getAdvance(advance, ' ', i == text.size() - 1 ? 0 : text[i + 1]);
+					x += advance * fsScale + kerningOffset;
 					continue;
 				}
 			}
@@ -218,8 +229,6 @@ namespace flaw {
 
 			double advance = glyph->getAdvance();
 			fontData.geometry.getAdvance(advance, text[i], i == text.size() - 1 ? 0 : text[i + 1]);
-
-			float kerningOffset = 0.0f;
 
 			x += advance * fsScale + kerningOffset;
 		}

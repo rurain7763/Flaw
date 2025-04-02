@@ -25,8 +25,6 @@ namespace flaw {
         platformContext.GetFrameBufferSize(frameBufferWidth, frameBufferHeight);
     }
 
-    Ref<Font> g_font;
-
     void EditorLayer::OnAttatch() {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -68,13 +66,9 @@ namespace flaw {
 			const std::string fullPath = projConfig.path + "/" + projConfig.startScene;
 			OpenScene(fullPath.c_str());
 		}
-
-		g_font = CreateRef<Font>("Resources/Fonts/OpenSans/OpenSans-Regular.ttf");
     }
 
     void EditorLayer::OnDetach() {
-		g_font.reset();
-
 	    ImGui_ImplDX11_Shutdown();
 	    ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -150,8 +144,10 @@ namespace flaw {
 
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-                    const char* path = (const char*)payload->Data;
-					OpenScene(path);
+                    std::filesystem::path path = (const char*)payload->Data;
+                    if (path.extension() == ".scene") {
+					    OpenScene(path.generic_string().c_str());
+                    }
                 }
                 ImGui::EndDragDropTarget();
             }
@@ -389,8 +385,6 @@ namespace flaw {
         // draw sprite
         renderer2D.Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
 
-		renderer2D.DrawString(100, mat4(1.0f), L"Hello, World!\nNow we can use new line\n\tNow we can use tab", g_font, vec4(1.0f));
-
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 
             if (sprComp.texture == nullptr) {
@@ -400,6 +394,12 @@ namespace flaw {
                 renderer2D.DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.texture);
             }
         }
+
+		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
+			if (textComp.font) {
+			    renderer2D.DrawString((uint32_t)entity, transComp.GetTransform(), textComp.text, textComp.font, textComp.color);
+			}
+		}
 
         renderer2D.End();
 

@@ -6,6 +6,7 @@
 #include "Graphics/Texture.h"
 #include "Scriptable.h"
 #include "Scripting.h"
+#include "Font/Font.h"
 
 namespace flaw {
 	struct EntityComponent {
@@ -178,4 +179,13 @@ namespace flaw {
 		CircleCollider2DComponent() = default;
 		CircleCollider2DComponent(const CircleCollider2DComponent& other) = default;
 	};
+
+	struct TextComponent {
+		std::wstring text;
+		Ref<Font> font;
+		vec4 color = vec4(1.0f);
+
+		TextComponent() = default;
+		TextComponent(const TextComponent& other) = default;
+	};;
 }

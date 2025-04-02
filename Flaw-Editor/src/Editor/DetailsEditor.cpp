@@ -344,6 +344,34 @@ namespace flaw {
 					});
 			}
 
+			if (_selectedEntt.HasComponent<TextComponent>()) {
+				ImGui::Separator();
+				DrawComponent<TextComponent>("Text Component", _selectedEntt, [](TextComponent& textComp) {
+					std::string utf8Str = Utf16ToUtf8(textComp.text);
+					
+					char buffer[256] = { 0 };
+					strcpy_s(buffer, utf8Str.c_str());
+					
+					if (ImGui::InputTextMultiline("Text", buffer, sizeof(buffer), ImVec2(200, 100))) {
+						textComp.text = Utf8ToUtf16(buffer);
+					}
+
+					ImGui::Text("Font");
+
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+							std::filesystem::path filePath = (const char*)payload->Data;
+							if (filePath.extension() == ".ttf") {
+								textComp.font = CreateRef<Font>(filePath.generic_string().c_str());
+							}
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					ImGui::ColorEdit4("Color", &textComp.color.x);
+				});
+			}
+
 			ImGui::Separator();
 
 			// add component
@@ -359,6 +387,7 @@ namespace flaw {
 				DrawAddComponentItem<BoxCollider2DComponent>("Box Collider 2D", _selectedEntt);
 				DrawAddComponentItem<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt);
 				DrawAddComponentItem<MonoScriptComponent>("Mono Script", _selectedEntt);
+				DrawAddComponentItem<TextComponent>("Text", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

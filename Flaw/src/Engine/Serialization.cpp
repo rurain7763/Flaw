@@ -110,6 +110,15 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::TextComponent>()) {
+			auto& comp = entity.GetComponent<flaw::TextComponent>();
+			out << YAML::Key << "TextComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Text" << YAML::Value << Utf16ToUtf8(comp.text);
+			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -227,6 +236,14 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<MonoScriptComponent>();
 					comp.name = component.second["Name"].as<std::string>();
+				}
+				else if (name == "TextComponent") {
+					if (!entity.HasComponent<TextComponent>()) {
+						entity.AddComponent<TextComponent>();
+					}
+					auto& comp = entity.GetComponent<TextComponent>();
+					comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
+					comp.color = component.second["Color"].as<vec4>();
 				}
 			}
 		}

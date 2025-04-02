@@ -72,6 +72,7 @@ namespace flaw {
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<NativeScriptComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<MonoScriptComponent>(srcEntt, dstEntt);
+		CopyComponentIfExists<TextComponent>(srcEntt, dstEntt);
 
 		return dstEntt;
 	}
@@ -122,7 +123,7 @@ namespace flaw {
 
 				b2PolygonShape shape;
 				// TODO: 부모-자식 관계를 고려한 사이즈로 변경할 것
-				shape.SetAsBox(boxCollider.size.x * transComp.scale.x, boxCollider.size.y * transComp.scale.y);
+				shape.SetAsBox(boxCollider.size.x * transComp.scale.x, boxCollider.size.y * transComp.scale.y, b2Vec2(boxCollider.offset.x, boxCollider.offset.y), 0.0f);
 
 				b2FixtureDef fixtureDef;
 				fixtureDef.shape = &shape;
@@ -217,6 +218,13 @@ namespace flaw {
 					}
 					else {
 						renderer2D.DrawQuad((uint32_t)entity, transform.GetTransform(), sprite.texture);
+					}
+				}
+
+				// draw text
+				for (auto&& [entity, transform, text] : _registry.view<TransformComponent, TextComponent>().each()) {
+					if (text.font) {
+						renderer2D.DrawString((uint32_t)entity, transform.GetTransform(), text.text, text.font, text.color);
 					}
 				}
 
