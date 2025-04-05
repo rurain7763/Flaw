@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Core.h"
-#include "UUID.h"
+#include "Utils/UUID.h"
 #include "Math/Math.h"
 #include "Graphics/Texture.h"
 #include "Scriptable.h"
 #include "Scripting.h"
 #include "Font/Font.h"
+#include "Asset.h"
 
 namespace flaw {
 	struct EntityComponent {
@@ -38,12 +39,10 @@ namespace flaw {
 	};
 
 	struct SpriteRendererComponent {
-		Ref<Texture> texture;
-		vec4 color;
+		AssetHandle texture;
+		vec4 color = vec4(1.0f);
 
-		SpriteRendererComponent() : color(vec4(1.0f)) {}
-		SpriteRendererComponent(const vec4& color) : color(color) {}
-		SpriteRendererComponent(const Ref<Texture>& texture, const vec4& color) : texture(texture), color(color) {}
+		SpriteRendererComponent() = default;
 		SpriteRendererComponent(const SpriteRendererComponent& other) = default;
 	};
 
@@ -125,7 +124,7 @@ namespace flaw {
 
 	// 2D physics
 	struct Rigidbody2DComponent {
-		enum class BodyType {
+		enum class BodyType : int32_t {
 			Static,
 			Dynamic,
 			Kinematic
@@ -182,7 +181,7 @@ namespace flaw {
 
 	struct TextComponent {
 		std::wstring text;
-		Ref<Font> font;
+		AssetHandle font;
 		vec4 color = vec4(1.0f);
 
 		TextComponent() = default;

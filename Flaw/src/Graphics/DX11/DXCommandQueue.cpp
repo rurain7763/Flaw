@@ -25,7 +25,7 @@ namespace flaw {
 		_commands.push([constantBuffer, slot]() { constantBuffer->BindToGraphicsShader(slot); });
 	}
 
-	void DXCommandQueue::SetTexture(const Ref<Texture>& texture, uint32_t slot) {
+	void DXCommandQueue::SetTexture(const Ref<Texture2D>& texture, uint32_t slot) {
 		FASSERT(_open, "DXCommandQueue::SetTexture failed: Command queue is not open");
 		_commands.push([texture, slot]() { texture->BindToGraphicsShader(slot); });
 	}

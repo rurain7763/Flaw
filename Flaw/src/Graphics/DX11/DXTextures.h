@@ -17,7 +17,7 @@ using namespace DirectX::PackedVector;
 namespace flaw {
 	class DXContext;
 
-	class DXTexture2D : public Texture {
+	class DXTexture2D : public Texture2D {
 	public:
 		DXTexture2D(DXContext& context, const Descriptor& descriptor);
 		DXTexture2D(DXContext& context, const ComPtr<ID3D11Texture2D>& texture, const PixelFormat format, const uint32_t bindFlags);
@@ -29,8 +29,8 @@ namespace flaw {
 
 		void Fetch(void* outData, const uint32_t size) const override;
 
-		void CopyTo(Ref<Texture>& target) const override;
-		void CopyToSub(Ref<Texture>& target, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) const override;
+		void CopyTo(Ref<Texture2D>& target) const override;
+		void CopyToSub(Ref<Texture2D>& target, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) const override;
 
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }

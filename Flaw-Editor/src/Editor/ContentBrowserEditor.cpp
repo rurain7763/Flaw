@@ -1,22 +1,21 @@
 #include "ContentBrowserEditor.h"
+#include "AssetDatabase.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
 namespace flaw {
-	ContentBrowserEditor::ContentBrowserEditor(Application& app) 
+	ContentBrowserEditor::ContentBrowserEditor(Application& app)
 		: _app(app)
 	{
-		auto projectConfig = Project::GetConfig();
-		_contentDirectory = projectConfig.path + "/Contents";
-		_currentDirectory = _contentDirectory;
+		_currentDirectory = AssetDatabase::GetContentsDirectory();
 
 		RefreshDirectory();
 
 		CreateIcon(FileType::Directory, "Resources/Icons/Directory.png");
 		CreateIcon(FileType::Unknown, "Resources/Icons/UnknownFile.png");
-		CreateIcon(FileType::Png, "Resources/Icons/PngFile.png");
+		CreateIcon(FileType::Texture2D, "Resources/Icons/Texture2D.png");
 
 		_changeHandle = FindFirstChangeNotification(
 			_currentDirectory.wstring().c_str(),
@@ -28,6 +27,14 @@ namespace flaw {
 	void ContentBrowserEditor::OnRender() {
 		ImGui::Begin("Content Browser");
 
+		if (ImGui::Button("Import")) {
+			std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "All Files (*.*)\0");
+			if (!filePath.empty()) {
+				std::filesystem::path destPath = _currentDirectory.generic_string() + "/" + filePath.filename().replace_extension(".asset").generic_string();
+				AssetDatabase::ImportAsset(filePath.generic_string().c_str(), destPath.generic_string().c_str());
+			}
+		}
+
 		std::filesystem::path dirHasToBeChanged;
 
 		ImVec2 contentSize = ImGui::GetContentRegionAvail();
@@ -37,7 +44,7 @@ namespace flaw {
 
 		uint32_t remainingCount = iconMaxStride;
 
-		if (_currentDirectory != std::filesystem::path(_contentDirectory)) {
+		if (_currentDirectory != std::filesystem::path(AssetDatabase::GetContentsDirectory())) {
 			auto dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Directory]);
 
 			ImGui::BeginGroup();
@@ -45,7 +52,7 @@ namespace flaw {
 			ImGui::ImageButton("..", (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
 			ImGui::PopStyleColor();
 			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("%s", _currentDirectory.parent_path().string().c_str());
+				ImGui::SetTooltip("%s", _currentDirectory.parent_path().generic_u8string().c_str());
 
 				if (ImGui::IsMouseDoubleClicked(0)) {
 					dirHasToBeChanged = _currentDirectory.parent_path();
@@ -62,19 +69,21 @@ namespace flaw {
 		}
 
 		for (auto& dir : _directoryEntries) {
+			std::filesystem::path path = dir.path();
+
 			if (dir.is_directory()) {
 				auto dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Directory]);
-				std::string folderName = dir.path().filename().generic_string();
+				const std::string folderName = path.filename().generic_u8string();
 
 				ImGui::BeginGroup(); // 그룹화하여 아이콘과 텍스트 정렬
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
 				ImGui::ImageButton(folderName.c_str(), (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("%s", dir.path().string().c_str()); // 전체 경로 툴팁 표시
+					ImGui::SetTooltip("%s", path.generic_u8string().c_str()); // 전체 경로 툴팁 표시
 
 					if (ImGui::IsMouseDoubleClicked(0)) {
-						dirHasToBeChanged = dir.path();
+						dirHasToBeChanged = path;
 					}
 				}
 
@@ -84,22 +93,31 @@ namespace flaw {
 				ImGui::EndGroup();
 			}
 			else {
-				const std::string filename = dir.path().filename().generic_string();
-				Ref<DXTexture2D> dxTexture = nullptr;
+				if (path.extension() != ".asset") {
+					continue;
+				}
 
-				if (dir.path().extension() == ".png") {
-					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Png]);
+				AssetMetadata metadata;
+				if (!AssetDatabase::GetAssetMetadata(path.generic_string().c_str(), metadata)) {
+					continue;
+				}
+
+				Ref<DXTexture2D> dxTexture = nullptr;
+				if (metadata.type == AssetType::Texture2D) {
+					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2D]);
 				}
 				else {
 					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);
 				}
+
+				const std::string filename = path.filename().generic_u8string();
 
 				ImGui::BeginGroup();
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
 				ImGui::ImageButton(filename.c_str(), (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("%s", dir.path().string().c_str());
+					ImGui::SetTooltip("%s", path.generic_u8string().c_str());
 
 					if (ImGui::IsMouseDoubleClicked(0)) {
 						
@@ -107,7 +125,7 @@ namespace flaw {
 				}
 
 				if (ImGui::BeginDragDropSource()) {
-					const std::string fullPath = dir.path().generic_string();
+					const std::string fullPath = path.generic_string();
 					ImGui::SetDragDropPayload("CONTENT_FILE_PATH", fullPath.c_str(), fullPath.size() + 1, ImGuiCond_Once);
 					ImGui::EndDragDropSource();
 				}
@@ -141,24 +159,21 @@ namespace flaw {
 	}
 
 	void ContentBrowserEditor::CreateIcon(FileType fileType, const char* filePath) {
-		auto& gContext = _app.GetGraphicsContext();
-
 		Image iconImg(filePath);
 
-		Texture::Descriptor desc = {};
-		desc.type = Texture::Type::Texture2D;
+		Texture2D::Descriptor desc = {};
 		desc.format = PixelFormat::RGBA8;
 		desc.width = iconImg.Width();
 		desc.height = iconImg.Height();
 		desc.data = iconImg.Data().data();
-		desc.wrapS = Texture::Wrap::ClampToEdge;
-		desc.wrapT = Texture::Wrap::ClampToEdge;
-		desc.minFilter = Texture::Filter::Linear;
-		desc.magFilter = Texture::Filter::Linear;
+		desc.wrapS = Texture2D::Wrap::ClampToEdge;
+		desc.wrapT = Texture2D::Wrap::ClampToEdge;
+		desc.minFilter = Texture2D::Filter::Linear;
+		desc.magFilter = Texture2D::Filter::Linear;
 		desc.usage = UsageFlag::Static;
 		desc.bindFlags = BindFlag::ShaderResource;
 
-		_fileTypeIcons[(size_t)fileType] = gContext.CreateTexture2D(desc);
+		_fileTypeIcons[(size_t)fileType] = Graphics::GetGraphicsContext().CreateTexture2D(desc);
 	}
 
 	void ContentBrowserEditor::RefreshDirectory() {

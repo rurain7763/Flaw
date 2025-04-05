@@ -15,7 +15,7 @@ namespace flaw{
 		enum class FileType {
 			Directory,
 			Unknown,
-			Png,
+			Texture2D,
 			Count
 		};
 
@@ -26,13 +26,11 @@ namespace flaw{
 	private:
 		Application& _app;
 
-		std::string _contentDirectory;
-
 		HANDLE _changeHandle;
 
 		std::filesystem::path _currentDirectory;
 		std::vector<std::filesystem::directory_entry> _directoryEntries;
 
-		std::array<Ref<Texture>, (size_t)FileType::Count> _fileTypeIcons;
+		std::array<Ref<Texture2D>, (size_t)FileType::Count> _fileTypeIcons;
 	};
 }

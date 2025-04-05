@@ -2,10 +2,10 @@
 #include "Serialization.h"
 #include "Components.h"
 #include "ECS/ECS.h"
-
 #include "Project.h"
 #include "Scene.h"
 #include "Entity.h"
+#include "AssetManager.h"
 
 namespace flaw {
 	void Serialize(YAML::Emitter& out, ProjectConfig& config) {
@@ -68,6 +68,7 @@ namespace flaw {
 			out << YAML::Key << "SpriteRendererComponent";
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Texture" << YAML::Value << comp.texture;
 			out << YAML::EndMap;
 		}
 
@@ -75,7 +76,7 @@ namespace flaw {
 			auto& comp = entity.GetComponent<flaw::Rigidbody2DComponent>();
 			out << YAML::Key << "Rigidbody2DComponent";
 			out << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "BodyType" << YAML::Value << (int)comp.bodyType;
+			out << YAML::Key << "BodyType" << YAML::Value << (int32_t)comp.bodyType;
 			out << YAML::Key << "FixedRotation" << YAML::Value << comp.fixedRotation;
 			out << YAML::Key << "Density" << YAML::Value << comp.density;
 			out << YAML::Key << "Friction" << YAML::Value << comp.friction;
@@ -116,6 +117,7 @@ namespace flaw {
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Text" << YAML::Value << Utf16ToUtf8(comp.text);
 			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Font" << YAML::Value << comp.font;
 			out << YAML::EndMap;
 		}
 
@@ -201,13 +203,14 @@ namespace flaw {
 
 					auto& comp = entity.GetComponent<SpriteRendererComponent>();
 					comp.color = component.second["Color"].as<vec4>();
+					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 				else if (name == "Rigidbody2DComponent") {
 					if (!entity.HasComponent<Rigidbody2DComponent>()) {
 						entity.AddComponent<Rigidbody2DComponent>();
 					}
 					auto& comp = entity.GetComponent<Rigidbody2DComponent>();
-					comp.bodyType = (Rigidbody2DComponent::BodyType)component.second["BodyType"].as<int>();
+					comp.bodyType = (Rigidbody2DComponent::BodyType)component.second["BodyType"].as<int32_t>();
 					comp.fixedRotation = component.second["FixedRotation"].as<bool>();
 					comp.density = component.second["Density"].as<float>();
 					comp.friction = component.second["Friction"].as<float>();
@@ -244,6 +247,7 @@ namespace flaw {
 					auto& comp = entity.GetComponent<TextComponent>();
 					comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
 					comp.color = component.second["Color"].as<vec4>();
+					comp.font = component.second["Font"].as<uint64_t>();
 				}
 			}
 		}

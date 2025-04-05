@@ -30,7 +30,7 @@ namespace flaw {
 		Ref<Scene> _scene;
 		Entity _selectedEntt;
 
-		Ref<Texture> _captureRenderTargetTexture;
-		Ref<Texture> _idRenderTexture;
+		Ref<Texture2D> _captureRenderTargetTexture;
+		Ref<Texture2D> _idRenderTexture;
 	};
 }

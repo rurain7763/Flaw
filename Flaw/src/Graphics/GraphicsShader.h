@@ -3,6 +3,8 @@
 #include "Core.h"
 #include "GraphicsType.h"
 
+#include <vector>
+
 namespace flaw {
 	class GraphicsShader {
 	public:

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "DetailsEditor.h"
 #include "EditorEvents.h"
+#include "AssetDatabase.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -240,53 +241,21 @@ namespace flaw {
 				DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectedEntt, [this](SpriteRendererComponent& spriteComp) {
 					ImGui::ColorEdit4("Color", &spriteComp.color.x);
 					ImGui::Text("Texture");
+
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
 							std::filesystem::path filePath = (const char*)payload->Data;
 
-							if (filePath.extension() == ".png"
-								|| filePath.extension() == ".jpg"
-								|| filePath.extension() == ".jpeg")
-							{
-								Image img(filePath.generic_string().c_str());
-
-								Texture::Descriptor desc = {};
-								desc.width = img.Width();
-								desc.height = img.Height();
-
-								PixelFormat format = PixelFormat::RGBA8;
-								switch (img.Channels())
-								{
-								case 1:
-									format = PixelFormat::R8;
-									break;
-								case 2:
-									format = PixelFormat::RG8;
-									break;
-								case 3:
-									format = PixelFormat::RGB8;
-									break;
-								case 4:
-									format = PixelFormat::RGBA8;
-									break;
+							AssetMetadata metadata;
+							if (AssetDatabase::GetAssetMetadata(filePath.generic_string().c_str(), metadata)) {
+								if (metadata.type == AssetType::Texture2D) {
+									spriteComp.texture = metadata.handle;
 								}
-
-								desc.format = format;
-								desc.data = img.Data().data();
-								desc.wrapS = Texture::Wrap::ClampToEdge;
-								desc.wrapT = Texture::Wrap::ClampToEdge;
-								desc.minFilter = Texture::Filter::Linear;
-								desc.magFilter = Texture::Filter::Linear;
-
-								desc.usage = UsageFlag::Static;
-								desc.bindFlags = BindFlag::ShaderResource;
-
-								spriteComp.texture = _app.GetGraphicsContext().CreateTexture2D(desc);
 							}
 						}
 						ImGui::EndDragDropTarget();
 					}
-					});
+				});
 			}
 
 			if (_selectedEntt.HasComponent<Rigidbody2DComponent>()) {
@@ -302,7 +271,7 @@ namespace flaw {
 					ImGui::DragFloat("Friction", &rigidbody2DComp.friction, 0.1f);
 					ImGui::DragFloat("Restitution", &rigidbody2DComp.restitution, 0.1f);
 					ImGui::DragFloat("Restitution Threshold", &rigidbody2DComp.restitutionThreshold, 0.1f);
-					});
+				});
 			}
 
 			if (_selectedEntt.HasComponent<BoxCollider2DComponent>()) {
@@ -310,7 +279,7 @@ namespace flaw {
 				DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectedEntt, [](BoxCollider2DComponent& boxCollider2DComp) {
 					ImGui::DragFloat2("Offset", glm::value_ptr(boxCollider2DComp.offset), 0.1f);
 					ImGui::DragFloat2("Size", glm::value_ptr(boxCollider2DComp.size), 0.1f);
-					});
+				});
 			}
 
 			if (_selectedEntt.HasComponent<CircleCollider2DComponent>()) {
@@ -318,7 +287,7 @@ namespace flaw {
 				DrawComponent<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt, [](CircleCollider2DComponent& circleCollider2DComp) {
 					ImGui::DragFloat2("Offset", glm::value_ptr(circleCollider2DComp.offset), 0.1f);
 					ImGui::DragFloat("Radius", &circleCollider2DComp.radius, 0.1f);
-					});
+				});
 			}
 
 			if (_selectedEntt.HasComponent<MonoScriptComponent>()) {
@@ -339,9 +308,9 @@ namespace flaw {
 									field.SetValue(obj.get(), &value);
 								}
 							}
-							});
+						});
 					}
-					});
+				});
 			}
 
 			if (_selectedEntt.HasComponent<TextComponent>()) {
@@ -361,8 +330,12 @@ namespace flaw {
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
 							std::filesystem::path filePath = (const char*)payload->Data;
-							if (filePath.extension() == ".ttf") {
-								textComp.font = CreateRef<Font>(filePath.generic_string().c_str());
+
+							AssetMetadata metadata;
+							if (AssetDatabase::GetAssetMetadata(filePath.generic_string().c_str(), metadata)) {
+								if (metadata.type == AssetType::Font) {
+									textComp.font = metadata.handle;
+								}
 							}
 						}
 						ImGui::EndDragDropTarget();

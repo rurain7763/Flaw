@@ -730,7 +730,7 @@ namespace filewatch {
         static StringType absolute_path_of(const StringType& path) {
             constexpr size_t size = IsWChar<C>::value ? MAX_PATH : 32767 * sizeof(wchar_t);
             char buf[size];
-
+            
             DWORD length = IsWChar<C>::value ?
                 GetFullPathNameW((LPCWSTR)path.c_str(),
                     size / sizeof(TCHAR),
@@ -740,7 +740,13 @@ namespace filewatch {
                     size / sizeof(TCHAR),
                     buf,
                     nullptr);
-            return StringType{ (C*)buf, length };
+
+			if constexpr (std::is_same_v<StringType, std::filesystem::path>) {
+                return StringType(buf);
+			}
+            else {
+                return StringType{ (C*)buf, length };
+            }
         }
 #endif
 

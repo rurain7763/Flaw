@@ -1,0 +1,31 @@
+#pragma once
+
+#include "Core.h"
+#include "Asset.h"
+
+namespace flaw {
+	class Application;
+
+	class AssetManager {
+	public:
+		static void Init();
+		static void Cleanup();
+
+		static void RegisterAsset(const AssetHandle& handle, const Ref<Asset>& asset);
+		static void UnregisterAsset(const AssetHandle& handle);
+
+		static void LoadAsset(const AssetHandle& handle);
+		static void UnloadAsset(const AssetHandle& handle);
+		static void ReloadAsset(const AssetHandle& handle);
+
+		static Ref<Asset> GetAsset(const AssetHandle& handle);
+
+		static bool IsAssetRegistered(const AssetHandle& handle);
+
+		template <typename T>
+		static Ref<T> GetAsset(const AssetHandle& handle) {
+			return std::static_pointer_cast<T>(GetAsset(handle));
+		}
+	};
+}
+

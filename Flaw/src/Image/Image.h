@@ -25,6 +25,8 @@ namespace flaw {
 		int32_t Height() const { return _height; }
 		int32_t Channels() const { return _channels; }
 
+		bool IsValid() const { return !_data.empty(); }
+
 	private:
 		static bool Load(const char* filePath, std::vector<uint8_t>& outData, int32_t& outWidth, int32_t& outHeight, int32_t& outChannels);
 		Type GetImageType(const char* filePath);

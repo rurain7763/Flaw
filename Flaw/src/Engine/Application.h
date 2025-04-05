@@ -2,8 +2,8 @@
 
 #include "Core.h"
 #include "Renderer2D.h"
+#include "LayerRegistry.h"
 #include "Event/EventDispatcher.h"
-#include "Layer/LayerRegistry.h"
 #include "Platform/PlatformContext.h"
 #include "Graphics/GraphicsContext.h"
 
@@ -34,9 +34,6 @@ namespace flaw {
 		void Run();
 
 		inline EventDispatcher& GetEventDispatcher() { return _eventDispatcher; }
-		inline PlatformContext& GetPlatformContext() { return *_platformContext; }
-		inline GraphicsContext& GetGraphicsContext() { return *_graphicsContext; }
-		inline Renderer2D& GetRenderer2D() { return *_renderer2D; }
 
 	private:
 		void ExecuteTasks();
@@ -44,10 +41,6 @@ namespace flaw {
 	private:
 		EventDispatcher _eventDispatcher;
 		LayerRegistry _layerRegistry;
-
-		Scope<PlatformContext> _platformContext;
-		Scope<GraphicsContext> _graphicsContext;
-		Scope<Renderer2D> _renderer2D;
 
 		bool _running;
 		bool _minimized;

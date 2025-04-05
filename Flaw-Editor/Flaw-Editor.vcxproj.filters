@@ -42,6 +42,7 @@
     <ClInclude Include="src\FlawEditor.h" />
     <ClInclude Include="src\Editor\DetailsEditor.h" />
     <ClInclude Include="src\EditorTypes.h" />
+    <ClInclude Include="src\AssetDatabase.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp">
@@ -76,5 +77,6 @@
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Editor\DetailsEditor.cpp" />
+    <ClCompile Include="src\AssetDatabase.cpp" />
   </ItemGroup>
 </Project>

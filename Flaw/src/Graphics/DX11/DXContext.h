@@ -36,14 +36,14 @@ namespace flaw {
 
 		Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc) override;
 
-		Ref<Texture> CreateTexture2D(const Texture::Descriptor& descriptor) override;
+		Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) override;
 
-		void SetRenderTexture(uint32_t slot, Ref<Texture> texture, float clearValue[4]) override;
+		void SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) override;
 		void ResetRenderTexture(uint32_t slot) override;
 
-		Ref<GraphicsCommandQueue> GetCommandQueue() override;
+		GraphicsCommandQueue& GetCommandQueue() override;
 
-		void CaptureRenderTargetTex(Ref<Texture>& dstTexture) override;
+		void CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) override;
 
 		void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
 		void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) override;

@@ -1,56 +1,94 @@
 #include "pch.h"
 #include "Renderer2D.h"
-#include "Font/FontData.h"
+#include "Graphics.h"
 
 namespace flaw {
-	Renderer2D::Renderer2D(GraphicsContext& context)
-		: _context(context)
-		, _commandQueue(*context.GetCommandQueue().get())
-	{
+	struct MVPMatrices {
+		mat4 model = mat4(1.0f);
+		mat4 view = mat4(1.0f);
+		mat4 projection = mat4(1.0f);
+	};
+
+	struct ConstDatas {
+		int32_t textureEnabled;
+		int32_t padding[3];
+		vec4 color;
+	};
+
+	struct TexturedVertex {
+		vec3 position;
+		vec2 texcoord;
+		uint32_t id;
+	};
+
+	static TexturedVertex g_defaultQuadVertices[4] = {
+		{ vec3(-0.5f, 0.5f, 0.0f), vec2(0.0f, 0.0f), 0xffffffff },
+		{ vec3(0.5f, 0.5f, 0.0f), vec2(1.0f, 0.0f), 0xffffffff },
+		{ vec3(0.5f, -0.5f, 0.0f), vec2(1.0f, 1.0f), 0xffffffff },
+		{ vec3(-0.5f, -0.5f, 0.0f), vec2(0.0f, 1.0f), 0xffffffff }
+	};
+
+	static Ref<VertexBuffer> g_vb;
+	static Ref<IndexBuffer> g_ib;
+	static Ref<ConstantBuffer> g_mvpCBuff;
+	static Ref<ConstantBuffer> g_constCBuff;
+	static Ref<GraphicsPipeline> g_pipeline;
+	static Ref<GraphicsPipeline> g_textPipeline;
+
+	static MVPMatrices g_mvp;
+	static ConstDatas g_constDatas;
+
+	void Renderer2D::Init() {
+		auto& context = Graphics::GetGraphicsContext();
+
 		VertexBuffer::Descriptor vbDesc = {};
 		vbDesc.usage = UsageFlag::Dynamic;
-		vbDesc.elmSize = sizeof(Vertex);
+		vbDesc.elmSize = sizeof(TexturedVertex);
 		vbDesc.count = 4;
+		g_vb = context.CreateVertexBuffer(vbDesc);
 
-		_vb = _context.CreateVertexBuffer(vbDesc);
+		g_ib = context.CreateIndexBuffer();
+		const uint32_t indices[] = { 0, 1, 2, 0, 2, 3 };
+		g_ib->Update(indices, 6);
 
-		_ib = _context.CreateIndexBuffer();
+		g_mvpCBuff = context.CreateConstantBuffer(sizeof(MVPMatrices));
+		g_constCBuff = context.CreateConstantBuffer(sizeof(ConstDatas));
 
-		const uint32_t indices[] = {
-			0, 1, 2, 0, 2, 3
-		};
-
-		_ib->Update(indices, 6);
-
-		_mvpCBuff = _context.CreateConstantBuffer(sizeof(MVPMatrices));
-		_constCBuff = _context.CreateConstantBuffer(sizeof(ConstDatas));
-
-		Ref<GraphicsShader> shader = _context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
 		shader->AddInputElement<float>("TEXCOORD", 2);
 		shader->AddInputElement<uint32_t>("ID", 1);
 		shader->CreateInputLayout();
 
-		_pipeline = _context.CreateGraphicsPipeline();
-		_pipeline->SetShader(shader);
-		_pipeline->SetBlendMode(BlendMode::Alpha, true);
-		_pipeline->SetCullMode(CullMode::None);
+		g_pipeline = context.CreateGraphicsPipeline();
+		g_pipeline->SetShader(shader);
+		g_pipeline->SetBlendMode(BlendMode::Alpha, true);
+		g_pipeline->SetCullMode(CullMode::None);
 
-		Ref<GraphicsShader> textShader = _context.CreateGraphicsShader("Resources/Shaders/text2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		Ref<GraphicsShader> textShader = context.CreateGraphicsShader("Resources/Shaders/text2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		textShader->AddInputElement<float>("POSITION", 3);
 		textShader->AddInputElement<float>("TEXCOORD", 2);
 		textShader->AddInputElement<uint32_t>("ID", 1);
 		textShader->CreateInputLayout();
 
-		_textPipeline = _context.CreateGraphicsPipeline();
-		_textPipeline->SetShader(textShader);
-		_textPipeline->SetBlendMode(BlendMode::Alpha, true);
-		_textPipeline->SetCullMode(CullMode::None);
+		g_textPipeline = context.CreateGraphicsPipeline();
+		g_textPipeline->SetShader(textShader);
+		g_textPipeline->SetBlendMode(BlendMode::Alpha, true);
+		g_textPipeline->SetCullMode(CullMode::None);
+	}
+
+	void Renderer2D::Cleanup() {
+		g_vb.reset();
+		g_ib.reset();
+		g_mvpCBuff.reset();
+		g_constCBuff.reset();
+		g_pipeline.reset();
+		g_textPipeline.reset();
 	}
 
 	void Renderer2D::Begin(const mat4& view, const mat4& projection) {
-		_mvp.view = view;
-		_mvp.projection = projection;
+		g_mvp.view = view;
+		g_mvp.projection = projection;
 	}
 
 	void Renderer2D::End() {
@@ -59,92 +97,82 @@ namespace flaw {
 	}
 
 	void Renderer2D::DrawQuad(const uint32_t id, const mat4& transform, const vec4& color) {
+		auto& commandQueue = Graphics::GetCommandQueue();
+
 		for (uint32_t i = 0; i < 4; i++) {
-			_defaultQuadVertices[i].id = id;
+			g_defaultQuadVertices[i].id = id;
 		}
 
-		_vb->Update(_defaultQuadVertices, sizeof(Vertex), 4);
+		g_vb->Update(g_defaultQuadVertices, sizeof(TexturedVertex), 4);
 		
-		_mvp.model = transform;
+		g_mvp.model = transform;
 
-		_constDatas.textureEnabled = 0;
-		_constDatas.color = color;
+		g_constDatas.textureEnabled = 0;
+		g_constDatas.color = color;
 
-		_mvpCBuff->Update(&_mvp, sizeof(MVPMatrices));
-		_constCBuff->Update(&_constDatas, sizeof(ConstDatas));
+		g_mvpCBuff->Update(&g_mvp, sizeof(MVPMatrices));
+		g_constCBuff->Update(&g_constDatas, sizeof(ConstDatas));
 
-		_commandQueue.Begin();
-		_commandQueue.SetPipeline(_pipeline);
-		_commandQueue.SetVertexBuffer(_vb);
-		_commandQueue.SetConstantBuffer(_mvpCBuff, 0);
-		_commandQueue.SetConstantBuffer(_constCBuff, 1);
-		_commandQueue.DrawIndexed(_ib);
-		_commandQueue.End();
+		commandQueue.Begin();
+		commandQueue.SetPipeline(g_pipeline);
+		commandQueue.SetVertexBuffer(g_vb);
+		commandQueue.SetConstantBuffer(g_mvpCBuff, 0);
+		commandQueue.SetConstantBuffer(g_constCBuff, 1);
+		commandQueue.DrawIndexed(g_ib);
+		commandQueue.End();
 
-		_commandQueue.Execute();
+		commandQueue.Execute();
 	}
 
-	void Renderer2D::DrawQuad(const uint32_t id, const mat4& transform, const Ref<Texture>& texture) {
+	void Renderer2D::DrawQuad(const uint32_t id, const mat4& transform, const Ref<Texture2D>& texture) {
+		auto& commandQueue = Graphics::GetCommandQueue();
+
 		for (uint32_t i = 0; i < 4; i++) {
-			_defaultQuadVertices[i].id = id;
+			g_defaultQuadVertices[i].id = id;
 		}
 
-		_vb->Update(_defaultQuadVertices, sizeof(Vertex), 4);
+		g_vb->Update(g_defaultQuadVertices, sizeof(TexturedVertex), 4);
 		
-		_mvp.model = transform;
+		g_mvp.model = transform;
 
-		_constDatas.textureEnabled = 1;
-		_constDatas.color = vec4(1.0f);
+		g_constDatas.textureEnabled = 1;
+		g_constDatas.color = vec4(1.0f);
 
-		_mvpCBuff->Update(&_mvp, sizeof(MVPMatrices));
-		_constCBuff->Update(&_constDatas, sizeof(ConstDatas));
+		g_mvpCBuff->Update(&g_mvp, sizeof(MVPMatrices));
+		g_constCBuff->Update(&g_constDatas, sizeof(ConstDatas));
 
-		_commandQueue.Begin();
-		_commandQueue.SetPipeline(_pipeline);
-		_commandQueue.SetVertexBuffer(_vb);
-		_commandQueue.SetConstantBuffer(_mvpCBuff, 0);
-		_commandQueue.SetConstantBuffer(_constCBuff, 1);
-		_commandQueue.SetTexture(texture, 0);
-		_commandQueue.DrawIndexed(_ib);
-		_commandQueue.End();
+		commandQueue.Begin();
+		commandQueue.SetPipeline(g_pipeline);
+		commandQueue.SetVertexBuffer(g_vb);
+		commandQueue.SetConstantBuffer(g_mvpCBuff, 0);
+		commandQueue.SetConstantBuffer(g_constCBuff, 1);
+		commandQueue.SetTexture(texture, 0);
+		commandQueue.DrawIndexed(g_ib);
+		commandQueue.End();
 
-		_commandQueue.Execute();
+		commandQueue.Execute();
 	}
 
-	static Ref<Texture> g_texture;
+	void Renderer2D::DrawString(const uint32_t id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const Ref<Texture2D>& fontAtlas, const vec4& color) {
+		auto& commandQueue = Graphics::GetCommandQueue();
 
-	void Renderer2D::DrawString(const uint32_t id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const vec4& color) {
-		_mvp.model = transform;
+		g_mvp.model = transform;
 
-		_constDatas.textureEnabled = 1;
-		_constDatas.color = color;
+		g_constDatas.textureEnabled = 1;
+		g_constDatas.color = color;
 
-		_mvpCBuff->Update(&_mvp, sizeof(MVPMatrices));
-		_constCBuff->Update(&_constDatas, sizeof(ConstDatas));
+		g_mvpCBuff->Update(&g_mvp, sizeof(MVPMatrices));
+		g_constCBuff->Update(&g_constDatas, sizeof(ConstDatas));
 		
-		auto& fontData = font->GetFontData();
-		const auto& metrics = fontData.geometry.getMetrics();
-
-		// TODO: test
-		if (!g_texture) {
-			Texture::Descriptor desc = {};
-			desc.type = Texture::Type::Texture2D;
-			desc.width = fontData.atlas.width;
-			desc.height = fontData.atlas.height;
-			desc.format = PixelFormat::RGBA8;
-			desc.data = fontData.atlas.data.data();
-			desc.usage = UsageFlag::Static;
-			desc.bindFlags = BindFlag::ShaderResource;
-
-			g_texture = _context.CreateTexture2D(desc);
-		}
-
 		float x = 0.0f;
-		float fsScale = 1.0f / (metrics.ascenderY - metrics.descenderY);
 		float y = 0.0f;
 		float lineOffset = 0.0f;
 		float kerningOffset = 0.0f;
 
+		const float texelW = 1.0f / fontAtlas->GetWidth();
+		const float texelH = 1.0f / fontAtlas->GetHeight();
+
+		FontGlyph glyph;
 		for (int32_t i = 0; i < text.size(); ++i) {
 			uint32_t uniChar = text[i];
 
@@ -154,83 +182,63 @@ namespace flaw {
 
 			if (uniChar == L'\n') {
 				x = 0.0f;
-				y -= metrics.lineHeight * fsScale - lineOffset;
+				y -= font->LineHeight() - lineOffset;
 				continue;
 			}
 
 			if (uniChar == L'\t') {
-				auto blankGlyph = fontData.geometry.getGlyph(' ');
-				if (blankGlyph) {
-					double advance = blankGlyph->getAdvance();
-					fontData.geometry.getAdvance(advance, ' ', 0);
-					x += (advance * fsScale + kerningOffset) * 4;
-					continue;
+				if (font->TryGetGlyph(' ', glyph)) {
+					x += (glyph.advance + kerningOffset) * 4;
 				}
+				continue;
 			}
 
 			if (uniChar == L' ') {
-				auto blankGlyph = fontData.geometry.getGlyph(' ');
-				if (blankGlyph) {
-					double advance = blankGlyph->getAdvance();
-					fontData.geometry.getAdvance(advance, ' ', i == text.size() - 1 ? 0 : text[i + 1]);
-					x += advance * fsScale + kerningOffset;
+				if (font->TryGetGlyph(' ', glyph)) {
+					x += glyph.advance + kerningOffset;
+				}
+				continue;
+			}
+
+			if (!font->TryGetGlyph(uniChar, glyph)) {
+				if (!font->TryGetGlyph('?', glyph)) {
 					continue;
 				}
 			}
 
-			auto glyph = fontData.geometry.getGlyph(uniChar);
-
-			if (!glyph) {
-				glyph = fontData.geometry.getGlyph('?');
-
-				if (!glyph) {
-					continue;
-				}
-			}
-
-			double l, b, r, t;
-			glyph->getQuadAtlasBounds(l, b, r, t);
-			vec2 texcoordMin = vec2(l, b);
-			vec2 texcoordMax = vec2(r, t);
-
-			glyph->getQuadPlaneBounds(l, b, r, t);
-			vec2 quadMin = vec2(l, b);
-			vec2 quadMax = vec2(r, t);
-
-			quadMin *= fsScale; quadMax *= fsScale;
-			quadMin += vec2(x, y); quadMax += vec2(x, y);
-
-			float texelW = 1.0f / fontData.atlas.width;
-			float texelH = 1.0f / fontData.atlas.height;
+			vec2 texcoordMin = vec2(glyph.tl, glyph.tb);
+			vec2 texcoordMax = vec2(glyph.tr, glyph.tt);
 
 			texcoordMin *= vec2(texelW, texelH);
 			texcoordMax *= vec2(texelW, texelH);
 
+			vec2 quadMin = vec2(glyph.l, glyph.b);
+			vec2 quadMax = vec2(glyph.r, glyph.t);
+
+			quadMin += vec2(x, y); quadMax += vec2(x, y);
+
 			// rendering
-			Vertex vertices[4] = {
+			TexturedVertex vertices[4] = {
 				{ vec3(quadMin.x, quadMax.y, 0.0f), vec2(texcoordMin.x, texcoordMax.y), id },
 				{ vec3(quadMax.x, quadMax.y, 0.0f), vec2(texcoordMax.x, texcoordMax.y), id },
 				{ vec3(quadMax.x, quadMin.y, 0.0f), vec2(texcoordMax.x, texcoordMin.y), id },
 				{ vec3(quadMin.x, quadMin.y, 0.0f), vec2(texcoordMin.x, texcoordMin.y), id }
 			};
 
-			_vb->Update(vertices, sizeof(Vertex), 4);
+			g_vb->Update(vertices, sizeof(TexturedVertex), 4);
 
-			_commandQueue.Begin();
-			_commandQueue.SetPipeline(_textPipeline);
-			_commandQueue.SetVertexBuffer(_vb);
-			_commandQueue.SetConstantBuffer(_mvpCBuff, 0);
-			_commandQueue.SetConstantBuffer(_constCBuff, 1);
-			_commandQueue.SetTexture(g_texture, 0);
-			_commandQueue.DrawIndexed(_ib);
-			_commandQueue.End();
+			commandQueue.Begin();
+			commandQueue.SetPipeline(g_textPipeline);
+			commandQueue.SetVertexBuffer(g_vb);
+			commandQueue.SetConstantBuffer(g_mvpCBuff, 0);
+			commandQueue.SetConstantBuffer(g_constCBuff, 1);
+			commandQueue.SetTexture(fontAtlas, 0);
+			commandQueue.DrawIndexed(g_ib);
+			commandQueue.End();
 
-			_commandQueue.Execute();
+			commandQueue.Execute();
 
-			double advance = glyph->getAdvance();
-			fontData.geometry.getAdvance(advance, text[i], i == text.size() - 1 ? 0 : text[i + 1]);
-
-			x += advance * fsScale + kerningOffset;
+			x += glyph.advance + kerningOffset;
 		}
 	}
 }

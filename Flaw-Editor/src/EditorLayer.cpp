@@ -11,7 +11,7 @@
 namespace flaw {
     EditorLayer::EditorLayer(flaw::Application& app) 
 	    : _app(app)
-		, _graphicsContext(app.GetGraphicsContext())
+		, _graphicsContext(Graphics::GetGraphicsContext())
 		, _outlinerEditor(app)
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
@@ -19,10 +19,6 @@ namespace flaw {
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
     {
-        PlatformContext& platformContext = app.GetPlatformContext();
-
-        int32_t frameBufferWidth, frameBufferHeight;
-        platformContext.GetFrameBufferSize(frameBufferWidth, frameBufferHeight);
     }
 
     void EditorLayer::OnAttatch() {
@@ -35,8 +31,8 @@ namespace flaw {
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
 
         // setup fonts
-		io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-Bold.ttf", 18.0f);
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-Regular.ttf", 18.0f);
+		io.Fonts->AddFontFromFileTTF("Resources/Fonts/NotoSans/NotoSansKR-Bold.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesKorean());
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("Resources/Fonts/NotoSans/NotoSansKR-Regular.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesKorean());
 
 		SetTheme(EditorTheme::Dark);
 
@@ -46,8 +42,8 @@ namespace flaw {
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
 
-        auto* wndContext = static_cast<flaw::WindowsContext*>(&_app.GetPlatformContext());
-        auto* dxContext = static_cast<flaw::DXContext*>(&_app.GetGraphicsContext());
+        auto* wndContext = static_cast<flaw::WindowsContext*>(&Platform::GetPlatformContext());
+        auto* dxContext = static_cast<flaw::DXContext*>(&_graphicsContext);
 
         ImGui_ImplWin32_Init(wndContext->GetWindowHandle());
         ImGui_ImplDX11_Init(dxContext->Device().Get(), dxContext->DeviceContext().Get());
@@ -178,15 +174,15 @@ namespace flaw {
                 ImGui::EndMenuBar();
             }
 
-            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKey(KeyCode::N)) {
+            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKeyDown(KeyCode::N)) {
 				NewScene();
             }
 
-            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKey(KeyCode::O)) {
+            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKeyDown(KeyCode::O)) {
 				OpenScene();
             }
 
-            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKey(KeyCode::S)) {
+            if (Input::GetKey(KeyCode::LCtrl) && Input::GetKeyDown(KeyCode::S)) {
 				SaveScene();
             }
 
@@ -340,7 +336,7 @@ namespace flaw {
     }
 
     void EditorLayer::CreateRequiredTextures() {
-        Texture::Descriptor desc = {};
+        Texture2D::Descriptor desc = {};
 
         Image playImg("Resources/Icons/Play.png");
 
@@ -379,29 +375,29 @@ namespace flaw {
     }
 
     void EditorLayer::RenderTargetScene(const Ref<Scene>& scene) {
-        auto& renderer2D = _app.GetRenderer2D();
         auto& enttRegistry = scene->GetRegistry();
 
         // draw sprite
-        renderer2D.Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+        Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
 
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
-
-            if (sprComp.texture == nullptr) {
-                renderer2D.DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.color);
+			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
+            if (!textureAsset) {
+                Renderer2D::DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.color);
             }
             else {
-                renderer2D.DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.texture);
+                Renderer2D::DrawQuad((uint32_t)entity, transComp.GetTransform(), textureAsset->GetTexture());
             }
         }
 
 		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
-			if (textComp.font) {
-			    renderer2D.DrawString((uint32_t)entity, transComp.GetTransform(), textComp.text, textComp.font, textComp.color);
+			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
+			if (fontAsset) {
+			    Renderer2D::DrawString((uint32_t)entity, transComp.GetTransform(), textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
 
-        renderer2D.End();
+        Renderer2D::End();
 
         _camera.OnUpdate();
     }
@@ -424,7 +420,7 @@ namespace flaw {
         }
 
         // Play/Stop 이미지 버튼
-		Ref<Texture> currentTexture = _sceneState == SceneState::Play ? _stopButtonTex : _playButtonTex;
+		Ref<Texture2D> currentTexture = _sceneState == SceneState::Play ? _stopButtonTex : _playButtonTex;
         if (_pause) {
 			currentTexture = _resumeButtonTex;
         }
@@ -482,7 +478,7 @@ namespace flaw {
 
 	void EditorLayer::SaveScene() {
 		if (_currentScenePath.empty()) {
-			std::string filePath = FileDialogs::SaveFile(_app.GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
+			std::string filePath = FileDialogs::SaveFile(Platform::GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
 			if (!filePath.empty()) {
 				_editorScene->ToFile(filePath.c_str());
 			}
@@ -493,7 +489,7 @@ namespace flaw {
 	}
 
 	void EditorLayer::SaveSceneAs() {
-		std::string filePath = FileDialogs::SaveFile(_app.GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
+		std::string filePath = FileDialogs::SaveFile(Platform::GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
 		if (!filePath.empty()) {
 			_editorScene->ToFile(filePath.c_str());
 			_currentScenePath = filePath;
@@ -501,7 +497,7 @@ namespace flaw {
 	}
 
 	void EditorLayer::OpenScene() {
-		std::string filePath = FileDialogs::OpenFile(_app.GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
+		std::string filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Scene Files (*.scene)\0*.scene\0");
 		if (!filePath.empty()) {
 			OpenScene(filePath.c_str());
 		}
@@ -520,7 +516,7 @@ namespace flaw {
 	}
 
 	void EditorLayer::OpenProject() {
-		std::string filePath = FileDialogs::OpenFile(_app.GetPlatformContext(), "Project Files (*.fproj)\0*.fproj\0");
+		std::string filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Project Files (*.fproj)\0*.fproj\0");
 		if (!filePath.empty()) {
 			Project::FromFile(filePath.c_str());
 

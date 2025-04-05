@@ -144,11 +144,11 @@ namespace flaw {
 		return CreateRef<DXStructuredBuffer>(*this, desc);
 	}
 
-	Ref<Texture> DXContext::CreateTexture2D(const Texture::Descriptor& descriptor) {
+	Ref<Texture2D> DXContext::CreateTexture2D(const Texture2D::Descriptor& descriptor) {
 		return CreateRef<DXTexture2D>(*this, descriptor);
 	}
 
-	void DXContext::SetRenderTexture(uint32_t slot, Ref<Texture> texture, float clearValue[4]) {
+	void DXContext::SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) {
 		if (slot == 0) {
 			Log::Error("Cannot set render target to slot 0, it is reserved for main render target");
 			return;
@@ -171,8 +171,8 @@ namespace flaw {
 		_additionalRenderTargets[slot] = RenderTarget{ nullptr, 0.0f, 0.0f, 0.0f, 0.0f };
 	}
 
-	Ref<GraphicsCommandQueue> DXContext::GetCommandQueue() {
-		return _commandQueue;
+	GraphicsCommandQueue& DXContext::GetCommandQueue() {
+		return *_commandQueue;
 	}
 
 	void DXContext::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -236,7 +236,7 @@ namespace flaw {
 		}
 	}
 
-	void DXContext::CaptureRenderTargetTex(Ref<Texture>& dstTexture) {
+	void DXContext::CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) {
 		Ref<DXTexture2D> casted = std::static_pointer_cast<DXTexture2D>(dstTexture);
 		_deviceContext->CopyResource(casted->GetNativeTexture().Get(), _renderTarget.Get());
 	}

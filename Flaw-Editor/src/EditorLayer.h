@@ -58,10 +58,10 @@ namespace flaw {
 
 		bool _pause;
 
-		Ref<Texture> _playButtonTex;
-		Ref<Texture> _stopButtonTex;
-		Ref<Texture> _pauseButtonTex;
-		Ref<Texture> _resumeButtonTex;
+		Ref<Texture2D> _playButtonTex;
+		Ref<Texture2D> _stopButtonTex;
+		Ref<Texture2D> _pauseButtonTex;
+		Ref<Texture2D> _resumeButtonTex;
 
 		EditorCamera _camera;
 		std::string _currentScenePath;

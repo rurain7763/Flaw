@@ -8,8 +8,8 @@
 
 namespace flaw {
     ViewportEditor::ViewportEditor(Application& app, EditorCamera& camera)
-        : _platformContext(app.GetPlatformContext())
-        , _graphicsContext(app.GetGraphicsContext())
+        : _platformContext(Platform::GetPlatformContext())
+        , _graphicsContext(Graphics::GetGraphicsContext())
         , _eventDispatcher(app.GetEventDispatcher())
         , _editorCamera(camera)
 		, _useEditorCamera(true)
@@ -157,8 +157,7 @@ namespace flaw {
 	}
 
     void ViewportEditor::CreateRequiredTextures() {
-        Texture::Descriptor desc = {};
-        desc.type = Texture::Type::Texture2D;
+        Texture2D::Descriptor desc = {};
 
 		int32_t frameBufferWidth, frameBufferHeight;
 		_platformContext.GetFrameBufferSize(frameBufferWidth, frameBufferHeight);
@@ -185,15 +184,14 @@ namespace flaw {
 		if (x < 0 || x >= _idRenderTexture->GetWidth() || y < 0 || y >= _idRenderTexture->GetHeight()) {
             return std::numeric_limits<int32_t>().max();
 		}
-        Texture::Descriptor desc = {};
-		desc.type = Texture::Type::Texture2D;
+        Texture2D::Descriptor desc = {};
 		desc.width = 1;
 		desc.height = 1;
 		desc.format = PixelFormat::R32_UINT;
 		desc.usage = UsageFlag::Staging;
 		desc.access = AccessFlag::Read;
 
-		Ref<Texture> stagingTexture = _graphicsContext.CreateTexture2D(desc);
+		Ref<Texture2D> stagingTexture = _graphicsContext.CreateTexture2D(desc);
 
 		_idRenderTexture->CopyToSub(stagingTexture, x, y, 1, 1);
 

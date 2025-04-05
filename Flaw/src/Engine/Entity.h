@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "Scene.h"
 #include "ECS/ECS.h"
-#include "UUID.h"
+#include "Utils/UUID.h"
 
 namespace flaw {
 	class Entity {

@@ -10,4 +10,8 @@ namespace flaw {
 
 	UUID::UUID() : _id(g_dist(g_gen)) {}
 	UUID::UUID(uint64_t id) : _id(id) {}
+
+	void UUID::Generate() {
+		_id = g_dist(g_gen);
+	}
 }

@@ -1,14 +1,17 @@
 #include "pch.h"
 #include "Application.h"
+#include "Platform.h"
 #include "Input/Input.h"
 #include "Time/Time.h"
 #include "Platform/PlatformEvents.h"
-#include "Platform/Windows/WindowsContext.h"
 #include "Graphics/DX11/DXContext.h"
 #include "Debug/Instrumentor.h"
 #include "Log/Log.h"
 #include "Scripting.h"
 #include "Project.h"
+#include "AssetManager.h"
+#include "Graphics.h"
+#include "Fonts.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) {
@@ -26,13 +29,23 @@ namespace flaw {
 
 		{
 			FLAW_PROFILE_SCOPE("Initialize Platform");
-			_platformContext = std::make_unique<WindowsContext>(props.title, props.width, props.height, _eventDispatcher);
+			Platform::Init(props.title, props.width, props.height, _eventDispatcher);
 		}
 
 		{
 			FLAW_PROFILE_SCOPE("Initialize Graphics");
-			_graphicsContext = std::make_unique<DXContext>(*_platformContext, props.width, props.height);
-			_renderer2D = std::make_unique<Renderer2D>(*_graphicsContext);
+			Graphics::Init(GraphicsType::DX11);
+			Renderer2D::Init();
+		}
+
+		{
+			FLAW_PROFILE_SCOPE("Initialize Fonts");
+			Fonts::Init();
+		}
+
+		{
+			FLAW_PROFILE_SCOPE("Initialize Asset Manager");
+			AssetManager::Init();
 		}
 
 		{
@@ -48,8 +61,8 @@ namespace flaw {
 		_eventDispatcher.Register<MouseReleaseEvent>([this](const MouseReleaseEvent& event) { Input::OnMouseRelease(event.button); }, PID(this));
 		_eventDispatcher.Register<MouseScrollEvent>([this](const MouseScrollEvent& event) { Input::OnMouseScroll(event.xOffset, event.yOffset); }, PID(this));
 		_eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& event) { 
-			_graphicsContext->Resize(event.frameBufferWidth, event.frameBufferHeight); 
-			_graphicsContext->SetViewport(0, 0, event.frameBufferWidth, event.frameBufferHeight);
+			Graphics::Resize(event.frameBufferWidth, event.frameBufferHeight); 
+			Graphics::SetViewport(0, 0, event.frameBufferWidth, event.frameBufferHeight);
 		}, PID(this));
 		_eventDispatcher.Register<WindowIconifyEvent>([this](const WindowIconifyEvent& event) { _minimized = event.iconified; }, PID(this));
 		_eventDispatcher.Register<WindowFocusEvent>([this](const WindowFocusEvent& event) { if (!event.focused) { Input::Reset(); } }, PID(this));
@@ -62,8 +75,11 @@ namespace flaw {
 		_eventDispatcher.UnregisterAll(PID(this));
 
 		Scripting::Cleanup();
-		_graphicsContext.reset();
-		_platformContext.reset();
+		AssetManager::Cleanup();
+		Fonts::Cleanup();
+		Renderer2D::Cleanup();
+		Graphics::Cleanup();
+		Platform::Cleanup();
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -89,14 +105,14 @@ namespace flaw {
 	void Application::Run() {
 		Time::Start();
 
-		while (_running && _platformContext->PollEvents()) {
+		while (_running && Platform::PollEvents()) {
 			_eventDispatcher.PollEvents();
 
 			Time::Update();
 
-			_graphicsContext->Prepare();
-
 			if (!_minimized) {
+				Graphics::Prepare();
+
 				for (Layer* layer : _layerRegistry) {
 					layer->OnUpdate();
 				}

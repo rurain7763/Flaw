@@ -5,7 +5,7 @@
 #include "Math/Math.h"
 
 namespace flaw {
-	uint32_t GetSizePerPixel(const PixelFormat format) {
+	inline uint32_t GetSizePerPixel(const PixelFormat format) {
 		switch (format) {
 		case PixelFormat::R8:
 			return 1;
@@ -25,7 +25,7 @@ namespace flaw {
 		throw std::runtime_error("Unknown pixel format");
 	}
 
-	void GetChangedPixelFormat(const PixelFormat srcFormat, const std::vector<uint8_t>& src, const PixelFormat dstFormat, std::vector<uint8_t>& dst) {
+	inline void GetChangedPixelFormat(const PixelFormat srcFormat, const std::vector<uint8_t>& src, const PixelFormat dstFormat, std::vector<uint8_t>& dst) {
 		if (srcFormat == dstFormat) {
 			dst = src;
 			return;
@@ -70,7 +70,7 @@ namespace flaw {
 		}
 	}
 
-	void GeneratePolygonVertices(float radius, uint32_t segments, std::vector<vec3>& outVec) {
+	inline void GeneratePolygonVertices(float radius, uint32_t segments, std::vector<vec3>& outVec) {
 		const float step = 360.0f / segments;
 		for (uint32_t i = 0; i < segments; i++) {
 			const float radian = glm::radians(i * step);

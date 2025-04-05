@@ -91,7 +91,7 @@
     <ClInclude Include="src\Engine\Serialization.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\UUID.h">
+    <ClInclude Include="src\Utils\UUID.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Event\EventDispatcher.h">
@@ -173,7 +173,7 @@
     <ClInclude Include="src\Input\InputCodes.h">
       <Filter>Input</Filter>
     </ClInclude>
-    <ClInclude Include="src\Layer\LayerRegistry.h">
+    <ClInclude Include="src\Engine\LayerRegistry.h">
       <Filter>Layer</Filter>
     </ClInclude>
     <ClInclude Include="src\Log\Log.h">
@@ -213,7 +213,17 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Font\FontData.h" />
+    <ClInclude Include="src\Engine\AssetManager.h" />
+    <ClInclude Include="src\Engine\Asset.h" />
+    <ClInclude Include="src\Engine\Platform.h" />
+    <ClInclude Include="src\Engine\Graphics.h" />
+    <ClInclude Include="src\Engine\Texture2DAsset.h" />
+    <ClInclude Include="src\Utils\SerializationArchive.h" />
+    <ClInclude Include="src\Engine\FontAsset.h" />
+    <ClInclude Include="src\Font\FontsContext.h" />
+    <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h" />
+    <ClInclude Include="src\Font\MSDF\MSDFFont.h" />
+    <ClInclude Include="src\Engine\Fonts.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -237,14 +247,11 @@
     <ClCompile Include="src\Engine\Serialization.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\UUID.cpp">
+    <ClCompile Include="src\Utils\UUID.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Event\EventDispatcher.cpp">
       <Filter>Event</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Font\Font.cpp">
-      <Filter>Font</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp">
       <Filter>Graphics\DX11</Filter>
@@ -279,7 +286,7 @@
     <ClCompile Include="src\Input\Input.cpp">
       <Filter>Input</Filter>
     </ClCompile>
-    <ClCompile Include="src\Layer\LayerRegistry.cpp">
+    <ClCompile Include="src\Engine\LayerRegistry.cpp">
       <Filter>Layer</Filter>
     </ClCompile>
     <ClCompile Include="src\Log\Log.cpp">
@@ -301,5 +308,13 @@
       <Filter>Time</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\Engine\AssetManager.cpp" />
+    <ClCompile Include="src\Engine\Platform.cpp" />
+    <ClCompile Include="src\Engine\Graphics.cpp" />
+    <ClCompile Include="src\Engine\Texture2DAsset.cpp" />
+    <ClCompile Include="src\Engine\FontAsset.cpp" />
+    <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
+    <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
+    <ClCompile Include="src\Engine\Fonts.cpp" />
   </ItemGroup>
 </Project>

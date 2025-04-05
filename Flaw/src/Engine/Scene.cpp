@@ -7,6 +7,10 @@
 #include "Time/Time.h"
 #include "Platform/PlatformEvents.h"
 #include "Scripting.h"
+#include "Renderer2D.h"
+#include "AssetManager.h"
+#include "Texture2DAsset.h"
+#include "FontAsset.h"
 
 namespace flaw {
 	Scene::Scene(Application& app) 
@@ -205,30 +209,30 @@ namespace flaw {
 				sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
 			}
 
-			auto& renderer2D = _app.GetRenderer2D();
-
 			// draw entities
 			for (const auto& [depth, matrices] : sortedCameras) {
-				renderer2D.Begin(matrices.view, matrices.projection);
+				Renderer2D::Begin(matrices.view, matrices.projection);
 
 				// draw sprite
 				for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {
-					if (sprite.texture == nullptr) {
-						renderer2D.DrawQuad((uint32_t)entity, transform.GetTransform(), sprite.color);
+					auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprite.texture);
+					if (!textureAsset) {
+						Renderer2D::DrawQuad((uint32_t)entity, transform.GetTransform(), sprite.color);
 					}
 					else {
-						renderer2D.DrawQuad((uint32_t)entity, transform.GetTransform(), sprite.texture);
+						Renderer2D::DrawQuad((uint32_t)entity, transform.GetTransform(), textureAsset->GetTexture());
 					}
 				}
 
 				// draw text
 				for (auto&& [entity, transform, text] : _registry.view<TransformComponent, TextComponent>().each()) {
-					if (text.font) {
-						renderer2D.DrawString((uint32_t)entity, transform.GetTransform(), text.text, text.font, text.color);
+					auto fontAsset = AssetManager::GetAsset<FontAsset>(text.font);
+					if (fontAsset) {
+						Renderer2D::DrawString((uint32_t)entity, transform.GetTransform(), text.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), text.color);
 					}
 				}
 
-				renderer2D.End();
+				Renderer2D::End();
 			}
 		}
 	}

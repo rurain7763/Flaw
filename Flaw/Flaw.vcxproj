@@ -102,23 +102,33 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Engine\AssetManager.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\Debug\Instrumentor.h" />
     <ClInclude Include="src\ECS\ECS.h" />
     <ClInclude Include="src\Engine\Application.h" />
     <ClInclude Include="src\Engine\Components.h" />
     <ClInclude Include="src\Engine\Entity.h" />
+    <ClInclude Include="src\Engine\Asset.h" />
+    <ClInclude Include="src\Engine\FontAsset.h" />
+    <ClInclude Include="src\Engine\Graphics.h" />
+    <ClInclude Include="src\Engine\Fonts.h" />
+    <ClInclude Include="src\Engine\Texture2DAsset.h" />
     <ClInclude Include="src\Engine\Project.h" />
     <ClInclude Include="src\Engine\Renderer2D.h" />
     <ClInclude Include="src\Engine\Scene.h" />
     <ClInclude Include="src\Engine\Scriptable.h" />
     <ClInclude Include="src\Engine\Scripting.h" />
     <ClInclude Include="src\Engine\Serialization.h" />
-    <ClInclude Include="src\Engine\UUID.h" />
+    <ClInclude Include="src\Engine\Platform.h" />
+    <ClInclude Include="src\Font\FontsContext.h" />
+    <ClInclude Include="src\Font\MSDF\MSDFFont.h" />
+    <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h" />
+    <ClInclude Include="src\Utils\SerializationArchive.h" />
+    <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
     <ClInclude Include="src\Flaw.h" />
     <ClInclude Include="src\Font\Font.h" />
-    <ClInclude Include="src\Font\FontData.h" />
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h" />
     <ClInclude Include="src\Graphics\DX11\DXConstantBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXContext.h" />
@@ -143,7 +153,7 @@
     <ClInclude Include="src\Image\Image.h" />
     <ClInclude Include="src\Input\Input.h" />
     <ClInclude Include="src\Input\InputCodes.h" />
-    <ClInclude Include="src\Layer\LayerRegistry.h" />
+    <ClInclude Include="src\Engine\LayerRegistry.h" />
     <ClInclude Include="src\Log\Log.h" />
     <ClInclude Include="src\Math\Math.h" />
     <ClInclude Include="src\Physics\Physics2D.h" />
@@ -159,16 +169,23 @@
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\AssetManager.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\Entity.cpp" />
+    <ClCompile Include="src\Engine\FontAsset.cpp" />
     <ClCompile Include="src\Engine\Project.cpp" />
     <ClCompile Include="src\Engine\Renderer2D.cpp" />
     <ClCompile Include="src\Engine\Scene.cpp" />
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
-    <ClCompile Include="src\Engine\UUID.cpp" />
+    <ClCompile Include="src\Engine\Platform.cpp" />
+    <ClCompile Include="src\Engine\Graphics.cpp" />
+    <ClCompile Include="src\Engine\Fonts.cpp" />
+    <ClCompile Include="src\Engine\Texture2DAsset.cpp" />
+    <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
+    <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
+    <ClCompile Include="src\Utils\UUID.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
-    <ClCompile Include="src\Font\Font.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXConstantBuffer.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXContext.cpp" />
@@ -180,7 +197,7 @@
     <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp" />
     <ClCompile Include="src\Image\Image.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
-    <ClCompile Include="src\Layer\LayerRegistry.cpp" />
+    <ClCompile Include="src\Engine\LayerRegistry.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />

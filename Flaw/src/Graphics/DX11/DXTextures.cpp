@@ -8,8 +8,6 @@ namespace flaw {
 	DXTexture2D::DXTexture2D(DXContext& context, const Descriptor& descriptor)
 		: _context(context)
 	{
-		assert(descriptor.type == Type::Texture2D, "Texture type must be 2D");
-
 		if (!CreateTexture(descriptor)) {
 			Log::Error("CreateTexture failed");
 			return;
@@ -142,12 +140,12 @@ namespace flaw {
 		}
 	}
 
-	void DXTexture2D::CopyTo(Ref<Texture>& target) const {
+	void DXTexture2D::CopyTo(Ref<Texture2D>& target) const {
 		auto dxTexture = std::static_pointer_cast<DXTexture2D>(target);
 		_context.DeviceContext()->CopyResource(dxTexture->GetNativeTexture().Get(), _texture.Get());
 	}
 
-	void DXTexture2D::CopyToSub(Ref<Texture>& target, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) const {
+	void DXTexture2D::CopyToSub(Ref<Texture2D>& target, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) const {
 		auto dxTexture = std::static_pointer_cast<DXTexture2D>(target);
 
 		D3D11_BOX box = {};

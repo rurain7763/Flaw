@@ -110,6 +110,7 @@
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\FlawEditor.h" />
     <ClInclude Include="src\EditorTypes.h" />
+    <ClInclude Include="src\AssetDatabase.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp" />
@@ -126,6 +127,7 @@
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\AssetDatabase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Flaw\Flaw.vcxproj">
