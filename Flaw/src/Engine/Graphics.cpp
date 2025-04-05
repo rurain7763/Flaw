@@ -37,10 +37,6 @@ namespace flaw {
 		return g_graphicsContext->CreateVertexBuffer(descriptor);
 	}
 
-	Ref<IndexBuffer> Graphics::CreateIndexBuffer() {
-		return g_graphicsContext->CreateIndexBuffer();
-	}
-
 	Ref<IndexBuffer> Graphics::CreateIndexBuffer(const IndexBuffer::Descriptor& descriptor) {
 		return g_graphicsContext->CreateIndexBuffer(descriptor);
 	}

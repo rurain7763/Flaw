@@ -120,10 +120,6 @@ namespace flaw {
 		return CreateRef<DXVertexBuffer>(*this, descriptor);
 	}
 
-	Ref<IndexBuffer> DXContext::CreateIndexBuffer() {
-		return CreateIndexBuffer(IndexBuffer::Descriptor());
-	}
-
 	Ref<IndexBuffer> DXContext::CreateIndexBuffer(const IndexBuffer::Descriptor& descriptor) {
 		return CreateRef<DXIndexBuffer>(*this, descriptor);
 	}

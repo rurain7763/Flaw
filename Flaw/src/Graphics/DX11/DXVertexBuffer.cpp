@@ -42,7 +42,7 @@ namespace flaw {
 	void DXVertexBuffer::CreateBuffer(const Descriptor& desc) {
 		D3D11_BUFFER_DESC bufferDesc = {};
 		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferDesc.ByteWidth = desc.elmSize * desc.count;
+		bufferDesc.ByteWidth = desc.bufferSize;
 
 		// set buffer data write dynamically or not 
 		bufferDesc.CPUAccessFlags = desc.usage == UsageFlag::Dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
@@ -65,6 +65,6 @@ namespace flaw {
 
 		_usage = desc.usage;
 		_elmSize = desc.elmSize;
-		_size = desc.elmSize * desc.count;
+		_size = desc.bufferSize;
 	}
 }

@@ -92,21 +92,22 @@ namespace flaw {
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
 			}
-			else {
-				if (path.extension() != ".asset") {
-					continue;
-				}
-
-				AssetMetadata metadata;
-				if (!AssetDatabase::GetAssetMetadata(path.generic_string().c_str(), metadata)) {
-					continue;
-				}
-
+			else if (path.extension() == ".asset" || path.extension() == ".scene") {
 				Ref<DXTexture2D> dxTexture = nullptr;
-				if (metadata.type == AssetType::Texture2D) {
-					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2D]);
+				if (path.extension() == ".asset") {
+					AssetMetadata metadata;
+					if (!AssetDatabase::GetAssetMetadata(path.generic_string().c_str(), metadata)) {
+						continue;
+					}
+
+					if (metadata.type == AssetType::Texture2D) {
+						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2D]);
+					}
+					else {
+						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);
+					}
 				}
-				else {
+				else if (path.extension() == ".scene") {
 					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);
 				}
 
@@ -118,10 +119,6 @@ namespace flaw {
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.generic_u8string().c_str());
-
-					if (ImGui::IsMouseDoubleClicked(0)) {
-						
-					}
 				}
 
 				if (ImGui::BeginDragDropSource()) {
@@ -134,6 +131,9 @@ namespace flaw {
 				ImGui::TextWrapped("%s", filename.c_str());
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
+			}
+			else {
+				continue;
 			}
 
 			if (--remainingCount == 0) {

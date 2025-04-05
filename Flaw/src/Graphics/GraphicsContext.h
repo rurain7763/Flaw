@@ -18,7 +18,6 @@ namespace flaw {
 		virtual void Present() = 0;
 
 		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexBuffer::Descriptor& descriptor) = 0;
-		virtual Ref<IndexBuffer> CreateIndexBuffer() = 0;
 		virtual Ref<IndexBuffer> CreateIndexBuffer(const IndexBuffer::Descriptor& descriptor) = 0;
 		virtual Ref<GraphicsShader> CreateGraphicsShader(const char* filePath, const uint32_t compileFlag) = 0;
 		virtual Ref<GraphicsPipeline> CreateGraphicsPipeline() = 0;

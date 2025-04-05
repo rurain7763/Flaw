@@ -38,6 +38,14 @@ namespace flaw {
 		});
 	}
 
+	void DXCommandQueue::DrawIndexedInstanced(const Ref<IndexBuffer>& indexBuffer, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset) {
+		FASSERT(_open, "DXCommandQueue::DrawIndexedInstanced failed: Command queue is not open");
+		_commands.push([this, indexBuffer, instanceCount, indexOffset, vertexOffset]() {
+			indexBuffer->Bind();
+			_context.DeviceContext()->DrawIndexedInstanced(indexBuffer->IndexCount(), instanceCount, indexOffset, vertexOffset, 0);
+		});
+	}
+
 	void DXCommandQueue::Begin() {
 		_open = true;
 	}

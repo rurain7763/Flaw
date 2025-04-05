@@ -27,7 +27,6 @@ namespace flaw {
 		void Present() override;
 
 		Ref<VertexBuffer> CreateVertexBuffer(const VertexBuffer::Descriptor& descriptor) override;
-		Ref<IndexBuffer> CreateIndexBuffer() override;
 		Ref<IndexBuffer> CreateIndexBuffer(const IndexBuffer::Descriptor& descriptor) override;
 		Ref<GraphicsShader> CreateGraphicsShader(const char* filePath, const uint32_t compileFlag) override;
 		Ref<GraphicsPipeline> CreateGraphicsPipeline() override;

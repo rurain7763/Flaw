@@ -17,7 +17,6 @@ namespace flaw {
 		static void Present();
 
 		static Ref<VertexBuffer> CreateVertexBuffer(const VertexBuffer::Descriptor& descriptor);
-		static Ref<IndexBuffer> CreateIndexBuffer();
 		static Ref<IndexBuffer> CreateIndexBuffer(const IndexBuffer::Descriptor& descriptor);
 		static Ref<GraphicsShader> CreateGraphicsShader(const char* filePath, const uint32_t compileFlag);
 		static Ref<GraphicsPipeline> CreateGraphicsPipeline();

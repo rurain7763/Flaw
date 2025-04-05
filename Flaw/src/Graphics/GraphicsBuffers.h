@@ -9,7 +9,7 @@ namespace flaw {
 		struct Descriptor {
 			UsageFlag usage;
 			uint32_t elmSize;
-			uint32_t count;
+			uint32_t bufferSize;
 			const void* initialData;
 		};
 
@@ -25,6 +25,8 @@ namespace flaw {
 	public:
 		struct Descriptor {
 			UsageFlag usage; 
+			uint32_t bufferSize;
+			const uint32_t* initialData;
 		};
 
 		IndexBuffer() = default;
@@ -32,6 +34,7 @@ namespace flaw {
 		virtual void Update(const uint32_t* indices, uint32_t count) = 0;
 		virtual void Bind() = 0;
 
+		virtual void SetIndexCount(uint32_t count) = 0;
 		virtual uint32_t IndexCount() const = 0;	
 	};
 
