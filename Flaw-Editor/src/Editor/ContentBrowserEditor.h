@@ -16,6 +16,8 @@ namespace flaw{
 			Directory,
 			Unknown,
 			Texture2D,
+			Font,
+			Scene,
 			Count
 		};
 

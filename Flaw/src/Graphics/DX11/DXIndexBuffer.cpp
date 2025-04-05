@@ -7,7 +7,6 @@
 namespace flaw {
 	DXIndexBuffer::DXIndexBuffer(DXContext& context, const Descriptor& descriptor)
 		: _context(context)
-		, _indexCount(0)
 	{
 		CreateBuffer(descriptor);
 	}
@@ -31,8 +30,6 @@ namespace flaw {
 			memcpy(mappedResource.pData, indices, sizeof(uint32_t) * count);
 			_context.DeviceContext()->Unmap(_buffer.Get(), 0);
 		}
-
-		_indexCount = count;
 	}
 
 	void DXIndexBuffer::Bind() {

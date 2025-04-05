@@ -30,19 +30,19 @@ namespace flaw {
 		_commands.push([texture, slot]() { texture->BindToGraphicsShader(slot); });
 	}
 
-	void DXCommandQueue::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexOffset, uint32_t vertexOffset) {
+	void DXCommandQueue::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset) {
 		FASSERT(_open, "DXCommandQueue::DrawIndexed failed: Command queue is not open");
-		_commands.push([this, indexBuffer, indexOffset, vertexOffset]() {
+		_commands.push([this, indexBuffer, indexCount, indexOffset, vertexOffset]() {
 			indexBuffer->Bind();
-			_context.DeviceContext()->DrawIndexed(indexBuffer->IndexCount(), indexOffset, vertexOffset); 
+			_context.DeviceContext()->DrawIndexed(indexCount, indexOffset, vertexOffset);
 		});
 	}
 
-	void DXCommandQueue::DrawIndexedInstanced(const Ref<IndexBuffer>& indexBuffer, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset) {
+	void DXCommandQueue::DrawIndexedInstanced(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset) {
 		FASSERT(_open, "DXCommandQueue::DrawIndexedInstanced failed: Command queue is not open");
-		_commands.push([this, indexBuffer, instanceCount, indexOffset, vertexOffset]() {
+		_commands.push([this, indexBuffer, indexCount, instanceCount, indexOffset, vertexOffset]() {
 			indexBuffer->Bind();
-			_context.DeviceContext()->DrawIndexedInstanced(indexBuffer->IndexCount(), instanceCount, indexOffset, vertexOffset, 0);
+			_context.DeviceContext()->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, 0);
 		});
 	}
 

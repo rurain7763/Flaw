@@ -15,13 +15,81 @@ namespace flaw {
 
 		CreateIcon(FileType::Directory, "Resources/Icons/Directory.png");
 		CreateIcon(FileType::Unknown, "Resources/Icons/UnknownFile.png");
-		CreateIcon(FileType::Texture2D, "Resources/Icons/Texture2D.png");
+		CreateIcon(FileType::Texture2D, "Resources/Icons/Texture2DFile.png");
+		CreateIcon(FileType::Font, "Resources/Icons/FontFile.png");
+		CreateIcon(FileType::Scene, "Resources/Icons/SceneFile.png");
 
 		_changeHandle = FindFirstChangeNotification(
 			_currentDirectory.wstring().c_str(),
 			true,
 			FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_ACTION_ADDED | FILE_ACTION_REMOVED
 		);
+	}
+
+	// TODO: 이 코드는 다른 곳으로 이동해야 함
+	static void ShowScrollingText(const char* label, const char* text, ImVec2 boxSize, float scrollSpeed = 30.0f) {
+		ImGui::BeginGroup();
+
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImGuiID id = window->GetID(label);
+		ImVec2 textSize = ImGui::CalcTextSize(text);
+
+		float itemHeight = textSize.y;
+		ImVec2 textRegionSize = ImVec2(boxSize.x, itemHeight);
+
+		// Invisible button to detect hover
+		ImGui::InvisibleButton(label, textRegionSize);
+		bool isHovered = ImGui::IsItemHovered();
+
+		float availableWidth = textRegionSize.x;
+		float overflow = textSize.x - availableWidth;
+
+		float scrollOffset = 0.0f;
+
+		if (overflow > 0.0f) {
+			static std::unordered_map<ImGuiID, float> scrollOffsets;
+			static std::unordered_map<ImGuiID, double> lastResetTime;
+
+			double currentTime = ImGui::GetTime();
+
+			if (!isHovered) {
+				// Reset animation when not hovered
+				scrollOffsets[id] = 0.0f;
+				lastResetTime[id] = currentTime;
+			}
+			else {
+				const float pauseDuration = 3.0f; // Pause duration at the end of the scroll
+
+				float totalScrollTime = overflow / scrollSpeed;
+				float elapsed = (float)(currentTime - lastResetTime[id]);
+
+				float cycleTime = totalScrollTime + pauseDuration;
+				float t = fmodf(elapsed, cycleTime);
+
+				if (t < totalScrollTime) {
+					scrollOffset = t * scrollSpeed;
+				}
+				else {
+					scrollOffset = overflow; // pause at end
+				}
+
+				scrollOffsets[id] = scrollOffset;
+			}
+
+			scrollOffset = scrollOffsets[id];
+		}
+
+		// Clip and draw
+		ImGui::SetCursorScreenPos(pos);
+		ImGui::PushClipRect(pos, ImVec2(pos.x + textRegionSize.x, pos.y + textRegionSize.y), true);
+		ImGui::SetCursorScreenPos(ImVec2(pos.x - scrollOffset, pos.y));
+		ImGui::TextUnformatted(text);
+		ImGui::PopClipRect();
+
+		ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + textRegionSize.y));
+		ImGui::EndGroup();
 	}
 
 	void ContentBrowserEditor::OnRender() {
@@ -88,7 +156,7 @@ namespace flaw {
 				}
 
 				ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + iconSize);
-				ImGui::TextWrapped("%s", folderName.c_str());
+				ShowScrollingText(("##" + folderName + "ScrollingText").c_str(), folderName.c_str(), {iconSize, 24.0f}, 30.0f);
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
 			}
@@ -103,12 +171,15 @@ namespace flaw {
 					if (metadata.type == AssetType::Texture2D) {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2D]);
 					}
+					else if (metadata.type == AssetType::Font) {
+						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Font]);
+					}
 					else {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);
 					}
 				}
 				else if (path.extension() == ".scene") {
-					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);
+					dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Scene]);
 				}
 
 				const std::string filename = path.filename().generic_u8string();
@@ -128,7 +199,7 @@ namespace flaw {
 				}
 
 				ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + iconSize);
-				ImGui::TextWrapped("%s", filename.c_str());
+				ShowScrollingText(("##" + filename + "ScrollingText").c_str(), filename.c_str(), {iconSize, 24.0f}, 30.0f);
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
 			}
