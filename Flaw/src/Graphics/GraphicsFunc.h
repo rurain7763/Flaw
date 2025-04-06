@@ -12,9 +12,9 @@ namespace flaw {
 		case PixelFormat::RG8:
 			return 2;
 		case PixelFormat::RGB8:
-		case PixelFormat::BGR8:
 			return 3;
 		case PixelFormat::RGBA8:
+		case PixelFormat::BGRX8:
 		case PixelFormat::R32_UINT:
 		case PixelFormat::D24S8_UINT:
 			return 4;

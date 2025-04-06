@@ -7,8 +7,7 @@
 namespace flaw {
 	class FontAsset : public Asset {
 	public:
-		FontAsset() = default;
-		FontAsset(const int8_t* data, uint64_t size);
+		FontAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
 
 		void Load() override;
 		void Unload() override;
@@ -20,22 +19,9 @@ namespace flaw {
 		const Ref<Texture2D>& GetFontAtlas() const { return _fontAtlas; }
 
 	private:
-		friend struct Serializer<FontAsset>;
-
-		std::vector<int8_t> _data;
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
 
 		Ref<Font> _font;
 		Ref<Texture2D> _fontAtlas;
-	};
-
-	template <>
-	struct Serializer<FontAsset> {
-		static void Serialize(SerializationArchive& archive, const FontAsset& value) {
-			archive << value._data;
-		}
-
-		static void Deserialize(SerializationArchive& archive, FontAsset& value) {
-			archive >> value._data;
-		}
 	};
 }

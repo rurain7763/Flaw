@@ -211,13 +211,13 @@ namespace flaw {
 	}
 
 	void MonoScriptDomain::AddMonoAssembly(const char* assemblyPath, bool loadPdb) {
-		std::vector<char> buffer;
+		std::vector<int8_t> buffer;
 		if (!FileSystem::ReadFile(assemblyPath, buffer)) {
 			throw std::runtime_error("Failed to read assembly file");
 		}
 
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(buffer.data(), buffer.size(), true, &status, false);
+		MonoImage* image = mono_image_open_from_data_full((char*)buffer.data(), buffer.size(), true, &status, false);
 		if (status != MONO_IMAGE_OK) {
 			const char* statusString = mono_image_strerror(status);
 			throw std::runtime_error("mono_image_open failed: " + std::string(statusString));

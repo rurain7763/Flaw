@@ -6,31 +6,46 @@
 #include <stb_image.h>
 
 namespace flaw {
-	Image::Image(const char* filePath) {
-		_type = GetImageType(filePath);
+	Image::Image(const char* filePath, uint32_t desiredChannels) {
+		_type = GetImageTypeFromExtension(filePath);
 
-		if (!Load(filePath, _data, _width, _height, _channels)) {
+		uint8_t* data = stbi_load(filePath, &_width, &_height, &_channels, desiredChannels);
+
+		if (data == nullptr) {
 			Log::Error("Failed to load image : %s", filePath);
 			return;
 		}
-	}
 
-	bool Image::Load(const char* filePath, std::vector<uint8_t>& outData, int32_t& outWidth, int32_t& outHeight, int32_t& outChannels) {
-		uint8_t* data = stbi_load(filePath, &outWidth, &outHeight, &outChannels, 0);
-
-		if (data == nullptr) {
-			return false;
+		if (desiredChannels != 0) {
+			_channels = desiredChannels;
 		}
 
-		outData.resize(outWidth * outHeight * outChannels);
-		memcpy(outData.data(), data, outData.size());
+		_data.resize(_width * _height * _channels);
+		memcpy(_data.data(), data, _data.size());
 
 		stbi_image_free(data);
-
-		return true;
 	}
 
-	Image::Type Image::GetImageType(const char* filePath) {
+	Image::Image(Image::Type type, const char* source, size_t size, uint32_t desiredChannels) {
+		_type = type;
+		uint8_t* data = stbi_load_from_memory((const uint8_t*)source, size, &_width, &_height, &_channels, desiredChannels);
+
+		if (data == nullptr) {
+			Log::Error("Failed to load image");
+			return;
+		}
+
+		if (desiredChannels != 0) {
+			_channels = desiredChannels;
+		}
+
+		_data.resize(_width * _height * _channels);
+		memcpy(_data.data(), data, _data.size());
+
+		stbi_image_free(data);
+	}
+
+	Image::Type Image::GetImageTypeFromExtension(const char* filePath) {
 		std::filesystem::path path(filePath);
 
 		if (path.extension() == ".png") {

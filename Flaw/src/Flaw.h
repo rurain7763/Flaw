@@ -10,6 +10,7 @@
 #include "Engine/Renderer2D.h"
 #include "Engine/Scripting.h"
 #include "Engine/AssetManager.h"
+#include "Engine/Fonts.h"
 #include "Engine/Texture2DAsset.h"
 #include "Engine/FontAsset.h"
 

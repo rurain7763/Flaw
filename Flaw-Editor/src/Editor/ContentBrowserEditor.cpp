@@ -136,6 +136,7 @@ namespace flaw {
 			ImGui::SameLine();
 		}
 
+		static std::filesystem::path fileExplorerPath;
 		for (auto& dir : _directoryEntries) {
 			std::filesystem::path path = dir.path();
 
@@ -152,6 +153,11 @@ namespace flaw {
 
 					if (ImGui::IsMouseDoubleClicked(0)) {
 						dirHasToBeChanged = path;
+					}
+
+					if (ImGui::IsMouseClicked(1)) {
+						fileExplorerPath = path.generic_u8string();
+						ImGui::OpenPopup("ContextMenu");
 					}
 				}
 
@@ -214,6 +220,16 @@ namespace flaw {
 			else {
 				ImGui::SameLine();
 			}
+		}
+
+		if (ImGui::BeginPopup("ContextMenu")) {
+			if (ImGui::MenuItem("Open Folder In File Explorer")) {
+				std::filesystem::path openPath = std::filesystem::is_directory(fileExplorerPath) ? fileExplorerPath : fileExplorerPath.parent_path();
+#ifdef _WIN32
+				ShellExecuteW(NULL, L"open", openPath.wstring().c_str(), NULL, NULL, SW_SHOW);
+#endif
+			}
+			ImGui::EndPopup();
 		}
 
 		ImGui::End();

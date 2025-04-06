@@ -29,16 +29,14 @@ namespace flaw {
 					case filewatch::Event::removed:
 					case filewatch::Event::renamed_new:
 					{
-						std::filesystem::path absolutePath;
+						std::filesystem::path absolutePath = g_contentsDir.parent_path() / path.parent_path();
 						if (path.extension() == ".asset") {
-							absolutePath = g_contentsDir.parent_path() / path.parent_path();
 							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), false); });
 						}
 						else if (!path.has_extension()) {
-							absolutePath = g_contentsDir.parent_path() / path.parent_path();
-							Log::Info("Directory changed: %s", absolutePath.generic_string().c_str());
 							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), true); });
 						}
+						Log::Info("AssetDatabase auto refreshed!");
 						break;
 					}
 				}
@@ -82,32 +80,44 @@ namespace flaw {
 
 	void AssetDatabase::RegisterAssetsInFolder(const char* folderPath, bool recursive) {
 		for (auto& dir : std::filesystem::directory_iterator(folderPath)) {
-			std::filesystem::path path = dir.path();
+			std::filesystem::path assetFile = dir.path();
 
 			if (dir.is_directory()) {
 				if (recursive) {
-					RegisterAssetsInFolder(path.generic_string().c_str(), recursive);
+					RegisterAssetsInFolder(assetFile.generic_string().c_str(), recursive);
 				}
 				continue;
 			}
 
-			if (path.extension() != ".asset") {
+			if (assetFile.extension() != ".asset") {
 				continue;
 			}
+
+			std::vector<int8_t> fileData;
+			if (!FileSystem::ReadFile(assetFile.generic_string().c_str(), fileData)) {
+				continue;
+			}
+
+			SerializationArchive archive((const int8_t*)fileData.data(), fileData.size());
 
 			AssetMetadata metadata;
-			std::vector<int8_t> assetData;
-			if (!ParseAssetFile(path.generic_string().c_str(), metadata, assetData)) {
-				continue;
-			}
+			archive >> metadata;
 
-			uint64_t fileIndex = FileSystem::FileIndex(path.generic_string().c_str());
+			const uint32_t assetDataOffset = archive.Offset();
+			const int8_t* assetDataBegin = archive.Data() + assetDataOffset;
+			const uint32_t assetDataSize = archive.RemainingSize();
+
+			uint64_t fileIndex = FileSystem::FileIndex(assetFile.generic_string().c_str());
 			if (metadata.fileIndex != fileIndex) {
 				// 파일이 강제적으로 복사된 경우임. 메타 데이터를 갱신해야 함.
 				metadata.handle.Generate();
 				metadata.fileIndex = fileIndex;
 
-				if (!WriteAssetFile(path.generic_string().c_str(), metadata, assetData)) {
+				SerializationArchive newArchive;
+				newArchive << metadata;
+				newArchive.Append(assetDataBegin, assetDataSize);
+
+				if (!FileSystem::MakeFile(assetFile.generic_string().c_str(), newArchive.Data(), newArchive.RemainingSize())) {
 					continue;
 				}
 			}
@@ -116,12 +126,29 @@ namespace flaw {
 				continue;
 			}
 
-			Ref<Asset> asset = CreateAsset(metadata, assetData);
+			Ref<Asset> asset;
+			switch (metadata.type) {
+				case AssetType::Texture2D: {
+					asset = CreateRef<Texture2DAsset>([assetFile, assetDataOffset](std::vector<int8_t>& data) {
+						FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+						data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
+					});
+					break;
+				}
+				case AssetType::Font: {
+					asset = CreateRef<FontAsset>([assetFile, assetDataOffset](std::vector<int8_t>& data) { 
+						FileSystem::ReadFile(assetFile.generic_string().c_str(), data); 
+						data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
+					});
+					break;
+				}
+			}
+
 			if (!asset) {
 				continue;
 			}
 
-			g_assetMetadataMap[path.generic_string()] = metadata;
+			g_assetMetadataMap[assetFile.generic_string()] = metadata;
 			AssetManager::RegisterAsset(metadata.handle, asset);
 		}
 	}
@@ -141,53 +168,18 @@ namespace flaw {
 		return g_contentsDir;
 	}
 
+	bool AssetDatabase::IsValidExtension(const std::filesystem::path& extension) {
+		return extension == ".png"
+			|| extension == ".jpg"
+			|| extension == ".ttf";
+	}
+
 	bool AssetDatabase::ImportAsset(const char* srcPath, const char* destPath) {
 		if (!std::filesystem::exists(srcPath)) {
 			Log::Error("File does not exist: %s", srcPath);
 			return false;
 		}
 
-		AssetMetadata metadata;
-		Ref<Asset> asset = nullptr;
-		if (!CreateAssetFile(srcPath, destPath, metadata, asset)) {
-			return false;
-		}
-
-		g_assetMetadataMap[destPath] = metadata;
-		AssetManager::RegisterAsset(metadata.handle, asset);
-
-		return true;
-	}
-
-	Ref<Asset> AssetDatabase::CreateAsset(const AssetMetadata& metaData, const std::vector<int8_t>& assetData) {
-		Ref<Asset> asset = nullptr;
-
-		SerializationArchive archive((const int8_t*)assetData.data(), assetData.size());
-		switch (metaData.type) {
-			case AssetType::Texture2D: {
-				auto texture2DAsset = CreateRef<Texture2DAsset>();
-				archive >> *texture2DAsset;
-				asset = texture2DAsset;
-				break;
-			}
-			case AssetType::Font: {
-				auto fontAsset = CreateRef<FontAsset>();
-				archive >> *fontAsset;
-				asset = fontAsset;
-				break;
-			}
-		}
-
-		return asset;
-	}
-
-	bool AssetDatabase::IsValidExtension(const std::filesystem::path& extension) {
-		return extension == ".png" 
-			|| extension == ".jpg" 
-			|| extension == ".ttf";
-	}
-
-	bool AssetDatabase::CreateAssetFile(const char* srcPath, const char* destPath, AssetMetadata& outMetaData, Ref<Asset>& outAsset) {
 		auto extension = std::filesystem::path(srcPath).extension();
 
 		if (!IsValidExtension(extension)) {
@@ -195,74 +187,59 @@ namespace flaw {
 			return false;
 		}
 
+		std::filesystem::path assetPath(destPath);
+
 		if (!FileSystem::MakeFile(destPath)) {
 			Log::Error("Failed to create asset file: %s", destPath);
 			return false;
 		}
 
-		outMetaData.fileIndex = FileSystem::FileIndex(destPath);
+		AssetMetadata meta;
+		meta.fileIndex = FileSystem::FileIndex(destPath);
 
 		SerializationArchive archive;
 		if (extension == ".png" || extension == ".jpg") {
-			outMetaData.type = AssetType::Texture2D;
+			meta.type = AssetType::Texture2D;
 
-			Image img(srcPath);
+			Image img(srcPath, 4);
 
-			PixelFormat format;
-			switch (img.Channels()) {
-				case 1: format = PixelFormat::R8; break;
-				case 3: format = PixelFormat::BGR8; break;
-				case 4: format = PixelFormat::RGBA8; break;
-			}
-
-			outAsset = CreateRef<Texture2DAsset>(img.Data().data(), img.Width(), img.Height(), format);
-
-			archive << outMetaData;
-			archive << *std::static_pointer_cast<Texture2DAsset>(outAsset);
+			archive << meta;
+			archive << PixelFormat::RGBA8;
+			archive << img.Width();
+			archive << img.Height();
+			archive << Texture2D::Wrap::ClampToEdge;
+			archive << Texture2D::Wrap::ClampToEdge;
+			archive << Texture2D::Filter::Linear;
+			archive << Texture2D::Filter::Linear;
+			archive << UsageFlag::Static;
+			archive << (uint32_t)0; // access
+			archive << BindFlag::ShaderResource;
+			archive << img.Data();
 		}
 		else if (extension == ".ttf") {
-			outMetaData.type = AssetType::Font;
+			meta.type = AssetType::Font;
 
-			std::vector<char> fontData;
+			archive << meta;
+
+			std::vector<int8_t> fontData;
 			FileSystem::ReadFile(srcPath, fontData);
 
-			outAsset = CreateRef<FontAsset>((const int8_t*)fontData.data(), fontData.size());
+			archive << fontData;
 
-			archive << outMetaData;
-			archive << *std::static_pointer_cast<FontAsset>(outAsset);
+			Ref<Font> font = Fonts::CreateFontFromFile(srcPath);
+
+			FontAtlas fontAtlas;
+			font->GetAtlas(fontAtlas);
+
+			archive << fontAtlas.width;
+			archive << fontAtlas.height;
+			archive << fontAtlas.data;
 		}
 
-		if (!FileSystem::WriteFile(destPath, (const char*)archive.Data(), archive.RemainingSize())) {
+		if (!FileSystem::WriteFile(destPath, archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", destPath);
 			return false;
 		}
-
-		return true;
-	}
-
-	bool AssetDatabase::WriteAssetFile(const char* assetFile, const AssetMetadata& metaData, const std::vector<int8_t>& assetData) {
-		SerializationArchive archive;
-		archive << metaData;
-		archive.Append(assetData);
-
-		if (!FileSystem::MakeFile(assetFile, (const char*)archive.Data(), archive.RemainingSize())) {
-			return false;
-		}
-
-		return true;
-	}
-
-	bool AssetDatabase::ParseAssetFile(const char* assetFile, AssetMetadata& outMetaData, std::vector<int8_t>& outAssetData) {
-		std::vector<char> fileData;
-		if (!FileSystem::ReadFile(assetFile, fileData)) {
-			return false;
-		}
-
-		SerializationArchive archive((const int8_t*)fileData.data(), fileData.size());
-		archive >> outMetaData;
-
-		const int8_t* begin = archive.Data() + archive.Offset();
-		outAssetData.assign(begin, begin + archive.RemainingSize());
 
 		return true;
 	}

@@ -17,7 +17,8 @@ namespace flaw {
 		};
 
 		Image() = default;
-		Image(const char* filePath);
+		Image(const char* filePath, uint32_t desiredChannels = 0);
+		Image(Type type, const char* memory, size_t size, uint32_t desiredChannels = 0);
 
 		Type ImageType() const { return _type; }
 		const std::vector<uint8_t>& Data() const { return _data; }
@@ -28,8 +29,7 @@ namespace flaw {
 		bool IsValid() const { return !_data.empty(); }
 
 	private:
-		static bool Load(const char* filePath, std::vector<uint8_t>& outData, int32_t& outWidth, int32_t& outHeight, int32_t& outChannels);
-		Type GetImageType(const char* filePath);
+		Type GetImageTypeFromExtension(const char* filePath);
 
 	private:
 		Type _type = Type::Unknown;

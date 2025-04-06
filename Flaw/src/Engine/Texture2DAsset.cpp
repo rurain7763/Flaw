@@ -4,27 +4,29 @@
 #include "Graphics/GraphicsFunc.h"
 
 namespace flaw {
-	Texture2DAsset::Texture2DAsset() {
-		_descriptor = {};
-	}
-
-	Texture2DAsset::Texture2DAsset(const uint8_t* data, uint32_t width, uint32_t height, PixelFormat format) {
-		_descriptor = {};
-
-		_descriptor.format = format;
-		_descriptor.width = width;
-		_descriptor.height = height;
-		_descriptor.usage = UsageFlag::Static;
-		_descriptor.bindFlags = BindFlag::ShaderResource;
-
-		uint32_t size = width * height * GetSizePerPixel(format);
-		_data.resize(size);
-		std::memcpy(_data.data(), data, size);
-	}
-
 	void Texture2DAsset::Load() {
-		_descriptor.data = _data.data();
-		_texture = Graphics::GetGraphicsContext().CreateTexture2D(_descriptor);
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+
+		Texture2D::Descriptor desc = {};
+		archive >> desc.format;
+		archive >> desc.width;
+		archive >> desc.height;
+		archive >> desc.wrapS;
+		archive >> desc.wrapT;
+		archive >> desc.minFilter;
+		archive >> desc.magFilter;
+		archive >> desc.usage;
+		archive >> desc.access;
+		archive >> desc.bindFlags;
+		
+		std::vector<uint8_t> textureData;
+		archive >> textureData;
+		desc.data = textureData.data();
+
+		_texture = Graphics::GetGraphicsContext().CreateTexture2D(desc);
 	}
 
 	void Texture2DAsset::Unload() {

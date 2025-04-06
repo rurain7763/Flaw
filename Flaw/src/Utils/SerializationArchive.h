@@ -165,8 +165,8 @@ namespace flaw {
 
 		void Consume(uint32_t size) { _offset += size; }
 
-		void Append(const std::vector<int8_t>& buffer) {
-			_buffer.insert(_buffer.end(), buffer.begin(), buffer.end());
+		void Append(const int8_t* buffer, uint32_t size) {
+			_buffer.insert(_buffer.end(), buffer, buffer + size);
 		}
 
 		void Clear() {

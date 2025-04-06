@@ -113,14 +113,7 @@ namespace flaw {
 		_expensiveColoring = glyphLoaded >= 0xff;
 
 		Log::Info("Loaded %d glyphs from font", glyphLoaded);
-	}
 
-	float MSDFFont::GetFontScale() const {
-		const auto& metrics = _geometry.getMetrics();
-		return 1.0f / (metrics.ascenderY - metrics.descenderY);
-	}
-
-	void MSDFFont::GetAtlas(FontAtlas& atlas) {
 		msdf_atlas::TightAtlasPacker packer;
 		packer.setPixelRange(2.0);
 		packer.setMiterLimit(1.0);
@@ -132,9 +125,16 @@ namespace flaw {
 			return;
 		}
 
-		int32_t width, height;
-		packer.getDimensions(width, height);
-		double scale = packer.getScale();
+		packer.getDimensions(_atlasWidth, _atlasHeight);
+	}
+
+	float MSDFFont::GetFontScale() const {
+		const auto& metrics = _geometry.getMetrics();
+		return 1.0f / (metrics.ascenderY - metrics.descenderY);
+	}
+
+	void MSDFFont::GetAtlas(FontAtlas& atlas) {
+		using MyGenerator = msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator, msdf_atlas::BitmapAtlasStorage<uint8_t, 3>>;
 
 		if (_expensiveColoring) {
 			msdf_atlas::Workload([this](int i, int threadNo) -> bool {
@@ -151,7 +151,7 @@ namespace flaw {
 			}
 		}
 
-		msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator, msdf_atlas::BitmapAtlasStorage<uint8_t, 3>> generator(width, height);
+		MyGenerator generator(_atlasWidth, _atlasHeight);
 
 		msdf_atlas::GeneratorAttributes genAttr;
 		genAttr.config.overlapSupport = true;

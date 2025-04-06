@@ -5,20 +5,21 @@
 #include "Log/Log.h"
 
 namespace flaw {
-	FontAsset::FontAsset(const int8_t* data, uint64_t size) {
-		_data.resize(size);
-		memcpy(_data.data(), data, size);
-	}
-
 	void FontAsset::Load() {
-		_font = Fonts::CreateFont(_data.data(), _data.size());
-		if (!_font) {
-			Log::Error("Failed to load font");
-			return;
-		}
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+
+		std::vector<int8_t> fontData;
+		archive >> fontData;
+
+		_font = Fonts::CreateFontFromMemory(fontData.data(), fontData.size());
 
 		FontAtlas atlas;
-		_font->GetAtlas(atlas);
+		archive >> atlas.width;
+		archive >> atlas.height;
+		archive >> atlas.data;
 
 		Texture2D::Descriptor desc = {};
 		desc.width = atlas.width;

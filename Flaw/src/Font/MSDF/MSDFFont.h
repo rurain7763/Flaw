@@ -31,6 +31,7 @@ namespace flaw {
 		msdf_atlas::FontGeometry _geometry;
 		std::vector<msdf_atlas::GlyphGeometry> _glyphs;
 
+		int32_t _atlasWidth, _atlasHeight;
 		bool _expensiveColoring;
 	};
 }

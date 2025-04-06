@@ -5,14 +5,14 @@
 #include <fstream>
 
 namespace flaw {
-	bool FileSystem::MakeFile(const char* path, const char* data, uint64_t size) {
+	bool FileSystem::MakeFile(const char* path, const int8_t* data, uint64_t size) {
 		std::ofstream file(path, std::ios::binary);
 		if (!file.is_open()) {
 			return false;
 		}
 
 		if (size) {
-			file.write(data, size);
+			file.write((const char*)data, size);
 		}
 
 		file.close();
@@ -20,19 +20,19 @@ namespace flaw {
 		return true;
 	}
 
-	bool FileSystem::WriteFile(const char* path, const char* data, uint64_t size) {
+	bool FileSystem::WriteFile(const char* path, const int8_t* data, uint64_t size) {
 		std::ofstream file(path, std::ios::binary);
 		if (!file.is_open()) {
 			return false;
 		}
 
-		file.write(data, size);
+		file.write((const char*)data, size);
 		file.close();
 
 		return true;
 	}
 
-	bool FileSystem::ReadFile(const char* path, std::vector<char>& out) {
+	bool FileSystem::ReadFile(const char* path, std::vector<int8_t>& out) {
 		std::ifstream file(path, std::ios::binary | std::ios::ate);
 		if (!file.is_open()) {
 			return false;

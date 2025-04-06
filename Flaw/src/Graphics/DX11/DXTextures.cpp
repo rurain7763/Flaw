@@ -260,7 +260,7 @@ namespace flaw {
 
 	DXGI_FORMAT DXTexture2D::GetFormat(PixelFormat format) {
 		switch (format) {
-		case PixelFormat::BGR8:
+		case PixelFormat::BGRX8:
 			return DXGI_FORMAT_B8G8R8X8_UNORM;
 		case PixelFormat::RGBA8:
 			return DXGI_FORMAT_R8G8B8A8_UNORM;

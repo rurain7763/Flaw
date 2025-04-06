@@ -42,11 +42,5 @@ namespace flaw {
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
 
 		static bool IsValidExtension(const std::filesystem::path& extension);
-		static Ref<Asset> CreateAsset(const AssetMetadata& metaData, const std::vector<int8_t>& assetData);
-
-		static bool CreateAssetFile(const char* srcPath, const char* destPath, AssetMetadata& outMetaData, Ref<Asset>& outAsset);
-
-		static bool WriteAssetFile(const char* assetFile, const AssetMetadata& metaData, const std::vector<int8_t>& assetData);
-		static bool ParseAssetFile(const char* assetFile, AssetMetadata& outMetaData, std::vector<int8_t>& outAssetData);
 	};
 }

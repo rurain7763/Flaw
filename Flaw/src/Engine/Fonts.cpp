@@ -13,11 +13,11 @@ namespace flaw {
 		g_fontsContext.reset();
 	}
 
-	Ref<Font> Fonts::CreateFont(const char* filePath) {
+	Ref<Font> Fonts::CreateFontFromFile(const char* filePath) {
 		return g_fontsContext->CreateFont(filePath);
 	}
 
-	Ref<Font> Fonts::CreateFont(const int8_t* data, uint64_t size) {
+	Ref<Font> Fonts::CreateFontFromMemory(const int8_t* data, uint64_t size) {
 		return g_fontsContext->CreateFont(data, size);
 	}
 }
