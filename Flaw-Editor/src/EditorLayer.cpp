@@ -556,6 +556,8 @@ namespace flaw {
 
 		_sceneState = SceneState::Play;
 
+        auto& projConfig = Project::GetConfig();
+
         _app.GetEventDispatcher().Dispatch<OnSceneStateChangeEvent>(_sceneState);
 	}
 

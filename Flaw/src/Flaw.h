@@ -13,6 +13,7 @@
 #include "Engine/Fonts.h"
 #include "Engine/Texture2DAsset.h"
 #include "Engine/FontAsset.h"
+#include "Engine/Sounds.h"
 
 #include "Log/Log.h"
 #include "Input/Input.h"

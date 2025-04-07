@@ -94,9 +94,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\AssetDatabase.h" />
     <ClInclude Include="src\Editor\ContentBrowserEditor.h" />
-    <ClInclude Include="src\Editor\GraphEditor.h" />
     <ClInclude Include="src\Editor\DetailsEditor.h" />
+    <ClInclude Include="src\Editor\GraphEditor.h" />
     <ClInclude Include="src\Editor\ImCurveEdit.h" />
     <ClInclude Include="src\Editor\ImGradient.h" />
     <ClInclude Include="src\Editor\ImGuizmo.h" />
@@ -108,12 +109,13 @@
     <ClInclude Include="src\EditorCamera.h" />
     <ClInclude Include="src\EditorEvents.h" />
     <ClInclude Include="src\EditorLayer.h" />
-    <ClInclude Include="src\FlawEditor.h" />
     <ClInclude Include="src\EditorTypes.h" />
-    <ClInclude Include="src\AssetDatabase.h" />
+    <ClInclude Include="src\FlawEditor.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\AssetDatabase.cpp" />
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp" />
+    <ClCompile Include="src\Editor\DetailsEditor.cpp" />
     <ClCompile Include="src\Editor\GraphEditor.cpp" />
     <ClCompile Include="src\Editor\ImCurveEdit.cpp" />
     <ClCompile Include="src\Editor\ImGradient.cpp" />
@@ -121,13 +123,11 @@
     <ClCompile Include="src\Editor\ImSequencer.cpp" />
     <ClCompile Include="src\Editor\LogEditor.cpp" />
     <ClCompile Include="src\Editor\OutlinerEditor.cpp" />
-    <ClCompile Include="src\Editor\DetailsEditor.cpp" />
     <ClCompile Include="src\Editor\ViewportEditor.cpp" />
     <ClCompile Include="src\EditorCamera.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\AssetDatabase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Flaw\Flaw.vcxproj">

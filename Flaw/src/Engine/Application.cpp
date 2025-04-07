@@ -12,6 +12,7 @@
 #include "AssetManager.h"
 #include "Graphics.h"
 #include "Fonts.h"
+#include "Sounds.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) {
@@ -41,6 +42,11 @@ namespace flaw {
 		{
 			FLAW_PROFILE_SCOPE("Initialize Fonts");
 			Fonts::Init();
+		}
+
+		{
+			FLAW_PROFILE_SCOPE("Initialize Sounds");
+			Sounds::Initialize();
 		}
 
 		{
@@ -76,6 +82,7 @@ namespace flaw {
 
 		Scripting::Cleanup();
 		AssetManager::Cleanup();
+		Sounds::Cleanup();
 		Fonts::Cleanup();
 		Renderer2D::Cleanup();
 		Graphics::Cleanup();
@@ -118,6 +125,7 @@ namespace flaw {
 				}
 			}
 
+			Sounds::Update();
 			Input::Update();
 
 			ExecuteTasks();

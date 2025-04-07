@@ -16,6 +16,9 @@
     <Filter Include="Font">
       <UniqueIdentifier>{DC58857C-C88F-860D-717C-6C105D92020F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Font\MSDF">
+      <UniqueIdentifier>{55654962-C1CF-FDD8-0A0E-AF7E76B7DB2D}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{1653CE33-0220-293F-2B39-17E717655ECD}</UniqueIdentifier>
     </Filter>
@@ -27,9 +30,6 @@
     </Filter>
     <Filter Include="Input">
       <UniqueIdentifier>{953A660D-014F-8EBE-CAD0-311E36A48AEF}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Layer">
-      <UniqueIdentifier>{6287950D-CE9B-BDBE-971D-611E03F1B9EF}</UniqueIdentifier>
     </Filter>
     <Filter Include="Log">
       <UniqueIdentifier>{E704880B-530E-887C-DC89-9E7C4892937C}</UniqueIdentifier>
@@ -49,6 +49,12 @@
     <Filter Include="Scripting">
       <UniqueIdentifier>{985A7358-04C5-27CF-4D03-D974B9AC0524}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sound">
+      <UniqueIdentifier>{4ED01B0E-BAE4-43BF-8366-E71EEF3940F0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sound\FMod">
+      <UniqueIdentifier>{83696A01-6F21-AC4E-D828-85AAC4FF463F}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Time">
       <UniqueIdentifier>{74EC8C7C-6023-8E0D-0910-7410F5250A0F}</UniqueIdentifier>
     </Filter>
@@ -67,10 +73,31 @@
     <ClInclude Include="src\Engine\Application.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\Asset.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\AssetManager.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Components.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Entity.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\FontAsset.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Fonts.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphics.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\LayerRegistry.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Platform.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Project.h">
@@ -91,7 +118,10 @@
     <ClInclude Include="src\Engine\Serialization.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="src\Utils\UUID.h">
+    <ClInclude Include="src\Engine\Sounds.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Texture2DAsset.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Event\EventDispatcher.h">
@@ -100,6 +130,15 @@
     <ClInclude Include="src\Flaw.h" />
     <ClInclude Include="src\Font\Font.h">
       <Filter>Font</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Font\FontsContext.h">
+      <Filter>Font</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Font\MSDF\MSDFFont.h">
+      <Filter>Font\MSDF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h">
+      <Filter>Font\MSDF</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h">
       <Filter>Graphics\DX11</Filter>
@@ -173,9 +212,6 @@
     <ClInclude Include="src\Input\InputCodes.h">
       <Filter>Input</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\LayerRegistry.h">
-      <Filter>Layer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Log\Log.h">
       <Filter>Log</Filter>
     </ClInclude>
@@ -206,30 +242,61 @@
     <ClInclude Include="src\Scripting\MonoScripting.h">
       <Filter>Scripting</Filter>
     </ClInclude>
+    <ClInclude Include="src\Sound\FMod\FModSoundChannel.h">
+      <Filter>Sound\FMod</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sound\FMod\FModSoundSource.h">
+      <Filter>Sound\FMod</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sound\FMod\FModSoundsContext.h">
+      <Filter>Sound\FMod</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sound\SoundChannel.h">
+      <Filter>Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sound\SoundSource.h">
+      <Filter>Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sound\SoundsContext.h">
+      <Filter>Sound</Filter>
+    </ClInclude>
     <ClInclude Include="src\Time\Time.h">
       <Filter>Time</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\Finalizer.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\SerializationArchive.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\UUID.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Engine\AssetManager.h" />
-    <ClInclude Include="src\Engine\Asset.h" />
-    <ClInclude Include="src\Engine\Platform.h" />
-    <ClInclude Include="src\Engine\Graphics.h" />
-    <ClInclude Include="src\Engine\Texture2DAsset.h" />
-    <ClInclude Include="src\Utils\SerializationArchive.h" />
-    <ClInclude Include="src\Engine\FontAsset.h" />
-    <ClInclude Include="src\Font\FontsContext.h" />
-    <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h" />
-    <ClInclude Include="src\Font\MSDF\MSDFFont.h" />
-    <ClInclude Include="src\Engine\Fonts.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\AssetManager.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Entity.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\FontAsset.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Fonts.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Graphics.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\LayerRegistry.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Platform.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Project.cpp">
@@ -247,11 +314,20 @@
     <ClCompile Include="src\Engine\Serialization.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\Utils\UUID.cpp">
+    <ClCompile Include="src\Engine\Sounds.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Texture2DAsset.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Event\EventDispatcher.cpp">
       <Filter>Event</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Font\MSDF\MSDFFont.cpp">
+      <Filter>Font\MSDF</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp">
+      <Filter>Font\MSDF</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp">
       <Filter>Graphics\DX11</Filter>
@@ -286,9 +362,6 @@
     <ClCompile Include="src\Input\Input.cpp">
       <Filter>Input</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\LayerRegistry.cpp">
-      <Filter>Layer</Filter>
-    </ClCompile>
     <ClCompile Include="src\Log\Log.cpp">
       <Filter>Log</Filter>
     </ClCompile>
@@ -304,17 +377,21 @@
     <ClCompile Include="src\Scripting\MonoScripting.cpp">
       <Filter>Scripting</Filter>
     </ClCompile>
+    <ClCompile Include="src\Sound\FMod\FModSoundChannel.cpp">
+      <Filter>Sound\FMod</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Sound\FMod\FModSoundSource.cpp">
+      <Filter>Sound\FMod</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Sound\FMod\FModSoundsContext.cpp">
+      <Filter>Sound\FMod</Filter>
+    </ClCompile>
     <ClCompile Include="src\Time\Time.cpp">
       <Filter>Time</Filter>
     </ClCompile>
+    <ClCompile Include="src\Utils\UUID.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\AssetManager.cpp" />
-    <ClCompile Include="src\Engine\Platform.cpp" />
-    <ClCompile Include="src\Engine\Graphics.cpp" />
-    <ClCompile Include="src\Engine\Texture2DAsset.cpp" />
-    <ClCompile Include="src\Engine\FontAsset.cpp" />
-    <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
-    <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
-    <ClCompile Include="src\Engine\Fonts.cpp" />
   </ItemGroup>
 </Project>

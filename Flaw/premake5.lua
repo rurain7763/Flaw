@@ -32,7 +32,7 @@ project "Flaw"
         "msdf-atlas-gen.lib",
         "skia.dll.lib",
         "version.lib",
-        "bcrypt.lib"
+        "bcrypt.lib",
     }
 
     filter "action:vs*"
@@ -60,6 +60,7 @@ project "Flaw"
             "fmtd.lib",
             "spdlogd.lib",
             "yaml-cppd.lib",
+            "fmodL_vc.lib"
         }
 
     filter "configurations:Release"
@@ -77,5 +78,6 @@ project "Flaw"
             "fmt.lib",
             "spdlog.lib",
             "yaml-cpp.lib",
+            "fmod_vc.lib"
         }
 
