@@ -93,6 +93,10 @@ namespace flaw {
 		g_graphicsContext->Resize(width, height);
 	}
 
+	void Graphics::GetSize(int32_t& width, int32_t& height) {
+		g_graphicsContext->GetSize(width, height);
+	}
+
 	GraphicsContext& Graphics::GetGraphicsContext() {
 		return *g_graphicsContext;
 	}

@@ -114,6 +114,7 @@ namespace flaw {
 
 			b2BodyDef bodyDef;
 			bodyDef.type = RigidBody2DBTypeToBox2DBType(rigidbody2DComp.bodyType);
+			// TODO: consider parent 
 			bodyDef.position.Set(transComp.position.x, transComp.position.y);
 			bodyDef.angle = transComp.rotation.z;
 

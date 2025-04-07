@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Renderer2D.h"
 #include "Graphics.h"
+#include "Math/Math.h"
+#include "Time/Time.h"
 
 namespace flaw {
 	struct VPMatrices {
@@ -8,29 +10,62 @@ namespace flaw {
 		mat4 projection = mat4(1.0f);
 	};
 
-	struct TexturedVertex {
+	struct GlobalConstants {
+		vec2 screenResolution;
+		float time;
+		float deltaTime;
+	};
+
+	struct QuadVertex {
 		vec3 position;
 		vec2 texcoord;
 		vec4 color;
 		uint32_t textureID;
 		uint32_t id;
-	};;
+	};
+
+	struct CircleVertex {
+		vec3 localPosition;
+		vec3 worldPosition;
+		float thickness;
+		vec4 color;
+		uint32_t id;
+	};
+
+	struct LineVertex {
+		vec3 position;
+		vec4 color;
+		uint32_t id;
+	};
 
 	constexpr uint32_t MaxBatchCount = 1000;
 
-	static std::vector<TexturedVertex> g_quadVertices;
-	static std::vector<TexturedVertex> g_textVertices;
+	static std::vector<QuadVertex> g_quadVertices;
+	static std::vector<CircleVertex> g_circleVertices;
+	static std::vector<LineVertex> g_lineVertices;
+	static std::vector<QuadVertex> g_textVertices;
 
-	static Ref<VertexBuffer> g_vb;
+	static Ref<VertexBuffer> g_quadVB;
+	static Ref<VertexBuffer> g_circleVB;
+	static Ref<VertexBuffer> g_lineVB;
+	static Ref<VertexBuffer> g_textVB;
 	static Ref<IndexBuffer> g_ib;
 	static Ref<ConstantBuffer> g_vpCBuff;
-	static Ref<GraphicsPipeline> g_pipeline;
+	static Ref<ConstantBuffer> g_globalCBuff;
+	static Ref<GraphicsPipeline> g_quadPipeline;
+	static Ref<GraphicsPipeline> g_circlePipeline;
+	static Ref<GraphicsPipeline> g_linePipeline;
 	static Ref<GraphicsPipeline> g_textPipeline;
 
-	static VPMatrices g_mvp;
+	static VPMatrices g_vp;
+	static GlobalConstants g_globalConstants;
 
 	static std::unordered_map<Ref<Texture2D>, uint32_t> g_quadTextures;
 	static uint32_t g_quadIndexCount;
+
+	static uint32_t g_circleIndexCount;
+
+	static uint32_t g_lineIndexCount;
 
 	static std::unordered_map<Ref<Texture2D>, uint32_t> g_textTextures;
 	static uint32_t g_textIndexCount;
@@ -38,14 +73,29 @@ namespace flaw {
 	void Renderer2D::Init() {
 		auto& context = Graphics::GetGraphicsContext();
 
-		g_quadVertices.resize(MaxBatchCount * 4);
-		g_textVertices.resize(MaxBatchCount * 4);
-
 		VertexBuffer::Descriptor vbDesc = {};
 		vbDesc.usage = UsageFlag::Dynamic;
-		vbDesc.elmSize = sizeof(TexturedVertex);
-		vbDesc.bufferSize = sizeof(TexturedVertex) * MaxBatchCount * 4;
-		g_vb = context.CreateVertexBuffer(vbDesc);
+		vbDesc.elmSize = sizeof(QuadVertex);
+		vbDesc.bufferSize = sizeof(QuadVertex) * MaxBatchCount * 4;
+		g_quadVB = context.CreateVertexBuffer(vbDesc);
+
+		VertexBuffer::Descriptor circleVBDesc = {};
+		circleVBDesc.usage = UsageFlag::Dynamic;
+		circleVBDesc.elmSize = sizeof(CircleVertex);
+		circleVBDesc.bufferSize = sizeof(CircleVertex) * MaxBatchCount * 4;
+		g_circleVB = context.CreateVertexBuffer(circleVBDesc);
+
+		VertexBuffer::Descriptor lineVBDesc = {};
+		lineVBDesc.usage = UsageFlag::Dynamic;
+		lineVBDesc.elmSize = sizeof(LineVertex);
+		lineVBDesc.bufferSize = sizeof(LineVertex) * MaxBatchCount * 2;
+		g_lineVB = context.CreateVertexBuffer(lineVBDesc);
+
+		VertexBuffer::Descriptor textVBDesc = {};
+		textVBDesc.usage = UsageFlag::Dynamic;
+		textVBDesc.elmSize = sizeof(QuadVertex);
+		textVBDesc.bufferSize = sizeof(QuadVertex) * MaxBatchCount * 4;
+		g_textVB = context.CreateVertexBuffer(textVBDesc);
 
 		std::vector<uint32_t> indices(MaxBatchCount * 6);
 		for (uint32_t i = 0; i < MaxBatchCount; i++) {
@@ -62,10 +112,10 @@ namespace flaw {
 		ibDesc.usage = UsageFlag::Static;
 		ibDesc.bufferSize = sizeof(uint32_t) * MaxBatchCount * 6;
 		ibDesc.initialData = indices.data();
-
 		g_ib = context.CreateIndexBuffer(ibDesc);
 
 		g_vpCBuff = context.CreateConstantBuffer(sizeof(VPMatrices));
+		g_globalCBuff = context.CreateConstantBuffer(sizeof(GlobalConstants));
 
 		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
@@ -75,10 +125,34 @@ namespace flaw {
 		shader->AddInputElement<uint32_t>("ID", 1);
 		shader->CreateInputLayout();
 
-		g_pipeline = context.CreateGraphicsPipeline();
-		g_pipeline->SetShader(shader);
-		g_pipeline->SetBlendMode(BlendMode::Alpha, true);
-		g_pipeline->SetCullMode(CullMode::None);
+		g_quadPipeline = context.CreateGraphicsPipeline();
+		g_quadPipeline->SetShader(shader);
+		g_quadPipeline->SetBlendMode(BlendMode::Alpha, true);
+		g_quadPipeline->SetCullMode(CullMode::None);
+
+		Ref<GraphicsShader> circleShader = context.CreateGraphicsShader("Resources/Shaders/circle2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		circleShader->AddInputElement<float>("LOCALPOSITION", 3);
+		circleShader->AddInputElement<float>("WORLDPOSITION", 3);
+		circleShader->AddInputElement<float>("THICKNESS", 1);
+		circleShader->AddInputElement<float>("COLOR", 4);
+		circleShader->AddInputElement<uint32_t>("ID", 1);
+		circleShader->CreateInputLayout();
+
+		g_circlePipeline = context.CreateGraphicsPipeline();
+		g_circlePipeline->SetShader(circleShader);
+		g_circlePipeline->SetBlendMode(BlendMode::Alpha, true);
+		g_circlePipeline->SetCullMode(CullMode::None);
+
+		Ref<GraphicsShader> lineShader = context.CreateGraphicsShader("Resources/Shaders/line2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
+		lineShader->AddInputElement<float>("POSITION", 3);
+		lineShader->AddInputElement<float>("COLOR", 4);
+		lineShader->AddInputElement<uint32_t>("ID", 1);
+		lineShader->CreateInputLayout();
+
+		g_linePipeline = context.CreateGraphicsPipeline();
+		g_linePipeline->SetShader(lineShader);
+		g_linePipeline->SetBlendMode(BlendMode::Alpha, true);
+		g_linePipeline->SetCullMode(CullMode::None);
 
 		Ref<GraphicsShader> textShader = context.CreateGraphicsShader("Resources/Shaders/text2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		textShader->AddInputElement<float>("POSITION", 3);
@@ -95,21 +169,39 @@ namespace flaw {
 	}
 
 	void Renderer2D::Cleanup() {
-		g_vb.reset();
+		g_quadVB.reset();
+		g_circleVB.reset();
+		g_lineVB.reset();
+		g_textVB.reset();
 		g_ib.reset();
 		g_vpCBuff.reset();
-		g_pipeline.reset();
+		g_quadPipeline.reset();
+		g_circlePipeline.reset();
+		g_linePipeline.reset();
 		g_textPipeline.reset();
 	}
 
 	void Renderer2D::Begin(const mat4& view, const mat4& projection) {
-		g_mvp.view = view;
-		g_mvp.projection = projection;
-		g_vpCBuff->Update(&g_mvp, sizeof(VPMatrices));
+		g_vp.view = view;
+		g_vp.projection = projection;
+		g_vpCBuff->Update(&g_vp, sizeof(VPMatrices));
+
+		int32_t width, height;
+		Graphics::GetSize(width, height);
+		g_globalConstants.screenResolution = vec2((float)width, (float)height);
+		g_globalConstants.time = Time::GetTime();
+		g_globalConstants.deltaTime = Time::DeltaTime();
+		g_globalCBuff->Update(&g_globalConstants, sizeof(GlobalConstants));
 
 		g_quadVertices.clear();
 		g_quadTextures.clear();
 		g_quadIndexCount = 0;
+
+		g_circleVertices.clear();
+		g_circleIndexCount = 0;
+
+		g_lineVertices.clear();
+		g_lineIndexCount = 0;
 
 		g_textVertices.clear();
 		g_textTextures.clear();
@@ -119,32 +211,51 @@ namespace flaw {
 	void Renderer2D::End() {
 		auto& commandQueue = Graphics::GetCommandQueue();
 
-		g_vb->Update(g_quadVertices.data(), sizeof(TexturedVertex), g_quadVertices.size());
+		g_quadVB->Update(g_quadVertices.data(), sizeof(QuadVertex), g_quadVertices.size());
+		g_circleVB->Update(g_circleVertices.data(), sizeof(CircleVertex), g_circleVertices.size());
+		g_lineVB->Update(g_lineVertices.data(), sizeof(LineVertex), g_lineVertices.size());
+		g_textVB->Update(g_textVertices.data(), sizeof(QuadVertex), g_textVertices.size());
 
 		commandQueue.Begin();
-		commandQueue.SetPipeline(g_pipeline);
-		commandQueue.SetVertexBuffer(g_vb);
 		commandQueue.SetConstantBuffer(g_vpCBuff, 0);
-		for (auto& [texture, id] : g_quadTextures) {
-			commandQueue.SetTexture(texture, id);
-		}
-		commandQueue.DrawIndexed(g_ib, g_quadIndexCount);
-		commandQueue.End();
+		commandQueue.SetConstantBuffer(g_globalCBuff, 1);
 
-		commandQueue.Execute();
-
-		g_vb->Update(g_textVertices.data(), sizeof(TexturedVertex), g_textVertices.size());
-
-		commandQueue.Begin();
-		commandQueue.SetPipeline(g_textPipeline);
-		commandQueue.SetVertexBuffer(g_vb);
-		commandQueue.SetConstantBuffer(g_vpCBuff, 0);
-
-		for (auto& [texture, id] : g_textTextures) {
-			commandQueue.SetTexture(texture, id);
+		{
+			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			commandQueue.SetPipeline(g_quadPipeline);
+			commandQueue.SetVertexBuffer(g_quadVB);
+			for (auto& [texture, id] : g_quadTextures) {
+				commandQueue.SetTexture(texture, id);
+			}
+			commandQueue.DrawIndexed(g_ib, g_quadIndexCount);
 		}
 
-		commandQueue.DrawIndexed(g_ib, g_textIndexCount);
+		{
+			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			commandQueue.SetPipeline(g_circlePipeline);
+			commandQueue.SetVertexBuffer(g_circleVB);
+			commandQueue.DrawIndexed(g_ib, g_circleIndexCount);
+		}
+
+		{
+			commandQueue.SetPrimitiveTopology(PrimitiveTopology::LineList);
+			commandQueue.SetPipeline(g_linePipeline);
+			commandQueue.SetVertexBuffer(g_lineVB);
+			commandQueue.Draw(g_lineIndexCount);
+		}
+
+		{
+			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+			commandQueue.SetPipeline(g_textPipeline);
+			commandQueue.SetVertexBuffer(g_textVB);
+
+			for (auto& [texture, id] : g_textTextures) {
+				commandQueue.SetTexture(texture, id);
+			}
+
+			commandQueue.DrawIndexed(g_ib, g_textIndexCount);
+		}
+
 		commandQueue.End();
 
 		commandQueue.Execute();
@@ -177,6 +288,40 @@ namespace flaw {
 		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), vec2(0.0f, 1.0f), vec4(1.0f), textureID, id });
 
 		g_quadIndexCount += 6;
+	}
+
+	void Renderer2D::DrawCircle(const uint32_t id, const mat4& transform,  const vec4& color, const float thickness) {
+		g_circleVertices.push_back({ vec3(-0.5f, 0.5f, 0.0f), vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, id });
+		g_circleVertices.push_back({ vec3(0.5f, 0.5f, 0.0f), vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, id });
+		g_circleVertices.push_back({ vec3(0.5f, -0.5f, 0.0f), vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, id });
+		g_circleVertices.push_back({ vec3(-0.5f, -0.5f, 0.0f), vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, id });
+
+		g_circleIndexCount += 6;
+	}
+
+	void Renderer2D::DrawLine(const uint32_t id, const vec3& start, const vec3& end, const vec4& color) {
+		g_lineVertices.push_back({ start, color, id });
+		g_lineVertices.push_back({ end, color, id });
+
+		g_lineIndexCount += 2;
+	}
+
+	void Renderer2D::DrawLineRect(const uint32_t id, const mat4& transform, const vec4& color) {
+		vec3 p0 = transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f);
+		vec3 p1 = transform * vec4(0.5f, 0.5f, 0.0f, 1.0f);
+		vec3 p2 = transform * vec4(0.5f, -0.5f, 0.0f, 1.0f);
+		vec3 p3 = transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f);
+
+		g_lineVertices.push_back({ p0, color, id });
+		g_lineVertices.push_back({ p1, color, id });
+		g_lineVertices.push_back({ p1, color, id });
+		g_lineVertices.push_back({ p2, color, id });
+		g_lineVertices.push_back({ p2, color, id });
+		g_lineVertices.push_back({ p3, color, id });
+		g_lineVertices.push_back({ p3, color, id });
+		g_lineVertices.push_back({ p0, color, id });
+
+		g_lineIndexCount += 8;
 	}
 
 	void Renderer2D::DrawString(const uint32_t id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const Ref<Texture2D>& fontAtlas, const vec4& color) {

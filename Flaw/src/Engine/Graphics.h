@@ -39,6 +39,7 @@ namespace flaw {
 		static void SetClearColor(float r, float g, float b, float a);
 
 		static void Resize(int32_t width, int32_t height);
+		static void GetSize(int32_t& width, int32_t& height);
 
 		static GraphicsContext& GetGraphicsContext();
 	};

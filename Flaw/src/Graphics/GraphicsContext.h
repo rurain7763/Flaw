@@ -40,5 +40,6 @@ namespace flaw {
 		virtual void SetClearColor(float r, float g, float b, float a) = 0;
 
 		virtual void Resize(int32_t width, int32_t height) = 0;
+		virtual void GetSize(int32_t& width, int32_t& height) = 0;
 	};
 }

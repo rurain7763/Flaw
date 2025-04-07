@@ -64,7 +64,6 @@ namespace flaw {
 	public:
 		DXGraphicsPipeline(DXContext& context);
 
-		void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 		void SetDepthTest(DepthTest depthTest, bool depthWrite = true) override;
 		void SetBlendMode(BlendMode blendMode, bool alphaToCoverage = false) override;
 		void SetCullMode(CullMode cullMode) override;
@@ -94,7 +93,5 @@ namespace flaw {
 
 		ComPtr<ID3D11BlendState> _blendState;
 		std::unordered_map<BlendStateKey, ComPtr<ID3D11BlendState>, BlendStateKeyHash> _blendStateStore;
-
-		D3D11_PRIMITIVE_TOPOLOGY _primitiveTopology;
 	};
 }

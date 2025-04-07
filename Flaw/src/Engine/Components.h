@@ -33,8 +33,12 @@ namespace flaw {
 		TransformComponent(const vec3& position, const vec3& rotation, const vec3& scale) : position(position), rotation(rotation), scale(scale) {}
 		TransformComponent(const TransformComponent& other) = default;
 
-		mat4 GetTransform() const {
+		inline mat4 GetTransform() const {
 			return ModelMatrix(position, rotation, scale);
+		}
+
+		inline vec3 GetFront() {
+			return QRotate(rotation, Forward);
 		}
 	};
 

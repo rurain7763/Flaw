@@ -8,8 +8,6 @@ namespace flaw {
 	DXGraphicsPipeline::DXGraphicsPipeline(DXContext& context)
 		: _context(context)
 	{
-		SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-
 		_rasterizerState = CreateRasterizerState(D3D11_FILL_SOLID, D3D11_CULL_BACK);
 
 		_depthStencilState = CreateDepthStencilState(D3D11_COMPARISON_LESS, D3D11_DEPTH_WRITE_MASK_ALL);
@@ -22,27 +20,6 @@ namespace flaw {
 		if (!_blendState) {
 			Log::Error("CreateBlendState failed");
 			return;
-		}
-	}
-
-	void DXGraphicsPipeline::SetPrimitiveTopology(PrimitiveTopology primitiveTopology) {
-		switch (primitiveTopology)
-		{
-		case PrimitiveTopology::TriangleList:
-			_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			break;
-		case PrimitiveTopology::TriangleStrip:
-			_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-			break;
-		case PrimitiveTopology::LineList:
-			_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-			break;
-		case PrimitiveTopology::LineStrip:
-			_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			break;
-		case PrimitiveTopology::PointList:
-			_primitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-			break;
 		}
 	}
 
@@ -75,7 +52,6 @@ namespace flaw {
 	void DXGraphicsPipeline::Bind() {
 		_shader->Bind();
 		_context.DeviceContext()->RSSetState(_rasterizerState.Get());
-		_context.DeviceContext()->IASetPrimitiveTopology(_primitiveTopology);
 		_context.DeviceContext()->OMSetDepthStencilState(_depthStencilState.Get(), 0);
 		_context.DeviceContext()->OMSetBlendState(_blendState.Get(), nullptr, 0xffffffff);
 	}

@@ -397,6 +397,27 @@ namespace flaw {
 			}
 		}
 
+        // draw debug things
+		for (auto&& [entity, transComp, boxColliderComp] : enttRegistry.view<TransformComponent, BoxCollider2DComponent>().each()) {
+			Renderer2D::DrawLineRect(
+                (uint32_t)entity, 
+				transComp.GetTransform() * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0)
+            );
+		}
+
+        for (auto&& [entity, transComp, circleColliderComp] : enttRegistry.view<TransformComponent, CircleCollider2DComponent>().each()) {
+            const vec3 toCamera = _camera.GetPosition() - transComp.position;
+			const float offsetZ = dot(transComp.GetFront(), toCamera) < 0 ? -0.001f : 0.001f;
+
+            Renderer2D::DrawCircle(
+                (uint32_t)entity,
+                transComp.GetTransform() * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+			);
+        }
+
         Renderer2D::End();
 
         _camera.OnUpdate();

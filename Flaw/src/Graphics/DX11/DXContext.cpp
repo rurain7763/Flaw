@@ -232,6 +232,11 @@ namespace flaw {
 		}
 	}
 
+	void DXContext::GetSize(int32_t& width, int32_t& height) {
+		width = _renderWidth;
+		height = _renderHeight;
+	}
+
 	void DXContext::CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) {
 		Ref<DXTexture2D> casted = std::static_pointer_cast<DXTexture2D>(dstTexture);
 		_deviceContext->CopyResource(casted->GetNativeTexture().Get(), _renderTarget.Get());

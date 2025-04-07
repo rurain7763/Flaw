@@ -10,7 +10,6 @@ namespace flaw {
 		GraphicsPipeline() = default;
 		virtual ~GraphicsPipeline() = default;
 
-		virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 		virtual void SetDepthTest(DepthTest depthTest, bool depthWrite = true) = 0;
 		virtual void SetBlendMode(BlendMode blendMode, bool alphaToCoverage = false) = 0;
 		virtual void SetCullMode(CullMode cullMode) = 0;

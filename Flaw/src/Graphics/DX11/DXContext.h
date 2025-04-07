@@ -50,6 +50,7 @@ namespace flaw {
 		void SetClearColor(float r, float g, float b, float a) override;
 
 		void Resize(int32_t width, int32_t height) override;
+		void GetSize(int32_t& width, int32_t& height) override;
 
 		inline ComPtr<ID3D11Device> Device() const { return _device; }
 		inline ComPtr<ID3D11DeviceContext> DeviceContext() const { return _deviceContext; }
