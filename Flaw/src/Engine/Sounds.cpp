@@ -24,4 +24,20 @@ namespace flaw {
 	Ref<SoundSource> Sounds::CreateSoundSourceFromFile(const char* filePath) {
 		return context->CreateSoundSourceFromFile(filePath);
 	}
+
+	void Sounds::SetListener(const SoundListener& listener) {
+		context->SetListener(listener);
+	}
+
+	void Sounds::StopAllSounds() {
+		context->StopAllSounds();
+	}
+
+	void Sounds::PauseAllSounds() {
+		context->PauseAllSounds();
+	}
+
+	void Sounds::ResumeAllSounds() {
+		context->ResumeAllSounds();
+	}
 }

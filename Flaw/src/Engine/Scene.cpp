@@ -9,8 +9,8 @@
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
-#include "Texture2DAsset.h"
-#include "FontAsset.h"
+#include "Assets.h"
+#include "Sounds.h"
 
 namespace flaw {
 	Scene::Scene(Application& app) 
@@ -77,6 +77,8 @@ namespace flaw {
 		CopyComponentIfExists<NativeScriptComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<MonoScriptComponent>(srcEntt, dstEntt);
 		CopyComponentIfExists<TextComponent>(srcEntt, dstEntt);
+		CopyComponentIfExists<SoundListenerComponent>(srcEntt, dstEntt);
+		CopyComponentIfExists<SoundSourceComponent>(srcEntt, dstEntt);
 
 		return dstEntt;
 	}
@@ -162,6 +164,48 @@ namespace flaw {
 	}
 
 	void Scene::OnUpdate() {
+		{
+			// sound
+			for (auto&& [listenerEntity, transComp, soundListenerComp] : _registry.view<TransformComponent, SoundListenerComponent>().each()) {
+				SoundListener listener;
+				listener.position = transComp.position;
+				listener.velocity = soundListenerComp.velocity;
+				listener.forward = transComp.GetFront();
+				listener.up = transComp.GetUp();
+
+				Sounds::SetListener(listener);
+
+				for (auto&& [soundSrcEntity, transComp, soundSrcComp] : _registry.view<TransformComponent, SoundSourceComponent>().each()) {
+					auto soundAsset = AssetManager::GetAsset<SoundAsset>(soundSrcComp.sound);
+					if (soundAsset) {
+						auto soundSrc = soundAsset->GetSoundSource();
+
+						if ((!soundSrcComp.channel && soundSrcComp.autoPlay) || soundSrcComp.signal == SoundSourceComponent::Signal::Play) {
+							soundSrcComp.channel = soundSrc->Play(soundSrcComp.loop ? -1 : 0);
+						}
+
+						if (soundSrcComp.channel) {
+							if (soundSrcComp.signal == SoundSourceComponent::Signal::Resume) {
+								soundSrcComp.channel->Resume();
+							}
+							else if (soundSrcComp.signal == SoundSourceComponent::Signal::Stop) {
+								soundSrcComp.channel->Stop();
+							}
+
+							soundSrcComp.channel->SetPosition3D(transComp.position);
+							soundSrcComp.channel->SetVolume(soundSrcComp.volume);
+						}
+
+						soundSrcComp.signal = SoundSourceComponent::Signal::None;
+					}
+				}
+
+				// listener must be exist only one
+				break;
+			}
+
+		}
+
 		{
 			// update mono scripts
 			Scripting::OnUpdate();

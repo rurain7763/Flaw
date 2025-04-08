@@ -85,9 +85,6 @@
     <ClInclude Include="src\Engine\Entity.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\FontAsset.h">
-      <Filter>Engine</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Fonts.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -119,9 +116,6 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Sounds.h">
-      <Filter>Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\Texture2DAsset.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Event\EventDispatcher.h">
@@ -273,6 +267,7 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Engine\Assets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -282,9 +277,6 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Entity.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Engine\FontAsset.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Fonts.cpp">
@@ -315,9 +307,6 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Sounds.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Engine\Texture2DAsset.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Event\EventDispatcher.cpp">
@@ -393,5 +382,6 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\Engine\Assets.cpp" />
   </ItemGroup>
 </Project>

@@ -30,6 +30,35 @@ namespace flaw {
 		return CreateRef<FModSoundSource>(_system, filePath);
 	}
 
+	void FModSoundsContext::SetListener(const SoundListener& listener) {
+		FMOD_VECTOR position = { listener.position.x, listener.position.y, listener.position.z };
+		FMOD_VECTOR velocity = { listener.velocity.x, listener.velocity.y, listener.velocity.z };
+		FMOD_VECTOR forward = { listener.forward.x, listener.forward.y, listener.forward.z };
+		FMOD_VECTOR up = { listener.up.x, listener.up.y, listener.up.z };
+		_system->set3DListenerAttributes(0, &position, &velocity, &forward, &up);
+	}
+
+	void FModSoundsContext::StopAllSounds() {
+		FMOD::ChannelGroup* masterGroup;
+		_system->getMasterChannelGroup(&masterGroup);
+
+		masterGroup->stop();
+	}
+
+	void FModSoundsContext::PauseAllSounds() {
+		FMOD::ChannelGroup* masterGroup;
+		_system->getMasterChannelGroup(&masterGroup);
+
+		masterGroup->setPaused(true);
+	}
+
+	void FModSoundsContext::ResumeAllSounds() {
+		FMOD::ChannelGroup* masterGroup;
+		_system->getMasterChannelGroup(&masterGroup);
+
+		masterGroup->setPaused(false);
+	}
+
 	uint32_t FModSoundsContext::GetChannelCount() const {
 		return _channels;
 	}

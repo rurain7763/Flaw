@@ -11,5 +11,11 @@ namespace flaw {
 
 		static Ref<SoundSource> CreateSoundSourceFromMemory(const int8_t* memory, int64_t size);
 		static Ref<SoundSource> CreateSoundSourceFromFile(const char* filePath);
+
+		static void SetListener(const SoundListener& listener);
+
+		static void StopAllSounds();
+		static void PauseAllSounds();
+		static void ResumeAllSounds();
 	};
 }

@@ -564,11 +564,15 @@ namespace flaw {
     void EditorLayer::OnScenePause() {
 		_pause = true;
 
+		Sounds::PauseAllSounds();
+
 		_app.GetEventDispatcher().Dispatch<OnScenePauseEvent>(_pause);
     }
 
     void EditorLayer::OnSceneResume() {
         _pause = false;
+
+		Sounds::ResumeAllSounds();
 
 		_app.GetEventDispatcher().Dispatch<OnScenePauseEvent>(_pause);
     }

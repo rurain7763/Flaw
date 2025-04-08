@@ -127,21 +127,15 @@ namespace flaw {
 			}
 
 			Ref<Asset> asset;
+			const std::function<void(std::vector<int8_t>&)> getMemoryFunc = [assetFile, assetDataOffset](std::vector<int8_t>& data) {
+				FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+				data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
+			};
+
 			switch (metadata.type) {
-				case AssetType::Texture2D: {
-					asset = CreateRef<Texture2DAsset>([assetFile, assetDataOffset](std::vector<int8_t>& data) {
-						FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
-						data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
-					});
-					break;
-				}
-				case AssetType::Font: {
-					asset = CreateRef<FontAsset>([assetFile, assetDataOffset](std::vector<int8_t>& data) { 
-						FileSystem::ReadFile(assetFile.generic_string().c_str(), data); 
-						data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
-					});
-					break;
-				}
+				case AssetType::Texture2D: asset = CreateRef<Texture2DAsset>(getMemoryFunc); break;
+				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
+				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
 			}
 
 			if (!asset) {
@@ -171,7 +165,8 @@ namespace flaw {
 	bool AssetDatabase::IsValidExtension(const std::filesystem::path& extension) {
 		return extension == ".png"
 			|| extension == ".jpg"
-			|| extension == ".ttf";
+			|| extension == ".ttf"
+			|| extension == ".wav";
 	}
 
 	bool AssetDatabase::ImportAsset(const char* srcPath, const char* destPath) {
@@ -234,6 +229,15 @@ namespace flaw {
 			archive << fontAtlas.width;
 			archive << fontAtlas.height;
 			archive << fontAtlas.data;
+		}
+		else if (extension == ".wav") {
+			meta.type = AssetType::Sound;
+
+			archive << meta;
+
+			std::vector<int8_t> soundData;
+			FileSystem::ReadFile(srcPath, soundData);
+			archive << soundData;
 		}
 
 		if (!FileSystem::WriteFile(destPath, archive.Data(), archive.RemainingSize())) {

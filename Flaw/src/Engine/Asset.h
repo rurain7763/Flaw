@@ -22,9 +22,10 @@ namespace flaw {
 
 	enum class AssetType : int32_t {
 		Unknown = 0,
-		Scene,
+		Reserved,
 		Texture2D,
-		Font
+		Font,
+		Sound,
 	};
 
 	class Asset {

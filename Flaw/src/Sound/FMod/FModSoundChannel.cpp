@@ -25,6 +25,30 @@ namespace flaw {
 		_channel->setPaused(false);
 	}
 
+	void FModSoundChannel::SetPosition3D(const vec3& position) {
+		FMOD_VECTOR pos = { position.x, position.y, position.z };
+		_channel->set3DAttributes(&pos, nullptr);
+	}
+
+	void FModSoundChannel::SetVelocity3D(const vec3& velocity) {
+		FMOD_VECTOR vel = { velocity.x, velocity.y, velocity.z };
+		_channel->set3DAttributes(nullptr, &vel);
+	}
+
+	void FModSoundChannel::SetPositionAndVelocity3D(const vec3& position, const vec3& velocity) {
+		FMOD_VECTOR pos = { position.x, position.y, position.z };
+		FMOD_VECTOR vel = { velocity.x, velocity.y, velocity.z };
+		_channel->set3DAttributes(&pos, &vel);
+	}
+
+	void FModSoundChannel::SetMute(bool mute) {
+		_channel->setMute(mute);
+	}
+
+	void FModSoundChannel::SetLoop(int loopCount) {
+		_channel->setLoopCount(loopCount);
+	}
+
 	float FModSoundChannel::GetVolume() const {
 		float volume;
 		_channel->getVolume(&volume);

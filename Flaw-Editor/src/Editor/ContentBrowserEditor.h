@@ -18,6 +18,7 @@ namespace flaw{
 			Texture2D,
 			Font,
 			Scene,
+			Sound,
 			Count
 		};
 

@@ -121,6 +121,25 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::SoundListenerComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SoundListenerComponent>();
+			out << YAML::Key << "SoundListenerComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Velocity" << YAML::Value << comp.velocity;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::SoundSourceComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SoundSourceComponent>();
+			out << YAML::Key << "SoundSourceComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Sound" << YAML::Value << comp.sound;
+			out << YAML::Key << "Loop" << YAML::Value << comp.loop;
+			out << YAML::Key << "AutoPlay" << YAML::Value << comp.autoPlay;
+			out << YAML::Key << "Volume" << YAML::Value << comp.volume;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -248,6 +267,23 @@ namespace flaw {
 					comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
 					comp.color = component.second["Color"].as<vec4>();
 					comp.font = component.second["Font"].as<uint64_t>();
+				}
+				else if (name == "SoundListenerComponent") {
+					if (!entity.HasComponent<SoundListenerComponent>()) {
+						entity.AddComponent<SoundListenerComponent>();
+					}
+					auto& comp = entity.GetComponent<SoundListenerComponent>();
+					comp.velocity = component.second["Velocity"].as<vec3>();
+				}
+				else if (name == "SoundSourceComponent") {
+					if (!entity.HasComponent<SoundSourceComponent>()) {
+						entity.AddComponent<SoundSourceComponent>();
+					}
+					auto& comp = entity.GetComponent<SoundSourceComponent>();
+					comp.sound = component.second["Sound"].as<uint64_t>();
+					comp.loop = component.second["Loop"].as<bool>();
+					comp.autoPlay = component.second["AutoPlay"].as<bool>();
+					comp.volume = component.second["Volume"].as<float>();
 				}
 			}
 		}

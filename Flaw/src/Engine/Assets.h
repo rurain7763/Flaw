@@ -1,0 +1,64 @@
+#pragma once
+
+#include "Asset.h"
+#include "Graphics/Texture.h"
+#include "Font/Font.h"
+#include "Sound/SoundSource.h"
+
+namespace flaw {
+	class Texture2DAsset : public Asset {
+	public:
+		Texture2DAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Texture2D; }
+
+		const Ref<Texture2D>& GetTexture() const { return _texture; }
+		bool IsLoaded() const override { return _texture != nullptr; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<Texture2D> _texture;
+	};
+
+	class FontAsset : public Asset {
+	public:
+		FontAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Font; }
+		bool IsLoaded() const override { return _font != nullptr; }
+
+		const Ref<Font>& GetFont() const { return _font; }
+		const Ref<Texture2D>& GetFontAtlas() const { return _fontAtlas; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<Font> _font;
+		Ref<Texture2D> _fontAtlas;
+	};
+
+	class SoundAsset : public Asset {
+	public:
+		SoundAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Sound; }
+		bool IsLoaded() const override { return _sound != nullptr; }
+
+		const Ref<SoundSource>& GetSoundSource() const { return _sound; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<SoundSource> _sound;
+	};
+}

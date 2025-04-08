@@ -15,6 +15,12 @@ namespace flaw {
 		virtual Ref<SoundSource> CreateSoundSourceFromMemory(const int8_t* memory, int64_t size) override;
 		virtual Ref<SoundSource> CreateSoundSourceFromFile(const char* filePath) override;
 
+		virtual void SetListener(const SoundListener& listener) override;
+
+		virtual void StopAllSounds() override;
+		virtual void PauseAllSounds() override;
+		virtual void ResumeAllSounds() override;
+
 		virtual uint32_t GetChannelCount() const override;
 
 	private:

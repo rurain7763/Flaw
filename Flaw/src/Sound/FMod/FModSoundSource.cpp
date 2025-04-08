@@ -4,11 +4,13 @@
 #include "FModSoundChannel.h"
 #include "Log/Log.h"
 
+#include <FMod/fmod_errors.h>
+
 namespace flaw {
 	FModSoundSource::FModSoundSource(FMOD::System* system, const char* filePath)
 		: _system(system)
 	{
-		if (system->createSound(filePath, FMOD_DEFAULT | FMOD_LOOP_NORMAL, nullptr, &_sound) != FMOD_OK) {
+		if (system->createSound(filePath, FMOD_DEFAULT | FMOD_LOOP_NORMAL | FMOD_3D, nullptr, &_sound) != FMOD_OK) {
 			Log::Error("Failed to create sound from file: {}", filePath);
 			return;
 		}
@@ -21,8 +23,9 @@ namespace flaw {
 		exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
 		exinfo.length = size;
 
-		if (system->createSound((const char*)memory, FMOD_OPENMEMORY | FMOD_LOOP_NORMAL, &exinfo, &_sound) != FMOD_OK) {
-			Log::Error("Failed to create sound from memory");
+		FMOD_RESULT result = system->createSound((const char*)memory, FMOD_OPENMEMORY | FMOD_LOOP_NORMAL | FMOD_3D, &exinfo, &_sound);
+		if (result != FMOD_OK) {
+			Log::Error("Failed to create sound from memory : %s", FMOD_ErrorString(result));
 			return;
 		}
 	}

@@ -8,6 +8,7 @@
 #include "Scripting.h"
 #include "Font/Font.h"
 #include "Asset.h"
+#include "Sound/SoundChannel.h"
 
 namespace flaw {
 	struct EntityComponent {
@@ -39,6 +40,14 @@ namespace flaw {
 
 		inline vec3 GetFront() {
 			return QRotate(rotation, Forward);
+		}
+
+		inline vec3 GetRight() {
+			return normalize(cross(Up, GetFront()));
+		}
+
+		inline vec3 GetUp() {
+			return normalize(cross(GetFront(), GetRight()));
 		}
 	};
 
@@ -190,5 +199,42 @@ namespace flaw {
 
 		TextComponent() = default;
 		TextComponent(const TextComponent& other) = default;
-	};;
+	};
+
+	struct SoundListenerComponent {
+		vec3 velocity = vec3(0.0f);
+
+		SoundListenerComponent() = default;
+		SoundListenerComponent(const SoundListenerComponent& other) = default;
+	};
+
+	struct SoundSourceComponent {
+		enum class Signal {
+			None,
+			Play,
+			Stop,
+			Resume
+		};
+
+		AssetHandle sound;
+
+		bool loop = false;
+		bool autoPlay = false;
+		float volume = 1.0f;
+
+		Ref<SoundChannel> channel;
+		Signal signal = Signal::None;
+
+		SoundSourceComponent() = default;
+		SoundSourceComponent(const SoundSourceComponent& other) = default;
+
+		SoundSourceComponent& operator=(const SoundSourceComponent& other) {
+			sound = other.sound;
+			loop = other.loop;
+			autoPlay = other.autoPlay;
+			volume = other.volume;
+
+			return *this;
+		}
+	};
 }
