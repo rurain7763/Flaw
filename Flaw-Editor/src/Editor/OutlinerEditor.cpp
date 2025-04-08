@@ -29,10 +29,23 @@ namespace flaw {
 
 		ImGui::Begin("Outliner");
 
+		static char searchBuffer[128] = { 0 };
+		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, sizeof(searchBuffer));
+		ImGui::Separator();
+
 		auto& registry = _scene->GetRegistry();
 
 		for (auto&& [entity, enttComp] : registry.view<EntityComponent>().each()) {
-			DrawEntityNode(Entity(entity, _scene.get()));
+			Entity entt(entity, _scene.get());
+			
+			if (searchBuffer[0] == '\0') {
+				if (!entt.HasParent()) {
+					DrawEntityNode(entt, true);
+				}
+			}
+			else if (enttComp.name.find(searchBuffer) != std::string::npos) {
+				DrawEntityNode(entt, false);
+			}
 		}
 
 		// delete selected object
@@ -68,6 +81,15 @@ namespace flaw {
 			ImGui::EndPopup();
 		}
 
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
+				uint32_t id = *(uint32_t*)payload->Data;
+				Entity draggedEntity((entt::entity)id, _scene.get());
+				draggedEntity.UnsetParent();
+			}
+			ImGui::EndDragDropTarget();
+		}
+
 		ImGui::EndChild();
 
 		ImGui::End();
@@ -76,20 +98,23 @@ namespace flaw {
 		if (Input::GetKey(KeyCode::LCtrl)) {
 			if (Input::GetKeyDown(KeyCode::D)) {
 				if (_selectedEntt) {
-					Entity newEntity = _scene->CloneEntity(_selectedEntt);
-					_selectedEntt = newEntity;
+					_selectedEntt = _scene->CloneEntity(_selectedEntt);
 					_eventDispatcher.Dispatch<OnSelectEntityEvent>(_selectedEntt);
 				}
 			}
 		}
 	}
 
-	void OutlinerEditor::DrawEntityNode(const Entity& entity) {
+	void OutlinerEditor::DrawEntityNode(const Entity& entity, bool recursive) {
 		auto& goc = entity.GetComponent<EntityComponent>();
 
 		const bool isSelected = _selectedEntt == entity;
 
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		if (!entity.HasChild() || !recursive) {
+			flags |= ImGuiTreeNodeFlags_Leaf;  // 자식이 없는 경우 리프 노드로 표시
+		}
 
 		if (isSelected) {
 			flags |= ImGuiTreeNodeFlags_Selected;  // 선택된 엔티티 강조
@@ -105,8 +130,36 @@ namespace flaw {
 			_eventDispatcher.Dispatch<OnSelectEntityEvent>(_selectedEntt);
 		}
 
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+			uint32_t id = (uint32_t)entity;
+			ImGui::SetDragDropPayload("ENTITY_ID", &id, sizeof(uint32_t));
+			ImGui::Text("%s", goc.name.c_str());
+			ImGui::EndDragDropSource();
+		}
+
+		Entity needToSetParent;
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
+				uint32_t id = *(uint32_t*)payload->Data;
+				needToSetParent = Entity((entt::entity)id, _scene.get());
+				//Entity draggedEntity((entt::entity)id, _scene.get());
+				//draggedEntity.SetParent(entity);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
 		if (open) {
+			if (recursive) {
+				entity.EachChildren([this, recursive](const Entity& child) {
+					DrawEntityNode(child, recursive);
+				});
+			}
+
 			ImGui::TreePop();
+		}
+
+		if (needToSetParent) {
+			needToSetParent.SetParent(entity);
 		}
 	}
 }

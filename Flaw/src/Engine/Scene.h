@@ -6,6 +6,7 @@
 #include "Log/Log.h"
 #include "Graphics/GraphicsContext.h"
 #include "Math/Math.h"
+#include "Utils/UUID.h"
 
 class b2World;
 
@@ -18,9 +19,12 @@ namespace flaw {
 		~Scene();
 
 		Entity CreateEntity(const char* name = "Entity");
+		Entity CreateEntityByUUID(const UUID& uuid, const char* name = "Entity");
 		void DestroyEntity(Entity entity);
-		Entity CloneEntity(const Entity& srcEntt);
+		Entity CloneEntity(const Entity& srcEntt, bool sameUUID = false);
+
 		Entity FindEntityByName(const char* name);
+		Entity FindEntityByUUID(const UUID& uuid);
 
 		void OnStart();
 		void OnUpdate();
@@ -34,12 +38,20 @@ namespace flaw {
 		entt::registry& GetRegistry() { return _registry; }
 
 	private:
+		void DestroyEntityRecursive(Entity entity);
+
+	private:
 		friend class Entity;
 
 		Application& _app;
 
 		entt::registry _registry;
 		Scope<b2World> _physics2DWorld;
+
+		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
+
+		std::unordered_map<UUID, UUID> _parentMap; // child -> parent
+		std::unordered_map<UUID, std::unordered_set<UUID>> _childMap; // parent -> children
 	};
 }
 

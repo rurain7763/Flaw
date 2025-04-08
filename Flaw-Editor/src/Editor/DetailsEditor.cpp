@@ -5,6 +5,7 @@
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <inttypes.h>
 
 namespace flaw {
 	// TODO: this code must be some where else
@@ -192,6 +193,7 @@ namespace flaw {
 			auto& entityComp = _selectedEntt.GetComponent<EntityComponent>();
 
 			ImGui::Text("ID: %d", (uint32_t)_selectedEntt);
+			ImGui::Text("UUID: %" PRIu64, entityComp.uuid);
 
 			char nameBuffer[256] = { 0 };
 			strcpy_s(nameBuffer, entityComp.name.c_str());

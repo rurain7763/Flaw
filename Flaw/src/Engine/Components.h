@@ -18,11 +18,6 @@ namespace flaw {
 		EntityComponent() = default;
 		EntityComponent(const char* name) : name(name) {}
 		EntityComponent(const EntityComponent& other) = default;
-
-		EntityComponent& operator=(const EntityComponent& other) {
-			name = other.name;
-			return *this;
-		}
 	};
 
 	struct TransformComponent {

@@ -5,6 +5,8 @@
 #include <xhash>
 
 namespace flaw {
+	constexpr uint64_t UUID_INVALID = 0xFFFFFFFFFFFFFFFF;
+
 	class UUID {
 	public:
 		UUID();

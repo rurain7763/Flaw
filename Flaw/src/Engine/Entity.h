@@ -34,6 +34,14 @@ namespace flaw {
 			_scene->_registry.remove<T>(_handle);
 		}
 
+		bool HasParent() const;
+		void SetParent(Entity parent);
+		void UnsetParent();
+		Entity GetParent() const;
+
+		bool HasChild() const;
+		void EachChildren(const std::function<void(const Entity& entity)>& func) const;
+
 		const UUID& GetUUID() const;
 
 		operator bool() const { return _handle != entt::null && _scene && _scene->_registry.valid(_handle); }

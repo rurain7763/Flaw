@@ -14,7 +14,7 @@ namespace flaw {
 		const Entity& GetSelectedEntity() const { return _selectedEntt; }
 
 	private:
-		void DrawEntityNode(const Entity& entity);
+		void DrawEntityNode(const Entity& entity, bool recursive);
 
 	private:
 		Application& _app;

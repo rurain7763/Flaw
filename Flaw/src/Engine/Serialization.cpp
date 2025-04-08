@@ -34,7 +34,6 @@ namespace flaw {
 			auto& comp = entity.GetComponent<flaw::EntityComponent>();
 			out << YAML::Key << "EntityComponent";
 			out << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "UUID" << YAML::Value << comp.uuid;
 			out << YAML::Key << "Name" << YAML::Value << comp.name;
 			out << YAML::EndMap;
 		}
@@ -150,15 +149,30 @@ namespace flaw {
 		out << YAML::Key << "Entities";
 		out << YAML::Value << YAML::BeginSeq;
 
+		std::unordered_map<UUID, UUID> parentMap;
 		for (auto&& [entity] : scene.GetRegistry().view<entt::entity>().each()) {
 			flaw::Entity e(entity, &scene);
 
 			if (e) {
 				Serialize(out, e);
 			}
+
+			if (e.HasParent()) {
+				parentMap[e.GetUUID()] = e.GetParent().GetUUID();
+			}
 		}
 
 		out << YAML::EndSeq;
+
+		out << YAML::Key << "ParentMap";
+		out << YAML::Value << YAML::BeginMap;
+		{
+			for (auto&& [child, parent] : parentMap) {
+				out << YAML::Key << child << YAML::Value << parent;
+			}
+		}
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 	}
 
@@ -174,8 +188,6 @@ namespace flaw {
 	}
 
 	void Deserialize(const YAML::Node& node, Entity& entity) {
-		UUID id = node["Entity"].as<uint64_t>();
-
 		auto components = node["Components"];
 
 		if (components) {
@@ -188,7 +200,6 @@ namespace flaw {
 					}
 
 					auto& comp = entity.GetComponent<EntityComponent>();
-					comp.uuid = component.second["UUID"].as<uint64_t>();
 					comp.name = component.second["Name"].as<std::string>();
 				}
 				else if (name == "TransformComponent") {
@@ -293,9 +304,24 @@ namespace flaw {
 		std::string name = node["Scene"].as<std::string>();
 
 		auto entities = node["Entities"];
-		for (auto entity : entities) {
-			Entity e = scene.CreateEntity();
-			Deserialize(entity, e);
+		for (auto node : entities) {
+			UUID id = node["Entity"].as<uint64_t>();
+			Entity e = scene.CreateEntityByUUID(id);
+
+			Deserialize(node, e);
+		}
+
+		auto parentMap = node["ParentMap"];
+		for (auto parent : parentMap) {
+			auto child = parent.first.as<uint64_t>();
+			auto parentUUID = parent.second.as<uint64_t>();
+
+			Entity childEntity = scene.FindEntityByUUID(child);
+			Entity parentEntity = scene.FindEntityByUUID(parentUUID);
+
+			if (childEntity && parentEntity) {
+				childEntity.SetParent(parentEntity);
+			}
 		}
 	}
 }

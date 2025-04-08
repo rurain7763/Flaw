@@ -11,6 +11,7 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Sounds.h"
+#include "Log/Log.h"
 
 namespace flaw {
 	Scene::Scene(Application& app) 
@@ -29,19 +30,55 @@ namespace flaw {
 
 	Entity Scene::CreateEntity(const char* name) {
 		Entity entity(_registry.create(), this);
-		entity.AddComponent<EntityComponent>(name);
 		entity.AddComponent<TransformComponent>();
+
+		auto& enttComp = entity.AddComponent<EntityComponent>(name);
+		enttComp.uuid.Generate();
+
+		_entityMap[enttComp.uuid] = (entt::entity)(uint32_t)entity;
+
+		return entity;
+	}
+
+	Entity Scene::CreateEntityByUUID(const UUID& uuid, const char* name) {
+		Entity entity(_registry.create(), this);
+		entity.AddComponent<TransformComponent>();
+
+		auto& enttComp = entity.AddComponent<EntityComponent>(name);
+		enttComp.uuid = uuid;
+
+		_entityMap[enttComp.uuid] = (entt::entity)(uint32_t)entity;
 
 		return entity;
 	}
 
 	void Scene::DestroyEntity(Entity entity) {
+		UUID entityUUID = entity.GetUUID();
+
+		auto it = _parentMap.find(entityUUID);
+		if (it != _parentMap.end()) {
+			_childMap[it->second].erase(entityUUID);
+		}
+
+		DestroyEntityRecursive(entity);
+	}
+
+	void Scene::DestroyEntityRecursive(Entity entity) {
+		UUID entityUUID = entity.GetUUID();
+
+		// call destroy to children
+		entity.EachChildren([this](const Entity& child) { DestroyEntityRecursive(child); });
+		_childMap.erase(entityUUID);
+
 		if (entity.HasComponent<Rigidbody2DComponent>()) {
 			auto& rigidbody2D = entity.GetComponent<Rigidbody2DComponent>();
 			_physics2DWorld->DestroyBody((b2Body*)rigidbody2D.runtimeBody);
 		}
 
 		// TODO: mono script component를 가지고 있으면 instance를 삭제할 것
+
+		_parentMap.erase(entityUUID);
+		_entityMap.erase(entityUUID);
 
 		_registry.destroy((entt::entity)(uint32_t)entity);
 	}
@@ -62,25 +99,40 @@ namespace flaw {
 		}
 	}
 
-	Entity Scene::CloneEntity(const Entity& srcEntt) {
-		Entity dstEntt = CreateEntity();
+	Entity Scene::CloneEntity(const Entity& srcEntt, bool sameUUID) {
+		Entity cloned;
+		if (!sameUUID) {
+			cloned = CreateEntity();
+		}
+		else {
+			cloned = CreateEntityByUUID(srcEntt.GetUUID());
+		}
 
-		// TODO: this is not efficient, so we need reflection system
-		// clone components
-		CopyComponentIfExists<EntityComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<TransformComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<CameraComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<SpriteRendererComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<Rigidbody2DComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<BoxCollider2DComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<NativeScriptComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<MonoScriptComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<TextComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<SoundListenerComponent>(srcEntt, dstEntt);
-		CopyComponentIfExists<SoundSourceComponent>(srcEntt, dstEntt);
+		UUID copyUUID = cloned.GetUUID();
 
-		return dstEntt;
+		CopyComponentIfExists<EntityComponent>(srcEntt, cloned);
+		CopyComponentIfExists<TransformComponent>(srcEntt, cloned);
+		CopyComponentIfExists<CameraComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SpriteRendererComponent>(srcEntt, cloned);
+		CopyComponentIfExists<Rigidbody2DComponent>(srcEntt, cloned);
+		CopyComponentIfExists<BoxCollider2DComponent>(srcEntt, cloned);
+		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, cloned);
+		CopyComponentIfExists<NativeScriptComponent>(srcEntt, cloned);
+		CopyComponentIfExists<MonoScriptComponent>(srcEntt, cloned);
+		CopyComponentIfExists<TextComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SoundListenerComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SoundSourceComponent>(srcEntt, cloned);
+
+		// because uuid is changed, we need to set it again
+		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
+
+		// clone children
+		srcEntt.EachChildren([this, &cloned, sameUUID](const Entity& child) {
+			Entity clonedChild = CloneEntity(child, sameUUID);
+			clonedChild.SetParent(cloned);
+		});
+
+		return cloned;
 	}
 
 	Entity Scene::FindEntityByName(const char* name) {
@@ -88,6 +140,14 @@ namespace flaw {
 			if (entityComp.name == name) {
 				return Entity(entity, this);
 			}
+		}
+		return Entity();
+	}
+
+	Entity Scene::FindEntityByUUID(const UUID& uuid) {
+		auto it = _entityMap.find(uuid);
+		if (it != _entityMap.end()) {
+			return Entity(it->second, this);
 		}
 		return Entity();
 	}
@@ -203,7 +263,6 @@ namespace flaw {
 				// listener must be exist only one
 				break;
 			}
-
 		}
 
 		{
@@ -307,13 +366,21 @@ namespace flaw {
 
 	Ref<Scene> Scene::Clone() {
 		Ref<Scene> scene = CreateRef<Scene>(_app);
-		// clone entities
-		for (auto&& [entity, srdEnttComp] : _registry.view<entt::entity, EntityComponent>().each()) {
-			Entity cloned = scene->CloneEntity(Entity(entity, this));
 
-			// set uuid same as source entity
-			cloned.GetComponent<EntityComponent>().uuid = srdEnttComp.uuid;
+		// clone entities
+		for (auto&& [entity] : _registry.view<entt::entity>().each()) {
+			Entity srcEntity(entity, this);
+
+			if (srcEntity.HasParent()) {
+				continue;
+			}
+
+			scene->CloneEntity(srcEntity, true);
 		}
+
+		scene->_parentMap = _parentMap;
+		scene->_childMap = _childMap;
+
 		return scene;
 	}
 }

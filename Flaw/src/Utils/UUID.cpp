@@ -8,7 +8,7 @@ namespace flaw {
 	static std::mt19937_64 g_gen(g_rd());
 	static std::uniform_int_distribution<uint64_t> g_dist;
 
-	UUID::UUID() : _id(g_dist(g_gen)) {}
+	UUID::UUID() : _id(UUID_INVALID) {}
 	UUID::UUID(uint64_t id) : _id(id) {}
 
 	void UUID::Generate() {
