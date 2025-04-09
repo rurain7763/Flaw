@@ -21,20 +21,19 @@ namespace flaw {
 	};
 
 	struct TransformComponent {
-		vec3 position;
-		vec3 rotation;
-		vec3 scale;
+		vec3 position = vec3(0.0f);
+		vec3 rotation = vec3(0.0f);
+		vec3 scale = vec3(1.0f);
 
-		TransformComponent() : position(vec3(0.0f)), rotation(vec3(0.0f)), scale(vec3(1.0f)) {}
+		bool dirty = true;
+		mat4 worldTransform = mat4(1.0f);
+
+		TransformComponent() = default;
 		TransformComponent(const vec3& position, const vec3& rotation, const vec3& scale) : position(position), rotation(rotation), scale(scale) {}
 		TransformComponent(const TransformComponent& other) = default;
 
-		inline mat4 GetTransform() const {
-			return ModelMatrix(position, rotation, scale);
-		}
-
 		inline vec3 GetFront() {
-			return QRotate(rotation, Forward);
+			return normalize(mat3(worldTransform) * Forward);
 		}
 
 		inline vec3 GetRight() {

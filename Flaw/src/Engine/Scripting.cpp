@@ -82,6 +82,7 @@ namespace flaw {
 		Entity e(entity, s_scene);
 		if (e.HasComponent<TransformComponent>()) {
 			auto& comp = e.GetComponent<TransformComponent>();
+			comp.dirty = true;
 			comp.position = position;
 		}
 	}
@@ -98,6 +99,7 @@ namespace flaw {
 		Entity e(entity, s_scene);
 		if (e.HasComponent<TransformComponent>()) {
 			auto& comp = e.GetComponent<TransformComponent>();
+			comp.dirty = true;
 			comp.rotation = rotation;
 		}
 	}
@@ -114,6 +116,7 @@ namespace flaw {
 		Entity e(entity, s_scene);
 		if (e.HasComponent<TransformComponent>()) {
 			auto& comp = e.GetComponent<TransformComponent>();
+			comp.dirty = true;
 			comp.scale = scale;
 		}
 	}

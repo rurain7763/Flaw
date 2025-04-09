@@ -202,14 +202,19 @@ namespace flaw {
 			}
 
 			DrawComponent<TransformComponent>("Transform", _selectedEntt, [](TransformComponent& transformComp) {
-				DrawVec3("Position", transformComp.position);
+				if (DrawVec3("Position", transformComp.position)) {
+					transformComp.dirty = true;
+				}
 
 				vec3 degreeRotation = glm::degrees(transformComp.rotation);
 				if (DrawVec3("Rotation", degreeRotation, 0.f, 100.f)) {
+					transformComp.dirty = true;
 					transformComp.rotation = glm::radians(degreeRotation);
 				}
 
-				DrawVec3("Scale", transformComp.scale);
+				if (DrawVec3("Scale", transformComp.scale)) {
+					transformComp.dirty = true;
+				}
 			});
 
 			DrawComponent<CameraComponent>("Camera", _selectedEntt, [](CameraComponent& cameraComp) {

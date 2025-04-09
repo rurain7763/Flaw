@@ -17,10 +17,6 @@ namespace flaw {
 	}
 
     void EditorCamera::OnUpdatePerspective(const vec2& moveDelta) {
-        if (!Input::GetMouseButton(MouseButton::Right)) {
-            return;
-        }
-
 		// TODO: 이동 속도를 조절할 수 있도록 해야함
         const float speed = 10.0f;
 
@@ -49,10 +45,6 @@ namespace flaw {
     }
 
     void EditorCamera::OnUpdateOrthographic(const vec2& moveDelta) {
-        if (!Input::GetMouseButton(MouseButton::Right)) {
-            return;
-        }
-
         // TODO: 이동 속도를 조절할 수 있도록 해야함
         const float speed = 10.0f;
 
@@ -71,6 +63,11 @@ namespace flaw {
     }
 
     void EditorCamera::OnUpdate() {
+        if (!Input::GetMouseButton(MouseButton::Right)) {
+			_moving = false;
+            return;
+        }
+
         vec2 delta = vec2(0.0f);
 
         if (Input::GetKey(KeyCode::W)) {
@@ -93,6 +90,8 @@ namespace flaw {
         else {
             OnUpdateOrthographic(delta);
         }
+
+        _moving = !EpsilonEqual(glm::length2(delta), 0);
     };
 
     mat4 EditorCamera::GetViewMatrix() const {

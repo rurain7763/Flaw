@@ -224,127 +224,162 @@ namespace flaw {
 	}
 
 	void Scene::OnUpdate() {
-		{
-			// sound
-			for (auto&& [listenerEntity, transComp, soundListenerComp] : _registry.view<TransformComponent, SoundListenerComponent>().each()) {
-				SoundListener listener;
-				listener.position = transComp.position;
-				listener.velocity = soundListenerComp.velocity;
-				listener.forward = transComp.GetFront();
-				listener.up = transComp.GetUp();
-
-				Sounds::SetListener(listener);
-
-				for (auto&& [soundSrcEntity, transComp, soundSrcComp] : _registry.view<TransformComponent, SoundSourceComponent>().each()) {
-					auto soundAsset = AssetManager::GetAsset<SoundAsset>(soundSrcComp.sound);
-					if (soundAsset) {
-						auto soundSrc = soundAsset->GetSoundSource();
-
-						if ((!soundSrcComp.channel && soundSrcComp.autoPlay) || soundSrcComp.signal == SoundSourceComponent::Signal::Play) {
-							soundSrcComp.channel = soundSrc->Play(soundSrcComp.loop ? -1 : 0);
-						}
-
-						if (soundSrcComp.channel) {
-							if (soundSrcComp.signal == SoundSourceComponent::Signal::Resume) {
-								soundSrcComp.channel->Resume();
-							}
-							else if (soundSrcComp.signal == SoundSourceComponent::Signal::Stop) {
-								soundSrcComp.channel->Stop();
-							}
-
-							soundSrcComp.channel->SetPosition3D(transComp.position);
-							soundSrcComp.channel->SetVolume(soundSrcComp.volume);
-						}
-
-						soundSrcComp.signal = SoundSourceComponent::Signal::None;
-					}
-				}
-
-				// listener must be exist only one
-				break;
-			}
-		}
-
-		{
-			// update mono scripts
-			Scripting::OnUpdate();
-
-			// update native scripts
-			for (auto&& [entity, scriptable] : _registry.view<NativeScriptComponent>().each()) {
-				if (scriptable.instance == nullptr) {
-					scriptable.instance = scriptable.instantiateFunc();
-					scriptable.instance->_entity = Entity(entity, this);
-					scriptable.instance->OnCreate();
-				}
-				scriptable.instance->OnUpdate();
-			}
-		}
-
-		{
-			// update physics
-			const int32_t velocityIterations = 6;
-			const int32_t positionIterations = 2;
-
-			_physics2DWorld->Step(Time::DeltaTime(), velocityIterations, positionIterations);
-
-			for (auto&& [entity, transform, rigidbody2D] : _registry.view<TransformComponent, Rigidbody2DComponent>().each()) {
-				b2Body* body = (b2Body*)rigidbody2D.runtimeBody;
-
-				if (body == nullptr) {
-					continue;
-				}
-
-				transform.position = vec3(body->GetPosition().x, body->GetPosition().y, transform.position.z);
-				transform.rotation.z = body->GetAngle();
-
-				rigidbody2D.linearVelocity = vec2(body->GetLinearVelocity().x, body->GetLinearVelocity().y);
-			}
-		}
-
-		{
-			// render
-			struct CameraMatrices {
-				mat4 view;
-				mat4 projection;
-			};
-
-			std::map<uint32_t, CameraMatrices> sortedCameras;
-			for (auto&& [entity, transform, camera] : _registry.view<TransformComponent, CameraComponent>().each()) {
-				sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
-			}
-
-			// draw entities
-			for (const auto& [depth, matrices] : sortedCameras) {
-				Renderer2D::Begin(matrices.view, matrices.projection);
-
-				// draw sprite
-				for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {
-					auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprite.texture);
-					if (!textureAsset) {
-						Renderer2D::DrawQuad((uint32_t)entity, transform.GetTransform(), sprite.color);
-					}
-					else {
-						Renderer2D::DrawQuad((uint32_t)entity, transform.GetTransform(), textureAsset->GetTexture());
-					}
-				}
-
-				// draw text
-				for (auto&& [entity, transform, text] : _registry.view<TransformComponent, TextComponent>().each()) {
-					auto fontAsset = AssetManager::GetAsset<FontAsset>(text.font);
-					if (fontAsset) {
-						Renderer2D::DrawString((uint32_t)entity, transform.GetTransform(), text.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), text.color);
-					}
-				}
-
-				Renderer2D::End();
-			}
-		}
+		UpdateSound();
+		UpdateScript();
+		UpdatePhysics2D();
+		UpdateTransform();
+		UpdateRender();
 	}
 
 	void Scene::OnEnd() {
 		Scripting::OnEnd();
 
 		_physics2DWorld.reset();
+	}
+
+	void Scene::UpdateSound() {
+		for (auto&& [listenerEntity, transComp, soundListenerComp] : _registry.view<TransformComponent, SoundListenerComponent>().each()) {
+			SoundListener listener;
+			listener.position = transComp.position;
+			listener.velocity = soundListenerComp.velocity;
+			listener.forward = transComp.GetFront();
+			listener.up = transComp.GetUp();
+
+			Sounds::SetListener(listener);
+
+			for (auto&& [soundSrcEntity, transComp, soundSrcComp] : _registry.view<TransformComponent, SoundSourceComponent>().each()) {
+				auto soundAsset = AssetManager::GetAsset<SoundAsset>(soundSrcComp.sound);
+				if (soundAsset) {
+					auto soundSrc = soundAsset->GetSoundSource();
+
+					if ((!soundSrcComp.channel && soundSrcComp.autoPlay) || soundSrcComp.signal == SoundSourceComponent::Signal::Play) {
+						soundSrcComp.channel = soundSrc->Play(soundSrcComp.loop ? -1 : 0);
+					}
+
+					if (soundSrcComp.channel) {
+						if (soundSrcComp.signal == SoundSourceComponent::Signal::Resume) {
+							soundSrcComp.channel->Resume();
+						}
+						else if (soundSrcComp.signal == SoundSourceComponent::Signal::Stop) {
+							soundSrcComp.channel->Stop();
+						}
+
+						soundSrcComp.channel->SetPosition3D(transComp.position);
+						soundSrcComp.channel->SetVolume(soundSrcComp.volume);
+					}
+
+					soundSrcComp.signal = SoundSourceComponent::Signal::None;
+				}
+			}
+
+			// listener must be exist only one
+			break;
+		}
+	}
+
+	void Scene::UpdateScript() {
+		// update mono scripts
+		Scripting::OnUpdate();
+
+		// update native scripts
+		for (auto&& [entity, scriptable] : _registry.view<NativeScriptComponent>().each()) {
+			if (scriptable.instance == nullptr) {
+				scriptable.instance = scriptable.instantiateFunc();
+				scriptable.instance->_entity = Entity(entity, this);
+				scriptable.instance->OnCreate();
+			}
+			scriptable.instance->OnUpdate();
+		}
+	}
+
+	void Scene::UpdatePhysics2D() {
+		const int32_t velocityIterations = 6;
+		const int32_t positionIterations = 2;
+
+		_physics2DWorld->Step(Time::DeltaTime(), velocityIterations, positionIterations);
+
+		for (auto&& [entity, transform, rigidbody2D] : _registry.view<TransformComponent, Rigidbody2DComponent>().each()) {
+			b2Body* body = (b2Body*)rigidbody2D.runtimeBody;
+
+			if (body == nullptr) {
+				continue;
+			}
+
+			// TODO: 부모-자식 관계일때는 어떻게 할 것인가?
+			transform.dirty = true;
+			transform.position = vec3(body->GetPosition().x, body->GetPosition().y, transform.position.z);
+			transform.rotation.z = body->GetAngle();
+
+			rigidbody2D.linearVelocity = vec2(body->GetLinearVelocity().x, body->GetLinearVelocity().y);
+		}
+	}
+
+	static void CalculateWorldTransformRecursive(const mat4& parentTransform, Entity entity, bool calculateAnyway = false) {
+		TransformComponent& transform = entity.GetComponent<TransformComponent>();
+
+		bool shouldCalculate = calculateAnyway || transform.dirty;
+
+		// 항상 parent 기준으로 초기화
+		if (shouldCalculate) {
+			transform.worldTransform = parentTransform * ModelMatrix(transform.position, transform.rotation, transform.scale);
+			transform.dirty = false;
+		}
+
+		// 자식들에게 재귀적으로 전파
+		entity.EachChildren([&worldTransform = transform.worldTransform, shouldCalculate](const Entity& child) {
+			CalculateWorldTransformRecursive(worldTransform, child, shouldCalculate);
+		});
+	}
+
+	void Scene::UpdateTransform() {
+		for (auto&& [entity, transform] : _registry.view<TransformComponent>().each()) {
+			Entity entt(entity, this);
+
+			if (entt.HasParent()) {
+				continue;
+			}
+
+			CalculateWorldTransformRecursive(mat4(1.0f), entt);
+		}
+	}
+
+	void Scene::UpdateRender() {
+		// render
+		struct CameraMatrices {
+			mat4 view;
+			mat4 projection;
+		};
+
+		std::map<uint32_t, CameraMatrices> sortedCameras;
+		for (auto&& [entity, transform, camera] : _registry.view<TransformComponent, CameraComponent>().each()) {
+			sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
+		}
+
+		// draw entities
+		for (const auto& [depth, matrices] : sortedCameras) {
+			Renderer2D::Begin(matrices.view, matrices.projection);
+
+			// draw sprite
+			for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {
+				auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprite.texture);
+				if (!textureAsset) {
+					Renderer2D::DrawQuad((uint32_t)entity, transform.worldTransform, sprite.color);
+				}
+				else {
+					Renderer2D::DrawQuad((uint32_t)entity, transform.worldTransform, textureAsset->GetTexture());
+				}
+			}
+
+			// draw text
+			for (auto&& [entity, transform, text] : _registry.view<TransformComponent, TextComponent>().each()) {
+				auto fontAsset = AssetManager::GetAsset<FontAsset>(text.font);
+				if (fontAsset) {
+					Renderer2D::DrawString((uint32_t)entity, transform.worldTransform, text.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), text.color);
+				}
+			}
+
+			Renderer2D::End();
+		}
 	}
 
 	void Scene::ToFile(const char* filepath) {

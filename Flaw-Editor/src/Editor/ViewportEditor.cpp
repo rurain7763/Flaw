@@ -85,7 +85,7 @@ namespace flaw {
 
 		mat4 viewMatrix = mat4(1.0f);
 		mat4 projectionMatrix = mat4(1.0f);
-        bool isPerspective;
+        bool isPerspective = true;
 
         if (_useEditorCamera) {
             _editorCamera.SetAspectRatio(aspectRatio);
@@ -106,14 +106,14 @@ namespace flaw {
 		    }
         }
 
-        // NOTE: 기즈모 드로우 테스트
+        // NOTE: 기즈모 드로우
         if (_selectedEntt) {
-            ImGuizmo::SetOrthographic(isPerspective);
+            ImGuizmo::SetOrthographic(!isPerspective);
             ImGuizmo::SetDrawlist();
             ImGuizmo::SetRect(currentPos.x, currentPos.y, currentSize.x, currentSize.y);
 
             auto& enttTransComp = _selectedEntt.GetComponent<TransformComponent>();
-            mat4 enttTransform = enttTransComp.GetTransform();
+            mat4 enttTransform = enttTransComp.worldTransform;
 
             static ImGuizmo::OPERATION op = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -123,7 +123,7 @@ namespace flaw {
                 snapValue = 45.0f;
             }
 
-            if (ImGui::IsWindowFocused()) {
+            if (!_editorCamera.IsMoving() && ImGui::IsWindowHovered()) {
                 if (Input::GetKeyDown(KeyCode::W)) {
                     op = ImGuizmo::OPERATION::TRANSLATE;
                 }
@@ -141,14 +141,24 @@ namespace flaw {
                 glm::value_ptr(viewMatrix),
                 glm::value_ptr(projectionMatrix),
                 op,
-                ImGuizmo::MODE::WORLD,
+                ImGuizmo::MODE::LOCAL,
                 glm::value_ptr(enttTransform),
                 nullptr,
                 snapping ? glm::value_ptr(glm::vec3(snapValue, snapValue, snapValue)) : nullptr
             );
 
             if (ImGuizmo::IsUsing()) {
-                ExtractModelMatrix(enttTransform, enttTransComp.position, enttTransComp.rotation, enttTransComp.scale);
+                enttTransComp.dirty = true;
+
+                if (_selectedEntt.HasParent()) {
+					auto& parentTransComp = _selectedEntt.GetParent().GetComponent<TransformComponent>();
+
+					mat4 localMat = glm::inverse(parentTransComp.worldTransform) * enttTransform;
+					ExtractModelMatrix(localMat, enttTransComp.position, enttTransComp.rotation, enttTransComp.scale);
+				}
+                else {
+                    ExtractModelMatrix(enttTransform, enttTransComp.position, enttTransComp.rotation, enttTransComp.scale);
+                }
             }
         }
 
@@ -221,7 +231,7 @@ namespace flaw {
 		uint32_t candidateEnttId = std::numeric_limits<int32_t>().max();
         float minDistance = std::numeric_limits<float>().max();
         for (auto&& [entity, enttComp, transform, sprite] : _scene->GetRegistry().view<EntityComponent, TransformComponent, SpriteRendererComponent>().each()) {
-            const mat4 transMat = transform.GetTransform();
+            const mat4 transMat = transform.worldTransform;
 
             std::vector<vec3> worldVertices = {
                 vec3(transMat * vec4(vertices[0], 1.0f)),

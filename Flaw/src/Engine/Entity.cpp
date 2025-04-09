@@ -65,6 +65,8 @@ namespace flaw {
 		// excute
 		_scene->_parentMap[thisUUID] = parentUUID;
 		_scene->_childMap[parentUUID].insert(thisUUID);
+
+		GetComponent<TransformComponent>().dirty = true;
 	}
 
 	void Entity::UnsetParent() {
@@ -79,6 +81,8 @@ namespace flaw {
 		// remove this object from its parent
 		_scene->_childMap[parentIt->second].erase(thisUUID);
 		_scene->_parentMap.erase(thisUUID);
+
+		GetComponent<TransformComponent>().dirty = true;
 	}
 
 	Entity Entity::GetParent() const {

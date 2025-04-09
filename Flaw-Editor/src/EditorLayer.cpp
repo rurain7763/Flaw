@@ -377,23 +377,25 @@ namespace flaw {
     void EditorLayer::RenderTargetScene(const Ref<Scene>& scene) {
         auto& enttRegistry = scene->GetRegistry();
 
+        scene->UpdateTransform();
+
         // draw sprite
         Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
 
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
             if (!textureAsset) {
-                Renderer2D::DrawQuad((uint32_t)entity, transComp.GetTransform(), sprComp.color);
+                Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
             }
             else {
-                Renderer2D::DrawQuad((uint32_t)entity, transComp.GetTransform(), textureAsset->GetTexture());
+                Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
             }
         }
 
 		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
 			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
 			if (fontAsset) {
-			    Renderer2D::DrawString((uint32_t)entity, transComp.GetTransform(), textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
+			    Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
 
@@ -401,7 +403,7 @@ namespace flaw {
 		for (auto&& [entity, transComp, boxColliderComp] : enttRegistry.view<TransformComponent, BoxCollider2DComponent>().each()) {
 			Renderer2D::DrawLineRect(
                 (uint32_t)entity, 
-				transComp.GetTransform() * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
+				transComp.worldTransform * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
                 vec4(0.0, 1.0, 0.0, 1.0)
             );
 		}
@@ -412,7 +414,7 @@ namespace flaw {
 
             Renderer2D::DrawCircle(
                 (uint32_t)entity,
-                transComp.GetTransform() * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
+                transComp.worldTransform * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
                 vec4(0.0, 1.0, 0.0, 1.0),
                 0.02f
 			);

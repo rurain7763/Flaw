@@ -18,6 +18,7 @@ namespace flaw {
 		mat4 GetViewMatrix() const;
 		mat4 GetProjectionMatrix() const;
 
+		bool IsMoving() const { return _moving; }
 		bool IsPerspective() const { return _perspective; }
 
     private:
@@ -38,6 +39,7 @@ namespace flaw {
 		vec3 _position;
 		vec3 _rotation;
 
+		bool _moving;
         vec2 _prevMousePos;
 	};
 }

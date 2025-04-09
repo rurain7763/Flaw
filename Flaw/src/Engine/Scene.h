@@ -30,6 +30,12 @@ namespace flaw {
 		void OnUpdate();
 		void OnEnd();
 
+		void UpdateSound();
+		void UpdateScript();
+		void UpdatePhysics2D();
+		void UpdateTransform();
+		void UpdateRender();
+
 		void ToFile(const char* filepath);
 		void FromFile(const char* filepath);
 
