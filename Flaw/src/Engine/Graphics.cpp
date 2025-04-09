@@ -97,6 +97,14 @@ namespace flaw {
 		g_graphicsContext->GetSize(width, height);
 	}
 
+	Ref<ComputeShader> Graphics::CreateComputeShader(const char* filePath) {
+		return g_graphicsContext->CreateComputeShader(filePath);
+	}
+
+	Ref<ComputePipeline> Graphics::CreateComputePipeline() {
+		return g_graphicsContext->CreateComputePipeline();
+	}
+
 	GraphicsContext& Graphics::GetGraphicsContext() {
 		return *g_graphicsContext;
 	}

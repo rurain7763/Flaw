@@ -18,10 +18,8 @@ namespace flaw {
 
 	class DXStructuredBuffer : public StructuredBuffer {
 	public:
-		DXStructuredBuffer(DXContext& context);
 		DXStructuredBuffer(DXContext& context, const Descriptor& desc);
-
-		virtual ~DXStructuredBuffer() override = default;
+		~DXStructuredBuffer() = default;
 
 		void Create(const Descriptor& desc) override;
 

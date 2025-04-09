@@ -64,8 +64,8 @@ namespace flaw {
 		struct Descriptor {
 			uint32_t elmSize;
 			uint32_t count;
-			uint32_t bindFlags;
 			uint32_t accessFlags;
+			uint32_t bindFlags;
 			const void* initialData;
 		};
 

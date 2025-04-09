@@ -12,6 +12,7 @@ class b2World;
 
 namespace flaw {
 	class Entity;
+	class ParticleSystem;
 
 	class Scene {
 	public:
@@ -42,6 +43,7 @@ namespace flaw {
 		Ref<Scene> Clone();
 
 		entt::registry& GetRegistry() { return _registry; }
+		ParticleSystem& GetParticleSystem() { return *_particleSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -53,6 +55,7 @@ namespace flaw {
 
 		entt::registry _registry;
 		Scope<b2World> _physics2DWorld;
+		Scope<ParticleSystem> _particleSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

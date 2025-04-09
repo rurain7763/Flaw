@@ -95,25 +95,6 @@ namespace flaw {
 		Count
 	};
 
-	// TODO: temporary solution
-	enum class ReservedConstantBufferSlot {
-		MVPMatrices = 0,
-		ConstUserData,
-		Animation2DData,
-		SkyLightData,
-		ShaderGlobalData,
-		TextureBindingData,
-		Count
-	};
-
-	// TODO: temporary solution
-	enum class ReservedStructuredBufferSlot {
-		PointLight = TextureSlot::Count,
-		DirectionalLight,
-		SpotLight,
-		Count
-	};
-
 	enum ShaderCompileFlag {
 		Vertex = 0x1,
 		Pixel = 0x2,

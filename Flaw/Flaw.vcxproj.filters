@@ -79,6 +79,9 @@
     <ClInclude Include="src\Engine\AssetManager.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\Assets.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Components.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -92,6 +95,9 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\LayerRegistry.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\ParticleSystem.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Platform.h">
@@ -134,7 +140,19 @@
     <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h">
       <Filter>Font\MSDF</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\ComputePipeline.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\ComputeShader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h">
+      <Filter>Graphics\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\DX11\DXComputePipeline.h">
+      <Filter>Graphics\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\DX11\DXComputeShader.h">
       <Filter>Graphics\DX11</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXConstantBuffer.h">
@@ -267,13 +285,16 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Engine\Assets.h" />
+    <ClInclude Include="src\Utils\Easing.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\AssetManager.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Assets.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Entity.cpp">
@@ -286,6 +307,9 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\LayerRegistry.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\ParticleSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Platform.cpp">
@@ -319,6 +343,12 @@
       <Filter>Font\MSDF</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp">
+      <Filter>Graphics\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DX11\DXComputePipeline.cpp">
+      <Filter>Graphics\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DX11\DXComputeShader.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXConstantBuffer.cpp">
@@ -382,6 +412,5 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\Assets.cpp" />
   </ItemGroup>
 </Project>

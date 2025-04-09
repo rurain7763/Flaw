@@ -5,39 +5,6 @@
 #include "Time/Time.h"
 
 namespace flaw {
-	struct VPMatrices {
-		mat4 view = mat4(1.0f);
-		mat4 projection = mat4(1.0f);
-	};
-
-	struct GlobalConstants {
-		vec2 screenResolution;
-		float time;
-		float deltaTime;
-	};
-
-	struct QuadVertex {
-		vec3 position;
-		vec2 texcoord;
-		vec4 color;
-		uint32_t textureID;
-		uint32_t id;
-	};
-
-	struct CircleVertex {
-		vec3 localPosition;
-		vec3 worldPosition;
-		float thickness;
-		vec4 color;
-		uint32_t id;
-	};
-
-	struct LineVertex {
-		vec3 position;
-		vec4 color;
-		uint32_t id;
-	};
-
 	constexpr uint32_t MaxBatchCount = 1000;
 
 	static std::vector<QuadVertex> g_quadVertices;
@@ -222,7 +189,7 @@ namespace flaw {
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetPipeline(g_quadPipeline);
+			commandQueue.SetGraphicsPipeline(g_quadPipeline);
 			commandQueue.SetVertexBuffer(g_quadVB);
 			for (auto& [texture, id] : g_quadTextures) {
 				commandQueue.SetTexture(texture, id);
@@ -232,21 +199,21 @@ namespace flaw {
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetPipeline(g_circlePipeline);
+			commandQueue.SetGraphicsPipeline(g_circlePipeline);
 			commandQueue.SetVertexBuffer(g_circleVB);
 			commandQueue.DrawIndexed(g_ib, g_circleIndexCount);
 		}
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::LineList);
-			commandQueue.SetPipeline(g_linePipeline);
+			commandQueue.SetGraphicsPipeline(g_linePipeline);
 			commandQueue.SetVertexBuffer(g_lineVB);
 			commandQueue.Draw(g_lineIndexCount);
 		}
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetPipeline(g_textPipeline);
+			commandQueue.SetGraphicsPipeline(g_textPipeline);
 			commandQueue.SetVertexBuffer(g_textVB);
 
 			for (auto& [texture, id] : g_textTextures) {

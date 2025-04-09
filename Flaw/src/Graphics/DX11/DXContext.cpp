@@ -10,6 +10,8 @@
 #include "DXConstantBuffer.h"
 #include "DXStructuredBuffer.h"
 #include "DXTextures.h"
+#include "DXComputeShader.h"
+#include "DXComputePipeline.h"
 
 namespace flaw {
 	DXContext::DXContext(PlatformContext& context, int32_t width, int32_t height) {
@@ -337,5 +339,13 @@ namespace flaw {
 
 	void DXContext::SetVSync(bool enable) {
 		_swapInterval = enable ? 1 : 0;
+	}
+
+	Ref<ComputeShader> DXContext::CreateComputeShader(const char* filename) {
+		return CreateRef<DXComputeShader>(*this, filename);
+	}
+
+	Ref<ComputePipeline> DXContext::CreateComputePipeline() {
+		return CreateRef<DXComputePipeline>(*this);
 	}
 }

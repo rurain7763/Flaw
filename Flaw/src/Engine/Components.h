@@ -231,4 +231,49 @@ namespace flaw {
 			return *this;
 		}
 	};
+
+	struct ParticleComponent {
+		enum ModuleType {
+			Emission = 0x1,
+			Shape = 0x2,
+			RandomSpeed = 0x4,
+			RandomColor = 0x8,
+			RandomSize = 0x10,
+			ColorOverLifetime = 0x20,
+			SizeOverLifetime = 0x40,
+			Noise = 0x80,
+			Renderer = 0x100,
+		};
+
+		enum class SpaceType {
+			Local,
+			World
+		};
+
+		int32_t maxParticles = 1024;
+		SpaceType spaceType = SpaceType::Local;
+		float startSpeed = 1.0f;
+		float startLifeTime = 1.0f;
+		vec4 startColor = vec4(1.0f);
+		vec3 startSize = vec3(1.0f);
+
+		uint32_t modules = 0;
+
+		float timer = 0.0f;
+
+		ParticleComponent() = default;
+		ParticleComponent(const ParticleComponent& other) = default;
+
+		ParticleComponent& operator=(const ParticleComponent& other) {
+			maxParticles = other.maxParticles;
+			spaceType = other.spaceType;
+			startSpeed = other.startSpeed;
+			startLifeTime = other.startLifeTime;
+			startColor = other.startColor;
+			startSize = other.startSize;
+			modules = other.modules;
+
+			return *this;
+		}
+	};
 }

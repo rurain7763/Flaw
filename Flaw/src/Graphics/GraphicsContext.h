@@ -5,6 +5,8 @@
 #include "GraphicsBuffers.h"
 #include "GraphicsShader.h"
 #include "GraphicsPipeline.h"
+#include "ComputeShader.h"
+#include "ComputePipeline.h"
 #include "GraphicsCommandQueue.h"
 #include "Texture.h"
 
@@ -41,5 +43,8 @@ namespace flaw {
 
 		virtual void Resize(int32_t width, int32_t height) = 0;
 		virtual void GetSize(int32_t& width, int32_t& height) = 0;
+
+		virtual Ref<ComputeShader> CreateComputeShader(const char* filename) = 0;
+		virtual Ref<ComputePipeline> CreateComputePipeline() = 0;
 	};
 }

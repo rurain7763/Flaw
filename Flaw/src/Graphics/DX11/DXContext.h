@@ -52,6 +52,9 @@ namespace flaw {
 		void Resize(int32_t width, int32_t height) override;
 		void GetSize(int32_t& width, int32_t& height) override;
 
+		Ref<ComputeShader> CreateComputeShader(const char* filename) override;
+		Ref<ComputePipeline> CreateComputePipeline() override;
+
 		inline ComPtr<ID3D11Device> Device() const { return _device; }
 		inline ComPtr<ID3D11DeviceContext> DeviceContext() const { return _deviceContext; }
 
@@ -71,17 +74,13 @@ namespace flaw {
 
 		D3D11_VIEWPORT _viewPort;
 
-		// actual rendering size
+		// rendering size
 		int32_t _renderWidth, _renderHeight;
 
-		// gpu memory allocate, gpu instance handle
 		ComPtr<ID3D11Device> _device;
-
-		// rendering order
 		ComPtr<ID3D11DeviceContext> _deviceContext;
 
 		ComPtr<IDXGISwapChain> _swapChain;
-
 		ComPtr<ID3D11Texture2D> _renderTarget;
 		ComPtr<ID3D11RenderTargetView> _renderTargetView;
 		float _clearColor[4];

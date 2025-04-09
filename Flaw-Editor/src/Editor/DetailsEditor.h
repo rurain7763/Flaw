@@ -2,6 +2,8 @@
 
 #include <Flaw.h>
 
+#include "EditorHelper.h"
+
 namespace flaw {
 	class DetailsEditor {
 	public:

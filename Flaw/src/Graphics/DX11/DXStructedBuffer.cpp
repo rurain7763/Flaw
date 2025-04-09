@@ -4,12 +4,6 @@
 #include "Log/Log.h"
 
 namespace flaw {
-	DXStructuredBuffer::DXStructuredBuffer(DXContext& context)
-		: _context(context)
-		, _size(0)
-	{
-	}
-
 	DXStructuredBuffer::DXStructuredBuffer(DXContext& context, const Descriptor& desc)
 		: _context(context)
 	{
@@ -35,11 +29,11 @@ namespace flaw {
 		}
 
 		if (desc.accessFlags & AccessFlag::Write) {
-			_writeOnlyBuffer = CreateBuffer(desc.elmSize, desc.count, GetBindFlag(BindFlag::ShaderResource), AccessFlag::Write, desc.initialData);
+			_writeOnlyBuffer = CreateBuffer(desc.elmSize, desc.count, GetBindFlag(BindFlag::ShaderResource), AccessFlag::Write, nullptr);
 		}
 
 		if (desc.accessFlags & AccessFlag::Read) {
-			_readOnlyBuffer = CreateBuffer(desc.elmSize, desc.count, GetBindFlag(BindFlag::ShaderResource), AccessFlag::Read, desc.initialData);
+			_readOnlyBuffer = CreateBuffer(desc.elmSize, desc.count, (BindFlag)0, AccessFlag::Read, nullptr);
 		}
 
 		_size = desc.elmSize * desc.count;
@@ -106,7 +100,7 @@ namespace flaw {
 			return;
 		}
 
-		if (bindFlag == BindFlag::ShaderResource) {
+		if (bindFlag & BindFlag::ShaderResource) {
 			if (!_srv) {
 				Log::Warn("StructuredBuffer::BindToComputeShader: SRV is nullptr");
 				return;
@@ -120,7 +114,7 @@ namespace flaw {
 				_unbindFunc = nullptr;
 			};
 		}
-		else if (bindFlag == BindFlag::UnorderedAccess) {
+		else if (bindFlag & BindFlag::UnorderedAccess) {
 			if (!_uav) {
 				Log::Warn("StructuredBuffer::BindToComputeShader: UAV is nullptr");
 				return;
@@ -154,7 +148,7 @@ namespace flaw {
 			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 			break;
 		case AccessFlag::Read:
-			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.Usage = D3D11_USAGE_STAGING;
 			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 			break;
 		default:

@@ -13,6 +13,9 @@
     <ClInclude Include="src\Editor\DetailsEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
+    <ClInclude Include="src\Editor\EditorHelper.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
     <ClInclude Include="src\Editor\GraphEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
@@ -35,6 +38,9 @@
       <Filter>Editor</Filter>
     </ClInclude>
     <ClInclude Include="src\Editor\OutlinerEditor.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Editor\ParticleComponentDrawer.h">
       <Filter>Editor</Filter>
     </ClInclude>
     <ClInclude Include="src\Editor\ViewportEditor.h">
@@ -73,6 +79,9 @@
       <Filter>Editor</Filter>
     </ClCompile>
     <ClCompile Include="src\Editor\OutlinerEditor.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Editor\ParticleComponentDrawer.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
     <ClCompile Include="src\Editor\ViewportEditor.cpp">

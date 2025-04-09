@@ -35,8 +35,8 @@ namespace flaw {
 		Texture2D() = default;
 		virtual ~Texture2D() = default;
 
-		virtual void BindToGraphicsShader(const uint32_t slot = 0) = 0;
-		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot = 0) = 0;
+		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
+		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
 
 		virtual void Unbind() = 0;
 

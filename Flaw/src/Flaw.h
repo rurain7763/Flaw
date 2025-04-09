@@ -13,6 +13,7 @@
 #include "Engine/Assets.h"
 #include "Engine/Fonts.h"
 #include "Engine/Sounds.h"
+#include "Engine/ParticleSystem.h"
 
 #include "Log/Log.h"
 #include "Input/Input.h"

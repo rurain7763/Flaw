@@ -23,7 +23,7 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::SetPipeline(const Ref<GraphicsPipeline>& pipeline) {
+	void DXCommandQueue::SetGraphicsPipeline(const Ref<GraphicsPipeline>& pipeline) {
 		FASSERT(_open, "DXCommandQueue::SetPipeline failed: Command queue is not open");
 		_commands.push([pipeline]() { pipeline->Bind(); });
 	}
@@ -35,12 +35,26 @@ namespace flaw {
 
 	void DXCommandQueue::SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) {
 		FASSERT(_open, "DXCommandQueue::SetConstantBuffer failed: Command queue is not open");
-		_commands.push([constantBuffer, slot]() { constantBuffer->BindToGraphicsShader(slot); });
+		_commands.push([constantBuffer, slot]() { 
+			constantBuffer->Unbind();
+			constantBuffer->BindToGraphicsShader(slot); 
+		});
+	}
+
+	void DXCommandQueue::SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) {
+		FASSERT(_open, "DXCommandQueue::SetStructuredBuffer failed: Command queue is not open");
+		_commands.push([buffer, slot]() {
+			buffer->Unbind();
+			buffer->BindToGraphicsShader(slot);
+		});
 	}
 
 	void DXCommandQueue::SetTexture(const Ref<Texture2D>& texture, uint32_t slot) {
 		FASSERT(_open, "DXCommandQueue::SetTexture failed: Command queue is not open");
-		_commands.push([texture, slot]() { texture->BindToGraphicsShader(slot); });
+		_commands.push([texture, slot]() { 
+			texture->Unbind();
+			texture->BindToGraphicsShader(slot);
+		});
 	}
 
 	void DXCommandQueue::Draw(uint32_t vertexCount, uint32_t vertexOffset) {
@@ -64,8 +78,50 @@ namespace flaw {
 		});
 	}
 
+	void DXCommandQueue::SetComputePipeline(const Ref<ComputePipeline>& pipeline) {
+		FASSERT(_open, "DXCommandQueue::SetComputePipeline failed: Command queue is not open");
+		_commands.push([pipeline]() { pipeline->Bind(); });
+	}
+
+	void DXCommandQueue::SetComputeConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) {
+		FASSERT(_open, "DXCommandQueue::SetComputeConstantBuffer failed: Command queue is not open");
+		_commands.push([constantBuffer, slot]() { 
+			constantBuffer->Unbind();
+			constantBuffer->BindToComputeShader(slot); 
+		});
+	}
+
+	void DXCommandQueue::SetComputeTexture(const Ref<Texture2D>& texture, BindFlag bindFlag, uint32_t slot) {
+		FASSERT(_open, "DXCommandQueue::SetComputeTexture failed: Command queue is not open");
+		_commands.push([texture, bindFlag, slot]() { 
+			texture->Unbind();
+			texture->BindToComputeShader(bindFlag, slot); 
+		});
+	}
+
+	void DXCommandQueue::SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) {
+		FASSERT(_open, "DXCommandQueue::SetComputeStructuredBuffer failed: Command queue is not open");
+		_commands.push([buffer, bindFlag, slot]() { 
+			buffer->Unbind();
+			buffer->BindToComputeShader(bindFlag, slot); 
+		});
+	}
+
+	void DXCommandQueue::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
+		FASSERT(_open, "DXCommandQueue::Dispatch failed: Command queue is not open");
+		_commands.push([this, x, y, z]() { _context.DeviceContext()->Dispatch(x, y, z); });
+	}
+
 	void DXCommandQueue::Begin() {
 		_open = true;
+
+		ID3D11ShaderResourceView* nullSRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = { nullptr };
+		_context.DeviceContext()->PSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
+		_context.DeviceContext()->VSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
+		_context.DeviceContext()->GSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
+		_context.DeviceContext()->HSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
+		_context.DeviceContext()->DSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
+		_context.DeviceContext()->CSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
 	}
 
 	void DXCommandQueue::End() {

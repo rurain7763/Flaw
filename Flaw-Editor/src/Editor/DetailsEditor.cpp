@@ -2,10 +2,7 @@
 #include "DetailsEditor.h"
 #include "EditorEvents.h"
 #include "AssetDatabase.h"
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <inttypes.h>
+#include "ParticleComponentDrawer.h"
 
 namespace flaw {
 	// TODO: this code must be some where else
@@ -15,118 +12,6 @@ namespace flaw {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(color.x, color.y, color.z, 1.0f));
 		ImGui::Button(title.c_str());
 		ImGui::PopStyleColor(3);
-	}
-
-	// TODO: this code must be some where else
-	static bool DrawVec3(const char* label, vec3& vec, float resetValue = 0, float columnWidth = 100.f) {
-		bool changed = false;
-
-		ImGuiIO& io = ImGui::GetIO();
-		ImFont* font = io.Fonts->Fonts[0];
-
-		ImGui::PushID(label);
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label);
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-
-		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.05f, 0.1f, 1.0f));
-		ImGui::PushFont(font);
-		if (ImGui::Button("X", buttonSize)) {
-			vec.x = resetValue;
-			changed = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-
-		if (ImGui::DragFloat("##X", &vec.x, 0.1f)) {
-			vec.x = vec.x;
-			changed = true;
-		}
-
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.3f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.4f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.6f, 0.2f, 1.0f));
-		ImGui::PushFont(font);
-		if (ImGui::Button("Y", buttonSize)) {
-			vec.y = resetValue;
-			changed = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-
-		if (ImGui::DragFloat("##Y", &vec.y, 0.1f)) {
-			vec.y = vec.y;
-			changed = true;
-		}
-
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.3f, 0.7f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.2f, 0.6f, 1.0f));
-		ImGui::PushFont(font);
-		if (ImGui::Button("Z", buttonSize)) {
-			vec.z = resetValue;
-			changed = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-
-		if (ImGui::DragFloat("##Z", &vec.z, 0.1f)) {
-			vec.z = vec.z;
-			changed = true;
-		}
-
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return changed;
-	}
-
-	// TODO: this code must be some where else
-	static bool DrawCombo(const char* label, int32_t& value, const std::vector<std::string>& items) {
-		bool dirty = false;
-
-		if (ImGui::BeginCombo(label, items[value].c_str())) {
-			for (int32_t i = 0; i < items.size(); i++) {
-				bool isSelected = items[i] == items[value];
-				if (ImGui::Selectable(items[i].c_str(), isSelected)) {
-					value = i;
-					dirty |= true;
-				}
-				if (isSelected) {
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
-
-		return dirty;
 	}
 
 	// TODO: this code must be some where else
@@ -202,17 +87,17 @@ namespace flaw {
 			}
 
 			DrawComponent<TransformComponent>("Transform", _selectedEntt, [](TransformComponent& transformComp) {
-				if (DrawVec3("Position", transformComp.position)) {
+				if (EditorHelper::DrawVec3("Position", transformComp.position)) {
 					transformComp.dirty = true;
 				}
 
 				vec3 degreeRotation = glm::degrees(transformComp.rotation);
-				if (DrawVec3("Rotation", degreeRotation, 0.f, 100.f)) {
+				if (EditorHelper::DrawVec3("Rotation", degreeRotation, 0.f, 100.f)) {
 					transformComp.dirty = true;
 					transformComp.rotation = glm::radians(degreeRotation);
 				}
 
-				if (DrawVec3("Scale", transformComp.scale)) {
+				if (EditorHelper::DrawVec3("Scale", transformComp.scale)) {
 					transformComp.dirty = true;
 				}
 			});
@@ -221,7 +106,7 @@ namespace flaw {
 				bool perspective = cameraComp.perspective;
 
 				int32_t projectionSelected = perspective ? 1 : 0;
-				if (DrawCombo("Projection", projectionSelected, { "Orthographic", "Perspective" })) {
+				if (EditorHelper::DrawCombo("Projection", projectionSelected, { "Orthographic", "Perspective" })) {
 					cameraComp.perspective = projectionSelected == 1;
 				}
 
@@ -259,7 +144,7 @@ namespace flaw {
 
 			DrawComponent<Rigidbody2DComponent>("Rigidbody 2D", _selectedEntt, [](Rigidbody2DComponent& rigidbody2DComp) {
 				int32_t bodyTypeSelected = (int32_t)rigidbody2DComp.bodyType;
-				if (DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
+				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
 					rigidbody2DComp.bodyType = (Rigidbody2DComponent::BodyType)bodyTypeSelected;
 				}
 
@@ -328,7 +213,7 @@ namespace flaw {
 			});
 
 			DrawComponent<SoundListenerComponent>("Sound Listener", _selectedEntt, [](SoundListenerComponent& soundListenerComp) {
-				DrawVec3("Velocity", soundListenerComp.velocity);
+				EditorHelper::DrawVec3("Velocity", soundListenerComp.velocity);
 			});
 
 			DrawComponent<SoundSourceComponent>("Sound Source", _selectedEntt, [](SoundSourceComponent& soundSourceComp) {
@@ -350,6 +235,10 @@ namespace flaw {
 				ImGui::DragFloat("Volume", &soundSourceComp.volume, 0.01f, 0.f, 1.f);
 			});
 
+			DrawComponent<ParticleComponent>("Particle", _selectedEntt, [this](ParticleComponent& particleComp) {
+				ParticleComponentDrawer::Draw(_selectedEntt);
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -368,6 +257,7 @@ namespace flaw {
 				DrawAddComponentItem<TextComponent>("Text", _selectedEntt);
 				DrawAddComponentItem<SoundListenerComponent>("Sound Listener", _selectedEntt);
 				DrawAddComponentItem<SoundSourceComponent>("Sound Source", _selectedEntt);
+				DrawAddComponentItem<ParticleComponent>("Particle", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

@@ -108,12 +108,13 @@
     <ClInclude Include="src\Engine\Application.h" />
     <ClInclude Include="src\Engine\Asset.h" />
     <ClInclude Include="src\Engine\AssetManager.h" />
+    <ClInclude Include="src\Engine\Assets.h" />
     <ClInclude Include="src\Engine\Components.h" />
     <ClInclude Include="src\Engine\Entity.h" />
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
-    <ClInclude Include="src\Engine\Assets.h" />
     <ClInclude Include="src\Engine\LayerRegistry.h" />
+    <ClInclude Include="src\Engine\ParticleSystem.h" />
     <ClInclude Include="src\Engine\Platform.h" />
     <ClInclude Include="src\Engine\Project.h" />
     <ClInclude Include="src\Engine\Renderer2D.h" />
@@ -128,7 +129,11 @@
     <ClInclude Include="src\Font\FontsContext.h" />
     <ClInclude Include="src\Font\MSDF\MSDFFont.h" />
     <ClInclude Include="src\Font\MSDF\MSDFFontsContext.h" />
+    <ClInclude Include="src\Graphics\ComputePipeline.h" />
+    <ClInclude Include="src\Graphics\ComputeShader.h" />
     <ClInclude Include="src\Graphics\DX11\DXCommandQueue.h" />
+    <ClInclude Include="src\Graphics\DX11\DXComputePipeline.h" />
+    <ClInclude Include="src\Graphics\DX11\DXComputeShader.h" />
     <ClInclude Include="src\Graphics\DX11\DXConstantBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXContext.h" />
     <ClInclude Include="src\Graphics\DX11\DXGraphicsPipeline.h" />
@@ -170,6 +175,7 @@
     <ClInclude Include="src\Sound\SoundsContext.h" />
     <ClInclude Include="src\Time\Time.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
+    <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
     <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\pch.h" />
@@ -177,10 +183,12 @@
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />
+    <ClCompile Include="src\Engine\Assets.cpp" />
     <ClCompile Include="src\Engine\Entity.cpp" />
     <ClCompile Include="src\Engine\Fonts.cpp" />
     <ClCompile Include="src\Engine\Graphics.cpp" />
     <ClCompile Include="src\Engine\LayerRegistry.cpp" />
+    <ClCompile Include="src\Engine\ParticleSystem.cpp" />
     <ClCompile Include="src\Engine\Platform.cpp" />
     <ClCompile Include="src\Engine\Project.cpp" />
     <ClCompile Include="src\Engine\Renderer2D.cpp" />
@@ -188,11 +196,12 @@
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
-    <ClCompile Include="src\Engine\Assets.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXCommandQueue.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXComputePipeline.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXComputeShader.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXConstantBuffer.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXContext.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXGraphicsPipeline.cpp" />

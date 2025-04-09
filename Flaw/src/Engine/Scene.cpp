@@ -6,6 +6,7 @@
 #include "Physics/Physics2D.h"
 #include "Time/Time.h"
 #include "Platform/PlatformEvents.h"
+#include "ParticleSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -17,6 +18,11 @@ namespace flaw {
 	Scene::Scene(Application& app) 
 		: _app(app)
 	{
+		_particleSystem = CreateScope<ParticleSystem>(*this);
+
+		_registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*_particleSystem);
+		_registry.on_destroy<ParticleComponent>().connect<&ParticleSystem::UnregisterEntity>(*_particleSystem);
+
 		_app.GetEventDispatcher().Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) {
 			for (auto&& [entity, camera] : _registry.view<CameraComponent>().each()) {
 				camera.aspectRatio = (float)evn.width / (float)evn.height;
@@ -122,6 +128,7 @@ namespace flaw {
 		CopyComponentIfExists<TextComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SoundListenerComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SoundSourceComponent>(srcEntt, cloned);
+		CopyComponentIfExists<ParticleComponent>(srcEntt, cloned);
 
 		// because uuid is changed, we need to set it again
 		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
@@ -224,10 +231,11 @@ namespace flaw {
 	}
 
 	void Scene::OnUpdate() {
-		UpdateSound();
 		UpdateScript();
 		UpdatePhysics2D();
 		UpdateTransform();
+		UpdateSound();
+		_particleSystem->Update();
 		UpdateRender();
 	}
 
@@ -357,6 +365,9 @@ namespace flaw {
 
 		// draw entities
 		for (const auto& [depth, matrices] : sortedCameras) {
+			// draw particle
+			_particleSystem->Render(matrices.view, matrices.projection);
+
 			Renderer2D::Begin(matrices.view, matrices.projection);
 
 			// draw sprite

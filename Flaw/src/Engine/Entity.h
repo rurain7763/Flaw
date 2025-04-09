@@ -44,6 +44,8 @@ namespace flaw {
 
 		const UUID& GetUUID() const;
 
+		Scene& GetScene() const { return *_scene; }
+
 		operator bool() const { return _handle != entt::null && _scene && _scene->_registry.valid(_handle); }
 		operator uint32_t() const { return (uint32_t)_handle; }
 
