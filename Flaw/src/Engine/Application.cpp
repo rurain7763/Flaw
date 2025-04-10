@@ -13,6 +13,8 @@
 #include "Graphics.h"
 #include "Fonts.h"
 #include "Sounds.h"
+#include "Renderer2D.h"
+#include "Renderer.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) {
@@ -37,6 +39,7 @@ namespace flaw {
 			FLAW_PROFILE_SCOPE("Initialize Graphics");
 			Graphics::Init(GraphicsType::DX11);
 			Renderer2D::Init();
+			Renderer::Init();
 		}
 
 		{
@@ -84,6 +87,7 @@ namespace flaw {
 		AssetManager::Cleanup();
 		Sounds::Cleanup();
 		Fonts::Cleanup();
+		Renderer::Cleanup();
 		Renderer2D::Cleanup();
 		Graphics::Cleanup();
 		Platform::Cleanup();

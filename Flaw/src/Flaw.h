@@ -8,6 +8,7 @@
 #include "Engine/Platform.h"
 #include "Engine/Graphics.h"
 #include "Engine/Renderer2D.h"
+#include "Engine/Renderer.h"
 #include "Engine/Scripting.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Assets.h"

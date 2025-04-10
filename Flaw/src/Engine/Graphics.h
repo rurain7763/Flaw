@@ -20,6 +20,16 @@ namespace flaw {
 		float deltaTime;
 	};
 
+	struct LightConstants {
+		vec3 ambientColor;
+		float ambientIntensity;
+
+		uint32_t numDirectionalLights;
+		uint32_t numPointLights;
+		uint32_t numSpotLights;
+		uint32_t padding;
+	};
+
 	struct QuadVertex {
 		vec3 position;
 		vec2 texcoord;
@@ -40,6 +50,32 @@ namespace flaw {
 		vec3 position;
 		vec4 color;
 		uint32_t id;
+	};
+
+	struct Vertex3D {
+		vec3 position;
+		vec2 texcoord;
+		vec3 tangent;
+		vec3 normal;
+		vec3 biNormal;
+	};
+
+	struct SkyLight {
+		vec3 color = vec3(0.0f);
+		float intensity = 0.0f;
+	};
+
+	struct DirectionalLight {
+		vec3 color = vec3(1.0f);
+		vec3 direction = Forward;
+		float intensity = 1.0f;
+	};
+
+	struct PointLight {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+		vec3 position = vec3(0.0f);
+		float range = 5.0f;
 	};
 
 	class Graphics {

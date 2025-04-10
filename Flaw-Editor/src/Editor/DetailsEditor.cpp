@@ -239,6 +239,30 @@ namespace flaw {
 				ParticleComponentDrawer::Draw(_selectedEntt);
 			});
 
+			DrawComponent<MeshFilterComponent>("Mesh Filter", _selectedEntt, [](MeshFilterComponent& meshFilterComp) {
+				// TODO: mesh filter
+			});
+
+			DrawComponent<MeshRendererComponent>("Mesh Renderer", _selectedEntt, [](MeshRendererComponent& meshRendererComp) {
+				// TODO: mesh renderer
+			});
+
+			DrawComponent<SkyLightComponent>("Sky Light", _selectedEntt, [](SkyLightComponent& skyLightComp) {
+				ImGui::ColorEdit3("Color", &skyLightComp.color.x);
+				ImGui::DragFloat("Intensity", &skyLightComp.intensity, 0.1f);
+			});
+
+			DrawComponent<DirectionalLightComponent>("Directional Light", _selectedEntt, [](DirectionalLightComponent& directionalLightComp) {
+				ImGui::ColorEdit3("Color", &directionalLightComp.color.x);
+				ImGui::DragFloat("Intensity", &directionalLightComp.intensity, 0.1f);
+			});
+
+			DrawComponent<PointLightComponent>("Point Light", _selectedEntt, [](PointLightComponent& pointLightComp) {
+				ImGui::ColorEdit3("Color", &pointLightComp.color.x);
+				ImGui::DragFloat("Intensity", &pointLightComp.intensity, 0.1f);
+				ImGui::DragFloat("Range", &pointLightComp.range, 0.1f);
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -258,6 +282,11 @@ namespace flaw {
 				DrawAddComponentItem<SoundListenerComponent>("Sound Listener", _selectedEntt);
 				DrawAddComponentItem<SoundSourceComponent>("Sound Source", _selectedEntt);
 				DrawAddComponentItem<ParticleComponent>("Particle", _selectedEntt);
+				DrawAddComponentItem<MeshFilterComponent>("Mesh Filter", _selectedEntt);
+				DrawAddComponentItem<MeshRendererComponent>("Mesh Renderer", _selectedEntt);
+				DrawAddComponentItem<SkyLightComponent>("Sky Light", _selectedEntt);
+				DrawAddComponentItem<DirectionalLightComponent>("Directional Light", _selectedEntt);
+				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

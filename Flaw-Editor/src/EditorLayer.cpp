@@ -379,8 +379,37 @@ namespace flaw {
 
         scene->UpdateTransform();
 
+        RenderEnvironment renderEnv;
+		renderEnv.view = _camera.GetViewMatrix();
+		renderEnv.projection = _camera.GetProjectionMatrix();
+
+        for (auto&& [entity, transform, skyLight] : enttRegistry.view<TransformComponent, SkyLightComponent>().each()) {
+            // Skylight는 하나만 존재해야 함
+            renderEnv.skyLight.color = skyLight.color;
+            renderEnv.skyLight.intensity = skyLight.intensity;
+            break;
+        }
+
+        for (auto&& [entity, transform, directionalLight] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
+            DirectionalLight light;
+            light.color = directionalLight.color;
+            light.intensity = directionalLight.intensity;
+            light.direction = transform.GetFront();
+            renderEnv.directionalLights.push_back(std::move(light));
+        }
+
+        for (auto&& [entity, transform, pointLight] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
+            PointLight light;
+            light.color = pointLight.color;
+            light.intensity = pointLight.intensity;
+            light.position = transform.position;
+            light.range = pointLight.range;
+            renderEnv.pointLights.push_back(std::move(light));
+        }
+
         // draw sprite
         Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+		Renderer::Begin(renderEnv);
 
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
@@ -420,7 +449,14 @@ namespace flaw {
 			);
         }
 
-        Renderer2D::End();
+        for (auto&& [entity, transform, meshFilter, meshRenderer] : enttRegistry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
+            // TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
+            //Renderer::DrawCube();
+            Renderer::DrawSphere((uint32_t)entity, transform.worldTransform);
+        }
+
+		Renderer2D::End();
+		Renderer::End();
 
         _camera.OnUpdate();
     }

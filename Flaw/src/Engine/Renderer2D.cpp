@@ -17,15 +17,12 @@ namespace flaw {
 	static Ref<VertexBuffer> g_lineVB;
 	static Ref<VertexBuffer> g_textVB;
 	static Ref<IndexBuffer> g_ib;
-	static Ref<ConstantBuffer> g_vpCBuff;
-	static Ref<ConstantBuffer> g_globalCBuff;
+	static Ref<ConstantBuffer> g_vpCB;
+	static Ref<ConstantBuffer> g_globalCB;
 	static Ref<GraphicsPipeline> g_quadPipeline;
 	static Ref<GraphicsPipeline> g_circlePipeline;
 	static Ref<GraphicsPipeline> g_linePipeline;
 	static Ref<GraphicsPipeline> g_textPipeline;
-
-	static VPMatrices g_vp;
-	static GlobalConstants g_globalConstants;
 
 	static std::unordered_map<Ref<Texture2D>, uint32_t> g_quadTextures;
 	static uint32_t g_quadIndexCount;
@@ -81,8 +78,8 @@ namespace flaw {
 		ibDesc.initialData = indices.data();
 		g_ib = context.CreateIndexBuffer(ibDesc);
 
-		g_vpCBuff = context.CreateConstantBuffer(sizeof(VPMatrices));
-		g_globalCBuff = context.CreateConstantBuffer(sizeof(GlobalConstants));
+		g_vpCB = context.CreateConstantBuffer(sizeof(VPMatrices));
+		g_globalCB = context.CreateConstantBuffer(sizeof(GlobalConstants));
 
 		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
@@ -91,8 +88,8 @@ namespace flaw {
 		shader->AddInputElement<uint32_t>("TEXTUREID", 1);
 		shader->AddInputElement<uint32_t>("ID", 1);
 		shader->CreateInputLayout();
-
 		g_quadPipeline = context.CreateGraphicsPipeline();
+
 		g_quadPipeline->SetShader(shader);
 		g_quadPipeline->SetBlendMode(BlendMode::Alpha, true);
 		g_quadPipeline->SetCullMode(CullMode::None);
@@ -141,7 +138,7 @@ namespace flaw {
 		g_lineVB.reset();
 		g_textVB.reset();
 		g_ib.reset();
-		g_vpCBuff.reset();
+		g_vpCB.reset();
 		g_quadPipeline.reset();
 		g_circlePipeline.reset();
 		g_linePipeline.reset();
@@ -149,16 +146,18 @@ namespace flaw {
 	}
 
 	void Renderer2D::Begin(const mat4& view, const mat4& projection) {
-		g_vp.view = view;
-		g_vp.projection = projection;
-		g_vpCBuff->Update(&g_vp, sizeof(VPMatrices));
+		VPMatrices vp;
+		vp.view = view;
+		vp.projection = projection;
+		g_vpCB->Update(&vp, sizeof(VPMatrices));
 
+		GlobalConstants globalConstants;
 		int32_t width, height;
 		Graphics::GetSize(width, height);
-		g_globalConstants.screenResolution = vec2((float)width, (float)height);
-		g_globalConstants.time = Time::GetTime();
-		g_globalConstants.deltaTime = Time::DeltaTime();
-		g_globalCBuff->Update(&g_globalConstants, sizeof(GlobalConstants));
+		globalConstants.screenResolution = vec2((float)width, (float)height);
+		globalConstants.time = Time::GetTime();
+		globalConstants.deltaTime = Time::DeltaTime();
+		g_globalCB->Update(&globalConstants, sizeof(GlobalConstants));
 
 		g_quadVertices.clear();
 		g_quadTextures.clear();
@@ -184,8 +183,8 @@ namespace flaw {
 		g_textVB->Update(g_textVertices.data(), sizeof(QuadVertex), g_textVertices.size());
 
 		commandQueue.Begin();
-		commandQueue.SetConstantBuffer(g_vpCBuff, 0);
-		commandQueue.SetConstantBuffer(g_globalCBuff, 1);
+		commandQueue.SetConstantBuffer(g_vpCB, 0);
+		commandQueue.SetConstantBuffer(g_globalCB, 1);
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);

@@ -140,6 +140,22 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::MeshFilterComponent>()) {
+			auto& comp = entity.GetComponent<flaw::MeshFilterComponent>();
+			out << YAML::Key << "MeshFilterComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::MeshRendererComponent>()) {
+			auto& comp = entity.GetComponent<flaw::MeshRendererComponent>();
+			out << YAML::Key << "MeshRendererComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Material" << YAML::Value << comp.material;
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<flaw::ParticleComponent>()) {
 			auto& comp = entity.GetComponent<flaw::ParticleComponent>();
 			out << YAML::Key << "ParticleComponent";
@@ -255,6 +271,34 @@ namespace flaw {
 				out << YAML::EndMap;
 			}
 
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::SkyLightComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SkyLightComponent>();
+			out << YAML::Key << "SkyLightComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Intensity" << YAML::Value << comp.intensity;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::DirectionalLightComponent>()) {
+			auto& comp = entity.GetComponent<flaw::DirectionalLightComponent>();
+			out << YAML::Key << "DirectionalLightComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Intensity" << YAML::Value << comp.intensity;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::PointLightComponent>()) {
+			auto& comp = entity.GetComponent<flaw::PointLightComponent>();
+			out << YAML::Key << "PointLightComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Intensity" << YAML::Value << comp.intensity;
+			out << YAML::Key << "Range" << YAML::Value << comp.range;
 			out << YAML::EndMap;
 		}
 
@@ -415,6 +459,22 @@ namespace flaw {
 					comp.autoPlay = component.second["AutoPlay"].as<bool>();
 					comp.volume = component.second["Volume"].as<float>();
 				}
+				else if (name == "MeshFilterComponent") {
+					if (!entity.HasComponent<MeshFilterComponent>()) {
+						entity.AddComponent<MeshFilterComponent>();
+					}
+
+					auto& comp = entity.GetComponent<MeshFilterComponent>();
+					comp.mesh = component.second["Mesh"].as<uint64_t>();
+				}
+				else if (name == "MeshRendererComponent") {
+					if (!entity.HasComponent<MeshRendererComponent>()) {
+						entity.AddComponent<MeshRendererComponent>();
+					}
+
+					auto& comp = entity.GetComponent<MeshRendererComponent>();
+					comp.material = component.second["Material"].as<uint64_t>();
+				}
 				else if (name == "ParticleComponent") {
 					if (!entity.HasComponent<ParticleComponent>()) {
 						entity.AddComponent<ParticleComponent>();
@@ -518,6 +578,34 @@ namespace flaw {
 
 						module->alignment = (RendererModule::Alignment)moduleNode["Alignment"].as<int32_t>();
 					}
+				}
+				else if (name == "SkyLightComponent") {
+					if (!entity.HasComponent<SkyLightComponent>()) {
+						entity.AddComponent<SkyLightComponent>();
+					}
+
+					auto& comp = entity.GetComponent<SkyLightComponent>();
+					comp.color = component.second["Color"].as<vec3>();
+					comp.intensity = component.second["Intensity"].as<float>();
+				}
+				else if (name == "DirectionalLightComponent") {
+					if (!entity.HasComponent<DirectionalLightComponent>()) {
+						entity.AddComponent<DirectionalLightComponent>();
+					}
+
+					auto& comp = entity.GetComponent<DirectionalLightComponent>();
+					comp.color = component.second["Color"].as<vec3>();
+					comp.intensity = component.second["Intensity"].as<float>();
+				}
+				else if (name == "PointLightComponent") {
+					if (!entity.HasComponent<PointLightComponent>()) {
+						entity.AddComponent<PointLightComponent>();
+					}
+
+					auto& comp = entity.GetComponent<PointLightComponent>();
+					comp.color = component.second["Color"].as<vec3>();
+					comp.intensity = component.second["Intensity"].as<float>();
+					comp.range = component.second["Range"].as<float>();
 				}
 			}
 		}

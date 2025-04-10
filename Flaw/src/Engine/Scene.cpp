@@ -9,6 +9,7 @@
 #include "ParticleSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
+#include "Renderer.h"
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Sounds.h"
@@ -129,6 +130,11 @@ namespace flaw {
 		CopyComponentIfExists<SoundListenerComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SoundSourceComponent>(srcEntt, cloned);
 		CopyComponentIfExists<ParticleComponent>(srcEntt, cloned);
+		CopyComponentIfExists<MeshFilterComponent>(srcEntt, cloned);
+		CopyComponentIfExists<MeshRendererComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SkyLightComponent>(srcEntt, cloned);
+		CopyComponentIfExists<DirectionalLightComponent>(srcEntt, cloned);
+		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);
 
 		// because uuid is changed, we need to set it again
 		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
@@ -352,23 +358,50 @@ namespace flaw {
 	}
 
 	void Scene::UpdateRender() {
-		// render
 		struct CameraMatrices {
 			mat4 view;
 			mat4 projection;
 		};
+
+		RenderEnvironment renderEnv;
+		for (auto&& [entity, transform, skyLightComp] : _registry.view<TransformComponent, SkyLightComponent>().each()) {
+			// Skylight는 하나만 존재해야 함
+			renderEnv.skyLight.color = skyLightComp.color;
+			renderEnv.skyLight.intensity = skyLightComp.intensity;
+			break;
+		}
+
+		for (auto&& [entity, transform, directionalLightComp] : _registry.view<TransformComponent, DirectionalLightComponent>().each()) {
+			DirectionalLight light;
+			light.color = directionalLightComp.color;
+			light.intensity = directionalLightComp.intensity;
+			light.direction = transform.GetFront();
+			renderEnv.directionalLights.push_back(std::move(light));
+		}
+
+		for (auto&& [entity, transform, pointLight] : _registry.view<TransformComponent, PointLightComponent>().each()) {
+			PointLight light;
+			light.color = pointLight.color;
+			light.intensity = pointLight.intensity;
+			light.position = transform.position;
+			light.range = pointLight.range;
+			renderEnv.pointLights.push_back(std::move(light));
+		}
 
 		std::map<uint32_t, CameraMatrices> sortedCameras;
 		for (auto&& [entity, transform, camera] : _registry.view<TransformComponent, CameraComponent>().each()) {
 			sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
 		}
 
-		// draw entities
 		for (const auto& [depth, matrices] : sortedCameras) {
+			renderEnv.view = matrices.view;
+			renderEnv.projection = matrices.projection;
+
 			// draw particle
 			_particleSystem->Render(matrices.view, matrices.projection);
 
 			Renderer2D::Begin(matrices.view, matrices.projection);
+			Renderer::Begin(renderEnv);
 
 			// draw sprite
 			for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {
@@ -389,7 +422,15 @@ namespace flaw {
 				}
 			}
 
+			// draw mesh
+			for (auto&& [entity, transform, meshFilter, meshRenderer] : _registry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
+				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
+				//Renderer::DrawCube();
+				Renderer::DrawSphere((uint32_t)entity, transform.worldTransform);
+			}
+
 			Renderer2D::End();
+			Renderer::End();
 		}
 	}
 

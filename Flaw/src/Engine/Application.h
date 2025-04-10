@@ -1,11 +1,8 @@
 #pragma once
 
 #include "Core.h"
-#include "Renderer2D.h"
 #include "LayerRegistry.h"
 #include "Event/EventDispatcher.h"
-#include "Platform/PlatformContext.h"
-#include "Graphics/GraphicsContext.h"
 
 #include <functional>
 #include <mutex>

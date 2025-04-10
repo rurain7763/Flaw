@@ -13,8 +13,11 @@ using namespace glm;
 
 namespace flaw {
 	constexpr vec3 Forward = vec3(0.0f, 0.0f, 1.0f);
+	constexpr vec3 Backward = vec3(0.0f, 0.0f, -1.0f);
 	constexpr vec3 Right = vec3(1.0f, 0.0f, 0.0f);
+	constexpr vec3 Left = vec3(-1.0f, 0.0f, 0.0f);
 	constexpr vec3 Up = vec3(0.0f, 1.0f, 0.0f);
+	constexpr vec3 Down = vec3(0.0f, -1.0f, 0.0f);
 
 	inline mat4 Translate(const vec3& translation) {
 		return translate(mat4(1.0f), translation);

@@ -276,4 +276,45 @@ namespace flaw {
 			return *this;
 		}
 	};
+
+	// Mesh
+	struct MeshFilterComponent {
+		AssetHandle mesh;
+
+		MeshFilterComponent() = default;
+		MeshFilterComponent(const MeshFilterComponent& other) = default;
+	};
+
+	struct MeshRendererComponent {
+		AssetHandle material;
+
+		MeshRendererComponent() = default;
+		MeshRendererComponent(const MeshRendererComponent& other) = default;
+	};
+
+	// Light
+	struct SkyLightComponent {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+
+		SkyLightComponent() = default;
+		SkyLightComponent(const SkyLightComponent& other) = default;
+	};
+
+	struct DirectionalLightComponent {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+
+		DirectionalLightComponent() = default;
+		DirectionalLightComponent(const DirectionalLightComponent& other) = default;
+	};
+
+	struct PointLightComponent {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+		float range = 10.0f;
+
+		PointLightComponent() = default;
+		PointLightComponent(const PointLightComponent& other) = default;
+	};
 }
