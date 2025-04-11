@@ -23,7 +23,7 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::SetGraphicsPipeline(const Ref<GraphicsPipeline>& pipeline) {
+	void DXCommandQueue::SetPipeline(const Ref<GraphicsPipeline>& pipeline) {
 		FASSERT(_open, "DXCommandQueue::SetPipeline failed: Command queue is not open");
 		_commands.push([pipeline]() { pipeline->Bind(); });
 	}

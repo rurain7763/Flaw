@@ -13,6 +13,7 @@ namespace flaw {
 		SkyLight skyLight;
 		std::vector<DirectionalLight> directionalLights;
 		std::vector<PointLight> pointLights;
+		std::vector<SpotLight> spotLights;
 	};
 
 	class Renderer {

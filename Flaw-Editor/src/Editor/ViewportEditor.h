@@ -19,6 +19,9 @@ namespace flaw {
 		uint32_t MousePicking(int32_t x, int32_t y);
 		uint32_t MousePickingWithRay(const vec2& mousePos, const vec2& relativePos, const vec2& currentSize);
 
+		void DrawDebugComponent();
+		void DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj);
+
 	private:
 		PlatformContext& _platformContext;
 		GraphicsContext& _graphicsContext;
@@ -32,5 +35,14 @@ namespace flaw {
 
 		Ref<Texture2D> _captureRenderTargetTexture;
 		Ref<Texture2D> _idRenderTexture;
+
+		struct MVPMatrices {
+			mat4 world;
+			mat4 view;
+			mat4 projection;
+		};
+
+		Ref<ConstantBuffer> _mvpConstantBuffer;
+		Ref<GraphicsPipeline> _outlineGraphicsPipeline;
 	};
 }

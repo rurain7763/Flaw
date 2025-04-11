@@ -6,6 +6,7 @@ namespace flaw {
 	constexpr uint32_t MaxBatchCount = 10000;
 	constexpr uint32_t MaxDirectionalLights = 10;
 	constexpr uint32_t MaxPointLights = 10;
+	constexpr uint32_t MaxSpotLights = 10;
 
 	struct BatchedData {
 		mat4 transform;
@@ -19,7 +20,6 @@ namespace flaw {
 	static Ref<IndexBuffer> g_cubeIB;
 	static Ref<VertexBuffer> g_sphereVB;
 	static Ref<IndexBuffer> g_sphereIB;
-	static uint32_t g_sphereIndexCount = 0;
 
 	static Ref<ConstantBuffer> g_vpCB;
 	static Ref<ConstantBuffer> g_globalCB;
@@ -27,6 +27,7 @@ namespace flaw {
 	static Ref<StructuredBuffer> g_batchDataSB;
 	static Ref<StructuredBuffer> g_directionalLightSB;
 	static Ref<StructuredBuffer> g_pointLightSB;
+	static Ref<StructuredBuffer> g_spotLightSB;
 	static Ref<GraphicsPipeline> g_pipeLine;
 
 	void GenerateCubeMesh(std::vector<Vertex3D>& outVertices, std::vector<uint32_t>& outIndices) {
@@ -239,7 +240,6 @@ namespace flaw {
 		sphereIBDesc.bufferSize = sizeof(uint32_t) * sphereIndices.size();
 		sphereIBDesc.initialData = sphereIndices.data();
 		g_sphereIB = context.CreateIndexBuffer(sphereIBDesc);
-		g_sphereIndexCount = (uint32_t)sphereIndices.size();
 
 		// create constant buffers
 		g_vpCB = context.CreateConstantBuffer(sizeof(VPMatrices));
@@ -268,6 +268,13 @@ namespace flaw {
 		sbDesc.bindFlags = BindFlag::ShaderResource;
 		g_pointLightSB = context.CreateStructuredBuffer(sbDesc);
 
+		// Create a structured buffer for spot lights
+		sbDesc.elmSize = sizeof(SpotLight);
+		sbDesc.count = MaxSpotLights;
+		sbDesc.accessFlags = AccessFlag::Write;
+		sbDesc.bindFlags = BindFlag::ShaderResource;
+		g_spotLightSB = context.CreateStructuredBuffer(sbDesc);
+
 		// Create default pipeline
 		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std3d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
@@ -293,6 +300,7 @@ namespace flaw {
 		g_batchDataSB.reset();
 		g_directionalLightSB.reset();
 		g_pointLightSB.reset();
+		g_spotLightSB.reset();
 		g_globalCB.reset();
 		g_pipeLine.reset();
 	}
@@ -316,13 +324,12 @@ namespace flaw {
 		lightConstants.ambientIntensity = env.skyLight.intensity;
 		lightConstants.numDirectionalLights = std::min((uint32_t)env.directionalLights.size(), MaxDirectionalLights);
 		lightConstants.numPointLights = std::min((uint32_t)env.pointLights.size(), MaxPointLights);
+		lightConstants.numSpotLights = std::min((uint32_t)env.spotLights.size(), MaxSpotLights);
 		g_lightCB->Update(&lightConstants, sizeof(LightConstants));
 
-		// Update the structured buffer with directional lights
-		g_directionalLightSB->Update(env.directionalLights.data(), sizeof(DirectionalLight) * lightConstants.numDirectionalLights);
-	
-		// Update the structured buffer with point lights
+		g_directionalLightSB->Update(env.directionalLights.data(), sizeof(DirectionalLight) * lightConstants.numDirectionalLights);	
 		g_pointLightSB->Update(env.pointLights.data(), sizeof(PointLight) * lightConstants.numPointLights);
+		g_spotLightSB->Update(env.spotLights.data(), sizeof(SpotLight) * lightConstants.numSpotLights);
 
 		g_cubeBatchDatas.clear();
 		g_sphereBatchDatas.clear();
@@ -335,7 +342,7 @@ namespace flaw {
 
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		cmdQueue.SetGraphicsPipeline(g_pipeLine);
+		cmdQueue.SetPipeline(g_pipeLine);
 		cmdQueue.SetVertexBuffer(g_cubeVB);
 		cmdQueue.SetConstantBuffer(g_vpCB, 0);
 		cmdQueue.SetConstantBuffer(g_globalCB, 1);
@@ -343,6 +350,7 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
 		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
+		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
 		cmdQueue.DrawIndexedInstanced(g_cubeIB, 36, g_cubeBatchDatas.size());
 		cmdQueue.End();
 
@@ -352,7 +360,7 @@ namespace flaw {
 
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		cmdQueue.SetGraphicsPipeline(g_pipeLine);
+		cmdQueue.SetPipeline(g_pipeLine);
 		cmdQueue.SetVertexBuffer(g_sphereVB);
 		cmdQueue.SetConstantBuffer(g_vpCB, 0);
 		cmdQueue.SetConstantBuffer(g_globalCB, 1);
@@ -360,7 +368,8 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
 		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
-		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIndexCount, g_sphereBatchDatas.size());
+		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
+		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), g_sphereBatchDatas.size());
 		cmdQueue.End();
 
 		cmdQueue.Execute();

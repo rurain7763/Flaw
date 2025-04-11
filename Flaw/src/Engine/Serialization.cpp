@@ -302,6 +302,18 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::SpotLightComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SpotLightComponent>();
+			out << YAML::Key << "SpotLightComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Color" << YAML::Value << comp.color;
+			out << YAML::Key << "Intensity" << YAML::Value << comp.intensity;
+			out << YAML::Key << "Range" << YAML::Value << comp.range;
+			out << YAML::Key << "Inner" << YAML::Value << comp.inner;
+			out << YAML::Key << "Outer" << YAML::Value << comp.outer;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -606,6 +618,17 @@ namespace flaw {
 					comp.color = component.second["Color"].as<vec3>();
 					comp.intensity = component.second["Intensity"].as<float>();
 					comp.range = component.second["Range"].as<float>();
+				}
+				else if (name == "SpotLightComponent") {
+					if (!entity.HasComponent<SpotLightComponent>()) {
+						entity.AddComponent<SpotLightComponent>();
+					}
+					auto& comp = entity.GetComponent<SpotLightComponent>();
+					comp.color = component.second["Color"].as<vec3>();
+					comp.intensity = component.second["Intensity"].as<float>();
+					comp.range = component.second["Range"].as<float>();
+					comp.inner = component.second["Inner"].as<float>();
+					comp.outer = component.second["Outer"].as<float>();
 				}
 			}
 		}

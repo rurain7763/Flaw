@@ -4,6 +4,7 @@
 #include "Graphics/Texture.h"
 #include "Font/Font.h"
 #include "Sound/SoundSource.h"
+#include "Graphics/GraphicsBuffers.h"
 
 namespace flaw {
 	class Texture2DAsset : public Asset {
@@ -60,5 +61,25 @@ namespace flaw {
 		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
 
 		Ref<SoundSource> _sound;
+	};
+
+	class MeshAsset : public Asset {
+	public:
+		MeshAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Mesh; }
+		bool IsLoaded() const override { return _vertexBuffer != nullptr && _indexBuffer != nullptr; }
+
+		const Ref<VertexBuffer>& GetVertexBuffer() const { return _vertexBuffer; }
+		const Ref<IndexBuffer>& GetIndexBuffer() const { return _indexBuffer; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<VertexBuffer> _vertexBuffer;
+		Ref<IndexBuffer> _indexBuffer;
 	};
 }

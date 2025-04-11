@@ -11,7 +11,7 @@ namespace flaw {
 	class GraphicsCommandQueue {
 	public:
 		virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
-		virtual void SetGraphicsPipeline(const Ref<GraphicsPipeline>& pipeline) = 0;
+		virtual void SetPipeline(const Ref<GraphicsPipeline>& pipeline) = 0;
 		virtual void SetVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) = 0;
 		virtual void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) = 0;
 		virtual void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) = 0;

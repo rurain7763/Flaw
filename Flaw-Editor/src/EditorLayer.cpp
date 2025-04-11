@@ -394,7 +394,7 @@ namespace flaw {
             DirectionalLight light;
             light.color = directionalLight.color;
             light.intensity = directionalLight.intensity;
-            light.direction = transform.GetFront();
+            light.direction = transform.GetWorldFront();
             renderEnv.directionalLights.push_back(std::move(light));
         }
 
@@ -402,10 +402,22 @@ namespace flaw {
             PointLight light;
             light.color = pointLight.color;
             light.intensity = pointLight.intensity;
-            light.position = transform.position;
+            light.position = transform.GetWorldPosition();
             light.range = pointLight.range;
             renderEnv.pointLights.push_back(std::move(light));
         }
+
+		for (auto&& [entity, transform, spotLight] : enttRegistry.view<TransformComponent, SpotLightComponent>().each()) {
+			SpotLight light;
+			light.color = spotLight.color;
+			light.intensity = spotLight.intensity;
+			light.position = transform.GetWorldPosition();
+			light.direction = transform.GetWorldFront();
+			light.inner = spotLight.inner;
+			light.outer = spotLight.outer;
+			light.range = spotLight.range;
+			renderEnv.spotLights.push_back(std::move(light));
+		}
 
         // draw sprite
         Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
@@ -427,27 +439,6 @@ namespace flaw {
 			    Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
-
-        // draw debug things
-		for (auto&& [entity, transComp, boxColliderComp] : enttRegistry.view<TransformComponent, BoxCollider2DComponent>().each()) {
-			Renderer2D::DrawLineRect(
-                (uint32_t)entity, 
-				transComp.worldTransform * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
-                vec4(0.0, 1.0, 0.0, 1.0)
-            );
-		}
-
-        for (auto&& [entity, transComp, circleColliderComp] : enttRegistry.view<TransformComponent, CircleCollider2DComponent>().each()) {
-            const vec3 toCamera = _camera.GetPosition() - transComp.position;
-			const float offsetZ = dot(transComp.GetFront(), toCamera) < 0 ? -0.001f : 0.001f;
-
-            Renderer2D::DrawCircle(
-                (uint32_t)entity,
-                transComp.worldTransform * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-			);
-        }
 
         for (auto&& [entity, transform, meshFilter, meshRenderer] : enttRegistry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
             // TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐

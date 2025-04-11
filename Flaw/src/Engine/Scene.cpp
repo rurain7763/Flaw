@@ -135,6 +135,7 @@ namespace flaw {
 		CopyComponentIfExists<SkyLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<DirectionalLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SpotLightComponent>(srcEntt, cloned);
 
 		// because uuid is changed, we need to set it again
 		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
@@ -256,8 +257,8 @@ namespace flaw {
 			SoundListener listener;
 			listener.position = transComp.position;
 			listener.velocity = soundListenerComp.velocity;
-			listener.forward = transComp.GetFront();
-			listener.up = transComp.GetUp();
+			listener.forward = transComp.GetWorldFront();
+			listener.up = transComp.GetWorldUp();
 
 			Sounds::SetListener(listener);
 
@@ -375,7 +376,7 @@ namespace flaw {
 			DirectionalLight light;
 			light.color = directionalLightComp.color;
 			light.intensity = directionalLightComp.intensity;
-			light.direction = transform.GetFront();
+			light.direction = transform.GetWorldFront();
 			renderEnv.directionalLights.push_back(std::move(light));
 		}
 
@@ -383,9 +384,21 @@ namespace flaw {
 			PointLight light;
 			light.color = pointLight.color;
 			light.intensity = pointLight.intensity;
-			light.position = transform.position;
+			light.position = transform.GetWorldPosition();
 			light.range = pointLight.range;
 			renderEnv.pointLights.push_back(std::move(light));
+		}
+
+		for (auto&& [entity, transform, spotLight] : _registry.view<TransformComponent, SpotLightComponent>().each()) {
+			SpotLight light;
+			light.color = spotLight.color;
+			light.intensity = spotLight.intensity;
+			light.position = transform.GetWorldPosition();
+			light.direction = transform.GetWorldFront();
+			light.inner = spotLight.inner;
+			light.outer = spotLight.outer;
+			light.range = spotLight.range;
+			renderEnv.spotLights.push_back(std::move(light));
 		}
 
 		std::map<uint32_t, CameraMatrices> sortedCameras;

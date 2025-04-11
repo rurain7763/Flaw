@@ -141,7 +141,7 @@ namespace flaw {
 
 		{
 			std::lock_guard<std::mutex> lock(_taskMutex);
-			std::swap(tasksToExecute, _tasks);  // 기존 큐와 빈 큐를 교체
+			std::swap(tasksToExecute, _tasks);
 		}
 
 		for (auto& task : tasksToExecute) {

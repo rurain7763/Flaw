@@ -23,7 +23,7 @@ namespace flaw {
 		virtual ~DXCommandQueue() = default;
 
 		void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
-		void SetGraphicsPipeline(const Ref<GraphicsPipeline>& pipeline) override;
+		void SetPipeline(const Ref<GraphicsPipeline>& pipeline) override;
 		void SetVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) override;
 		void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) override;
 		void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) override;

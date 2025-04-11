@@ -16,6 +16,19 @@ namespace flaw {
     {
         CreateRequiredTextures();
 
+        _mvpConstantBuffer = _graphicsContext.CreateConstantBuffer(sizeof(MVPMatrices));
+
+		Ref<GraphicsShader> shader = _graphicsContext.CreateGraphicsShader("Resources/Shaders/std3d_outline.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+        shader->AddInputElement<float>("POSITION", 3);
+		shader->AddInputElement<float>("NORMAL", 3);
+        shader->CreateInputLayout();
+        
+        _outlineGraphicsPipeline = _graphicsContext.CreateGraphicsPipeline();
+		_outlineGraphicsPipeline->SetShader(shader);
+		_outlineGraphicsPipeline->SetBlendMode(BlendMode::Default);
+        _outlineGraphicsPipeline->SetDepthTest(DepthTest::Less, false);
+		_outlineGraphicsPipeline->SetCullMode(CullMode::Front);
+
         _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
         _eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) { CreateRequiredTextures(); }, PID(this));
 		_eventDispatcher.Register<OnSceneStateChangeEvent>([this](const OnSceneStateChangeEvent& evn) { _useEditorCamera = evn.state == SceneState::Edit; }, PID(this));
@@ -44,6 +57,37 @@ namespace flaw {
 
         vec2 relativePos = vec2(currentPos.x - _platformContext.GetX(), currentPos.y - _platformContext.GetY());
         vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
+
+        // 에디터 카메라 및 모든 scene 내의 카메라 aspect ratio 업데이트
+        const float aspectRatio = currentSize.x / currentSize.y;
+
+        mat4 viewMatrix = mat4(1.0f);
+        mat4 projectionMatrix = mat4(1.0f);
+        bool isPerspective = true;
+
+        if (_useEditorCamera) {
+            _editorCamera.SetAspectRatio(aspectRatio);
+
+            viewMatrix = _editorCamera.GetViewMatrix();
+            projectionMatrix = _editorCamera.GetProjectionMatrix();
+            isPerspective = _editorCamera.IsPerspective();
+        }
+        else {
+            for (auto&& [entity, transComp, cameraComp] : _scene->GetRegistry().view<TransformComponent, CameraComponent>().each()) {
+                cameraComp.aspectRatio = aspectRatio;
+
+                if (cameraComp.depth == 0) {
+                    viewMatrix = ViewMatrix(transComp.position, transComp.rotation);
+                    projectionMatrix = cameraComp.GetProjectionMatrix();
+                    isPerspective = cameraComp.perspective;
+                }
+            }
+        }
+
+        if (_selectedEntt) {
+            DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
+            DrawDebugComponent();
+        }
 
         _graphicsContext.CaptureRenderTargetTex(_captureRenderTargetTexture);
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
@@ -77,34 +121,8 @@ namespace flaw {
 			_eventDispatcher.Dispatch<OnSelectEntityEvent>(_selectedEntt);
         }
 #endif
-
+        
         ImGui::Image((ImTextureID)dxTexture->GetShaderResourceView().Get(), currentSize);
-
-		// 에디터 카메라 및 모든 scene 내의 카메라 aspect ratio 업데이트
-		const float aspectRatio = currentSize.x / currentSize.y;
-
-		mat4 viewMatrix = mat4(1.0f);
-		mat4 projectionMatrix = mat4(1.0f);
-        bool isPerspective = true;
-
-        if (_useEditorCamera) {
-            _editorCamera.SetAspectRatio(aspectRatio);
-
-			viewMatrix = _editorCamera.GetViewMatrix();
-			projectionMatrix = _editorCamera.GetProjectionMatrix();
-			isPerspective = _editorCamera.IsPerspective();
-        }
-        else {
-		    for (auto&& [entity, transComp, cameraComp] : _scene->GetRegistry().view<TransformComponent, CameraComponent>().each()) {
-			    cameraComp.aspectRatio = aspectRatio;
-
-                if (cameraComp.depth == 0) {
-					viewMatrix = ViewMatrix(transComp.position, transComp.rotation);
-					projectionMatrix = cameraComp.GetProjectionMatrix();
-                    isPerspective = cameraComp.perspective;
-                }
-		    }
-        }
 
         // NOTE: 기즈모 드로우
         if (_selectedEntt) {
@@ -266,5 +284,138 @@ namespace flaw {
         }
 
         return candidateEnttId;
+    }
+
+    void ViewportEditor::DrawDebugComponent() {
+		if (!_useEditorCamera) {
+			return;
+		}
+
+		TransformComponent& transComp = _selectedEntt.GetComponent<TransformComponent>();
+
+        Renderer2D::Begin(_editorCamera.GetViewMatrix(), _editorCamera.GetProjectionMatrix());
+
+        if (_selectedEntt.HasComponent<BoxCollider2DComponent>()) {
+			BoxCollider2DComponent& boxColliderComp = _selectedEntt.GetComponent<BoxCollider2DComponent>();
+
+            Renderer2D::DrawLineRect(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0)
+            );
+        }
+
+        if (_selectedEntt.HasComponent<CircleCollider2DComponent>()) {
+			CircleCollider2DComponent& circleColliderComp = _selectedEntt.GetComponent<CircleCollider2DComponent>();
+
+            const vec3 toCamera = _editorCamera.GetPosition() - transComp.position;
+            const float offsetZ = dot(transComp.GetWorldFront(), toCamera) < 0 ? -0.001f : 0.001f;
+
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+        }
+
+        if (_selectedEntt.HasComponent<PointLightComponent>()) {
+			PointLightComponent& pointLightComp = _selectedEntt.GetComponent<PointLightComponent>();
+
+            //TODO: this must be make function to drawdebugsphere
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(glm::pi<float>() * 0.5f, 0.0, 0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(0.0, glm::pi<float>() * 0.5f, 0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+        }
+
+        if (_selectedEntt.HasComponent<SpotLightComponent>()) {
+			SpotLightComponent& spotLightComp = _selectedEntt.GetComponent<SpotLightComponent>();
+
+            float outterRadius = spotLightComp.range * tan(spotLightComp.outer);
+
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0, 0.0, spotLightComp.range), vec3(0.0), vec3(outterRadius * 2, outterRadius * 2, 0.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+
+            float innerRadius = spotLightComp.range * tan(spotLightComp.inner);
+
+            Renderer2D::DrawCircle(
+                (uint32_t)_selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0, 0.0, spotLightComp.range), vec3(0.0), vec3(innerRadius * 2, innerRadius * 2, 0.0)),
+                vec4(0.0, 1.0, 0.0, 1.0),
+                0.02f
+            );
+
+            vec3 front = transComp.GetWorldFront();
+            vec3 right = transComp.GetWorldRight();
+            vec3 up = transComp.GetWorldUp();
+            vec3 worldPosition = transComp.GetWorldPosition();
+            vec3 circlePosition = worldPosition + front * spotLightComp.range;
+
+            vec3 topPos = circlePosition + up * outterRadius;
+            vec3 rightPos = circlePosition + right * outterRadius;
+            vec3 leftPos = circlePosition + -right * outterRadius;
+            vec3 bottomPos = circlePosition + -up * outterRadius;
+
+            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, topPos, vec4(0.0, 1.0, 0.0, 1.0));
+            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, leftPos, vec4(0.0, 1.0, 0.0, 1.0));
+            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, rightPos, vec4(0.0, 1.0, 0.0, 1.0));
+            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, bottomPos, vec4(0.0, 1.0, 0.0, 1.0));
+        }
+
+        Renderer2D::End();
+    }
+
+    void ViewportEditor::DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj) {
+        if (!_selectedEntt.HasComponent<MeshFilterComponent>() || !_selectedEntt.HasComponent<MeshRendererComponent>()) {
+            return;
+        }
+
+		AssetHandle meshHandle = _selectedEntt.GetComponent<MeshFilterComponent>().mesh;
+		auto meshAsset = AssetManager::GetAsset<MeshAsset>(meshHandle);
+		if (!meshAsset) {
+			return;
+		}
+
+		auto vertexBuffer = meshAsset->GetVertexBuffer();
+		auto indexBuffer = meshAsset->GetIndexBuffer();
+		
+		auto& cmdQueue = _graphicsContext.GetCommandQueue();
+
+		MVPMatrices mvp;
+		mvp.world = _selectedEntt.GetComponent<TransformComponent>().worldTransform;
+		mvp.view = view;
+		mvp.projection = proj;
+		_mvpConstantBuffer->Update(&mvp, sizeof(MVPMatrices));
+
+        cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		cmdQueue.SetPipeline(_outlineGraphicsPipeline);
+		cmdQueue.SetVertexBuffer(meshAsset->GetVertexBuffer());
+		cmdQueue.SetConstantBuffer(_mvpConstantBuffer, 0);
+		cmdQueue.DrawIndexed(indexBuffer, indexBuffer->IndexCount());
+        cmdQueue.End();
+
+        cmdQueue.Execute();
     }
 }

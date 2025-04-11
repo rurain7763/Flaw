@@ -263,6 +263,14 @@ namespace flaw {
 				ImGui::DragFloat("Range", &pointLightComp.range, 0.1f);
 			});
 
+			DrawComponent<SpotLightComponent>("Spot Light", _selectedEntt, [](SpotLightComponent& spotLightComp) {
+				ImGui::ColorEdit3("Color", &spotLightComp.color.x);
+				ImGui::DragFloat("Intensity", &spotLightComp.intensity, 0.1f);
+				ImGui::DragFloat("Range", &spotLightComp.range, 0.1f);
+				ImGui::DragFloat("Inner", &spotLightComp.inner, 0.1f);
+				ImGui::DragFloat("Outer", &spotLightComp.outer, 0.1f);
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -286,7 +294,8 @@ namespace flaw {
 				DrawAddComponentItem<MeshRendererComponent>("Mesh Renderer", _selectedEntt);
 				DrawAddComponentItem<SkyLightComponent>("Sky Light", _selectedEntt);
 				DrawAddComponentItem<DirectionalLightComponent>("Directional Light", _selectedEntt);
-				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);
+				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);\
+				DrawAddComponentItem<SpotLightComponent>("Spot Light", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

@@ -35,6 +35,8 @@ namespace flaw {
 		virtual void Update(const uint32_t* indices, uint32_t count) = 0;
 
 		virtual void Bind() = 0;
+
+		virtual uint32_t IndexCount() const = 0;
 	};
 
 	// what is constant buffer?

@@ -39,6 +39,23 @@ namespace flaw {
 		return Translate(position) * QRotate(rotation) * Scale(scale);
 	}
 
+	inline vec3 ExtractPosition(const mat4& matrix) {
+		return vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
+	}
+
+	inline vec3 ExtractRotation(const mat4& matrix) {
+		float scaleX = length(vec3(matrix[0][0], matrix[0][1], matrix[0][2]));
+		float scaleY = length(vec3(matrix[1][0], matrix[1][1], matrix[1][2]));
+		float scaleZ = length(vec3(matrix[2][0], matrix[2][1], matrix[2][2]));
+
+		mat4 rotationMatrix = matrix;
+		rotationMatrix[0] /= scaleX;
+		rotationMatrix[1] /= scaleY;
+		rotationMatrix[2] /= scaleZ;
+
+		return eulerAngles(toQuat(rotationMatrix));
+	}
+
 	inline void ExtractModelMatrix(const mat4& matrix, vec3& outPosition, vec3& outRotation, vec3& outScale) {
 		// 위치 추출
 		outPosition.x = matrix[3][0];

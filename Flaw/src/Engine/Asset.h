@@ -26,6 +26,7 @@ namespace flaw {
 		Texture2D,
 		Font,
 		Sound,
+		Mesh,
 	};
 
 	class Asset {

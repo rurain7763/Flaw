@@ -62,5 +62,6 @@ namespace flaw {
 
 		_usage = desc.usage;
 		_size = desc.bufferSize;
+		_indexCount = desc.bufferSize / sizeof(uint32_t);
 	}
 }

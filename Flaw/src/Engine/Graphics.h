@@ -75,7 +75,17 @@ namespace flaw {
 		vec3 color = vec3(1.0f);
 		float intensity = 1.0f;
 		vec3 position = vec3(0.0f);
-		float range = 5.0f;
+		float range = 1.0f;
+	};
+
+	struct SpotLight {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+		vec3 position = vec3(0.0f);
+		vec3 direction = Forward;
+		float inner;
+		float outer;
+		float range = 1.0f;
 	};
 
 	class Graphics {

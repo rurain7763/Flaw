@@ -32,16 +32,20 @@ namespace flaw {
 		TransformComponent(const vec3& position, const vec3& rotation, const vec3& scale) : position(position), rotation(rotation), scale(scale) {}
 		TransformComponent(const TransformComponent& other) = default;
 
-		inline vec3 GetFront() {
+		inline vec3 GetWorldPosition() const {
+			return ExtractPosition(worldTransform);
+		}
+
+		inline vec3 GetWorldFront() {
 			return normalize(mat3(worldTransform) * Forward);
 		}
 
-		inline vec3 GetRight() {
-			return normalize(cross(Up, GetFront()));
+		inline vec3 GetWorldRight() {
+			return normalize(cross(Up, GetWorldFront()));
 		}
 
-		inline vec3 GetUp() {
-			return normalize(cross(GetFront(), GetRight()));
+		inline vec3 GetWorldUp() {
+			return normalize(cross(GetWorldFront(), GetWorldRight()));
 		}
 	};
 
@@ -312,9 +316,20 @@ namespace flaw {
 	struct PointLightComponent {
 		vec3 color = vec3(1.0f);
 		float intensity = 1.0f;
-		float range = 10.0f;
+		float range = 1.0f;
 
 		PointLightComponent() = default;
 		PointLightComponent(const PointLightComponent& other) = default;
+	};
+
+	struct SpotLightComponent {
+		vec3 color = vec3(1.0f);
+		float intensity = 1.0f;
+		float inner = 0.5f;
+		float outer = 1.0f;
+		float range = 1.0f;
+
+		SpotLightComponent() = default;
+		SpotLightComponent(const SpotLightComponent& other) = default;
 	};
 }

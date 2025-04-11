@@ -83,4 +83,39 @@ namespace flaw {
 	void SoundAsset::Unload() {
 		_sound.reset();
 	}
+
+	void MeshAsset::Load() {
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+
+		auto& graphicsContext = Graphics::GetGraphicsContext();
+
+		std::vector<int8_t> meshData;
+		archive >> meshData;
+
+		VertexBuffer::Descriptor vertexDesc = {};
+		vertexDesc.usage = UsageFlag::Static;
+		vertexDesc.elmSize = sizeof(Vertex3D);
+		vertexDesc.bufferSize = meshData.size();
+		vertexDesc.initialData = meshData.data();
+
+		_vertexBuffer = graphicsContext.CreateVertexBuffer(vertexDesc);
+
+		std::vector<uint32_t> indices;
+		archive >> indices;
+
+		IndexBuffer::Descriptor indexDesc = {};
+		indexDesc.usage = UsageFlag::Static;
+		indexDesc.bufferSize = indices.size() * sizeof(uint32_t);
+		indexDesc.initialData = indices.data();
+
+		_indexBuffer = graphicsContext.CreateIndexBuffer(indexDesc);
+	}
+
+	void MeshAsset::Unload() {
+		_vertexBuffer.reset();
+		_indexBuffer.reset();
+	}
 }

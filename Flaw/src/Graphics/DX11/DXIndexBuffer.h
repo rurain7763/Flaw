@@ -24,6 +24,8 @@ namespace flaw {
 		void Update(const uint32_t* indices, uint32_t count) override;
 		void Bind() override;
 
+		uint32_t IndexCount() const override { return _indexCount; }
+
 	private:
 		void CreateBuffer(const Descriptor& desc);
 
@@ -33,5 +35,6 @@ namespace flaw {
 
 		UsageFlag _usage;
 		uint32_t _size;
+		uint32_t _indexCount;
 	};
 }

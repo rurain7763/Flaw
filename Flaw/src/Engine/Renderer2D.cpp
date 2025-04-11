@@ -188,7 +188,7 @@ namespace flaw {
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetGraphicsPipeline(g_quadPipeline);
+			commandQueue.SetPipeline(g_quadPipeline);
 			commandQueue.SetVertexBuffer(g_quadVB);
 			for (auto& [texture, id] : g_quadTextures) {
 				commandQueue.SetTexture(texture, id);
@@ -198,21 +198,21 @@ namespace flaw {
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetGraphicsPipeline(g_circlePipeline);
+			commandQueue.SetPipeline(g_circlePipeline);
 			commandQueue.SetVertexBuffer(g_circleVB);
 			commandQueue.DrawIndexed(g_ib, g_circleIndexCount);
 		}
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::LineList);
-			commandQueue.SetGraphicsPipeline(g_linePipeline);
+			commandQueue.SetPipeline(g_linePipeline);
 			commandQueue.SetVertexBuffer(g_lineVB);
 			commandQueue.Draw(g_lineIndexCount);
 		}
 
 		{
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-			commandQueue.SetGraphicsPipeline(g_textPipeline);
+			commandQueue.SetPipeline(g_textPipeline);
 			commandQueue.SetVertexBuffer(g_textVB);
 
 			for (auto& [texture, id] : g_textTextures) {

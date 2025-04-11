@@ -299,7 +299,7 @@ namespace flaw {
 
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::PointList);
-		cmdQueue.SetGraphicsPipeline(_graphicsPipeline);
+		cmdQueue.SetPipeline(_graphicsPipeline);
 		cmdQueue.SetConstantBuffer(_vpMatricesCB, 0);
 		cmdQueue.SetConstantBuffer(_globalConstantsCB, 1);
 		cmdQueue.SetVertexBuffer(_vertexBuffer);
