@@ -27,6 +27,7 @@ namespace flaw {
 		Font,
 		Sound,
 		Mesh,
+		TextureCube,
 	};
 
 	class Asset {

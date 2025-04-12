@@ -14,6 +14,7 @@ namespace flaw {
 		UUID(const UUID& other) = default;
 
 		void Generate();
+		void Invalidate() { _id = UUID_INVALID; }
 
 		UUID& operator=(const UUID& other) {
 			if (this != &other) {

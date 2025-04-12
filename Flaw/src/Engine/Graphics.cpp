@@ -61,6 +61,10 @@ namespace flaw {
 		return g_graphicsContext->CreateTexture2D(descriptor);
 	}
 
+	Ref<TextureCube> Graphics::CreateTextureCube(const TextureCube::Descriptor& descriptor) {
+		return g_graphicsContext->CreateTextureCube(descriptor);
+	}
+
 	void Graphics::SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) {
 		g_graphicsContext->SetRenderTexture(slot, texture, clearValue);
 	}

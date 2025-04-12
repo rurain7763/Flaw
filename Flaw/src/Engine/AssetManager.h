@@ -24,7 +24,7 @@ namespace flaw {
 
 		template <typename T>
 		static Ref<T> GetAsset(const AssetHandle& handle) {
-			return std::static_pointer_cast<T>(GetAsset(handle));
+			return std::dynamic_pointer_cast<T>(GetAsset(handle));
 		}
 	};
 }

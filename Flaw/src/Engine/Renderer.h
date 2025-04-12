@@ -25,6 +25,9 @@ namespace flaw {
 		static void End();
 
 		static void DrawCube(const uint32_t id, const mat4& transform);
+		static void DrawCube(const uint32_t id, const mat4& transform, const Material& material);
+
 		static void DrawSphere(const uint32_t id, const mat4& transform);
+		static void DrawSphere(const uint32_t id, const mat4& transform, const Material& material);
 	};
 }

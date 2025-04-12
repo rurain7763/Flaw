@@ -134,6 +134,7 @@ namespace flaw {
 
 			switch (metadata.type) {
 				case AssetType::Texture2D: asset = CreateRef<Texture2DAsset>(getMemoryFunc); break;
+				case AssetType::TextureCube: asset = CreateRef<TextureCubeAsset>(getMemoryFunc); break;
 				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
 				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
 			}
@@ -162,66 +163,69 @@ namespace flaw {
 		return g_contentsDir;
 	}
 
-	bool AssetDatabase::IsValidExtension(const std::filesystem::path& extension) {
-		return extension == ".png"
-			|| extension == ".jpg"
-			|| extension == ".ttf"
-			|| extension == ".wav";
-	}
-
-	bool AssetDatabase::ImportAsset(const char* srcPath, const char* destPath) {
-		if (!std::filesystem::exists(srcPath)) {
-			Log::Error("File does not exist: %s", srcPath);
+	bool AssetDatabase::ImportAsset(AssetImportSettings* settings) {
+		if (!std::filesystem::exists(settings->srcPath)) {
+			Log::Error("File does not exist: %s", settings->srcPath);
 			return false;
 		}
 
-		auto extension = std::filesystem::path(srcPath).extension();
+		std::filesystem::path assetPath(settings->destPath);
 
-		if (!IsValidExtension(extension)) {
-			Log::Error("Invalid file extension: %s", extension.generic_string().c_str());
-			return false;
-		}
-
-		std::filesystem::path assetPath(destPath);
-
-		if (!FileSystem::MakeFile(destPath)) {
-			Log::Error("Failed to create asset file: %s", destPath);
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
 			return false;
 		}
 
 		AssetMetadata meta;
-		meta.fileIndex = FileSystem::FileIndex(destPath);
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (extension == ".png" || extension == ".jpg") {
-			meta.type = AssetType::Texture2D;
+		if (settings->type == AssetImportSettingsType::Texture) {
+			TextureImportSettings* textureSettings = (TextureImportSettings*)settings;
 
-			Image img(srcPath, 4);
+			if (textureSettings->textureType == TextureType::Texture2D) {
+				meta.type = AssetType::Texture2D;
 
-			archive << meta;
-			archive << PixelFormat::RGBA8;
-			archive << img.Width();
-			archive << img.Height();
-			archive << Texture2D::Wrap::ClampToEdge;
-			archive << Texture2D::Wrap::ClampToEdge;
-			archive << Texture2D::Filter::Linear;
-			archive << Texture2D::Filter::Linear;
-			archive << UsageFlag::Static;
-			archive << (uint32_t)0; // access
-			archive << BindFlag::ShaderResource;
-			archive << img.Data();
+				Image img(settings->srcPath.c_str(), 4);
+
+				archive << meta;
+				archive << PixelFormat::RGBA8;
+				archive << img.Width();
+				archive << img.Height();
+				archive << Texture2D::Wrap::ClampToEdge;
+				archive << Texture2D::Wrap::ClampToEdge;
+				archive << Texture2D::Filter::Linear;
+				archive << Texture2D::Filter::Linear;
+				archive << UsageFlag::Static;
+				archive << (uint32_t)0; // access
+				archive << BindFlag::ShaderResource;
+				archive << img.Data();
+			}
+			else if (textureSettings->textureType == TextureType::TextureCube) {
+				meta.type = AssetType::TextureCube;
+
+				Image img(settings->srcPath.c_str(), 4);
+
+				archive << meta;
+				archive << PixelFormat::RGBA8;
+				archive << img.Width();
+				archive << img.Height();
+				archive << TextureCube::Layout::HorizontalCross; // TODO: 현재는 가로 크로스만 테스트	
+				archive << img.Data();
+			}
 		}
-		else if (extension == ".ttf") {
+		else if (settings->type == AssetImportSettingsType::Font) {
 			meta.type = AssetType::Font;
 
 			archive << meta;
 
 			std::vector<int8_t> fontData;
-			FileSystem::ReadFile(srcPath, fontData);
+			FileSystem::ReadFile(settings->srcPath.c_str(), fontData);
 
 			archive << fontData;
 
-			Ref<Font> font = Fonts::CreateFontFromFile(srcPath);
+			Ref<Font> font = Fonts::CreateFontFromFile(settings->srcPath.c_str());
 
 			FontAtlas fontAtlas;
 			font->GetAtlas(fontAtlas);
@@ -230,18 +234,18 @@ namespace flaw {
 			archive << fontAtlas.height;
 			archive << fontAtlas.data;
 		}
-		else if (extension == ".wav") {
+		else if (settings->type == AssetImportSettingsType::Sound) {
 			meta.type = AssetType::Sound;
 
 			archive << meta;
 
 			std::vector<int8_t> soundData;
-			FileSystem::ReadFile(srcPath, soundData);
+			FileSystem::ReadFile(settings->srcPath.c_str(), soundData);
 			archive << soundData;
 		}
 
-		if (!FileSystem::WriteFile(destPath, archive.Data(), archive.RemainingSize())) {
-			Log::Error("Failed to write asset file: %s", destPath);
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
 			return false;
 		}
 

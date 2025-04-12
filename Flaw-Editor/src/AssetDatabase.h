@@ -25,6 +25,39 @@ namespace flaw {
 		}
 	};
 
+	enum class AssetImportSettingsType {
+		Texture,
+		Font,
+		Sound,
+	};
+
+	struct AssetImportSettings {
+		AssetImportSettingsType type;
+
+		std::string srcPath;
+		std::string destPath;
+	};
+
+	struct TextureImportSettings : public AssetImportSettings {
+		TextureType textureType;
+
+		TextureImportSettings() {
+			type = AssetImportSettingsType::Texture;
+		}
+	};
+
+	struct FontImportSettings : public AssetImportSettings {
+		FontImportSettings() {
+			type = AssetImportSettingsType::Font;
+		}
+	};	
+
+	struct SoundImportSettings : public AssetImportSettings {
+		SoundImportSettings() {
+			type = AssetImportSettingsType::Sound;
+		}
+	};
+
 	class AssetDatabase {
 	public:
 		static void Init(Application& application);
@@ -36,11 +69,9 @@ namespace flaw {
 
 		static const std::filesystem::path& GetContentsDirectory();
 
-		static bool ImportAsset(const char* srcPath, const char* destPath);
+		static bool ImportAsset(AssetImportSettings* importSettings);
 
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
-
-		static bool IsValidExtension(const std::filesystem::path& extension);
 	};
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "Time/Time.h"
+#include "Graphics/GraphicsFunc.h"
 
 namespace flaw {
 	constexpr uint32_t MaxBatchCount = 10000;
@@ -16,6 +17,8 @@ namespace flaw {
 	static std::vector<BatchedData> g_cubeBatchDatas;
 	static std::vector<BatchedData> g_sphereBatchDatas;
 
+	static Ref<GraphicsShader> g_std3dShader;
+
 	static Ref<VertexBuffer> g_cubeVB;
 	static Ref<IndexBuffer> g_cubeIB;
 	static Ref<VertexBuffer> g_sphereVB;
@@ -24,178 +27,13 @@ namespace flaw {
 	static Ref<ConstantBuffer> g_vpCB;
 	static Ref<ConstantBuffer> g_globalCB;
 	static Ref<ConstantBuffer> g_lightCB;
+	static Ref<ConstantBuffer> g_materialCB;
 	static Ref<StructuredBuffer> g_batchDataSB;
 	static Ref<StructuredBuffer> g_directionalLightSB;
 	static Ref<StructuredBuffer> g_pointLightSB;
 	static Ref<StructuredBuffer> g_spotLightSB;
 	static Ref<GraphicsPipeline> g_pipeLine;
-
-	void GenerateCubeMesh(std::vector<Vertex3D>& outVertices, std::vector<uint32_t>& outIndices) {
-		outVertices.resize(24);
-		
-		// front
-		outVertices[0].position = vec3(-0.5f, 0.5f, -0.5f);;
-		outVertices[0].texcoord = vec2(0.f, 0.f);
-		outVertices[0].normal = Backward;
-
-		outVertices[1].position = vec3(0.5f, 0.5f, -0.5f);
-		outVertices[1].texcoord = vec2(0.f, 0.f);
-		outVertices[1].normal = Backward;
-
-		outVertices[2].position = vec3(0.5f, -0.5f, -0.5f);
-		outVertices[2].texcoord = vec2(0.f, 0.f);
-		outVertices[2].normal = Backward;
-
-		outVertices[3].position = vec3(-0.5f, -0.5f, -0.5f);
-		outVertices[3].texcoord = vec2(0.f, 0.f);
-		outVertices[3].normal = Backward;
-
-		// right
-		outVertices[4].position = vec3(0.5f, 0.5f, -0.5f);
-		outVertices[4].texcoord = vec2(0.f, 0.f);
-		outVertices[4].normal = Right;
-
-		outVertices[5].position = vec3(0.5f, 0.5f, 0.5f);
-		outVertices[5].texcoord = vec2(0.f, 0.f);
-		outVertices[5].normal = Right;
-
-		outVertices[6].position = vec3(0.5f, -0.5f, 0.5f);
-		outVertices[6].texcoord = vec2(0.f, 0.f);
-		outVertices[6].normal = Right;
-
-		outVertices[7].position = vec3(0.5f, -0.5f, -0.5f);
-		outVertices[7].texcoord = vec2(0.f, 0.f);
-		outVertices[7].normal = Right;
-
-		// back
-		outVertices[8].position = vec3(0.5f, 0.5f, 0.5f);
-		outVertices[8].texcoord = vec2(0.f, 0.f);
-		outVertices[8].normal = Forward;
-
-		outVertices[9].position = vec3(-0.5f, 0.5f, 0.5f);
-		outVertices[9].texcoord = vec2(0.f, 0.f);
-		outVertices[9].normal = Forward;
-
-		outVertices[10].position = vec3(-0.5f, -0.5f, 0.5f);
-		outVertices[10].texcoord = vec2(0.f, 0.f);
-		outVertices[10].normal = Forward;
-
-		outVertices[11].position = vec3(0.5f, -0.5f, 0.5f);
-		outVertices[11].texcoord = vec2(0.f, 0.f);
-		outVertices[11].normal = Forward;
-
-		// left
-		outVertices[12].position = vec3(-0.5f, 0.5f, 0.5f);
-		outVertices[12].texcoord = vec2(0.f, 0.f);
-		outVertices[12].normal = Left;
-
-		outVertices[13].position = vec3(-0.5f, 0.5f, -0.5f);
-		outVertices[13].texcoord = vec2(0.f, 0.f);
-		outVertices[13].normal = Left;
-
-		outVertices[14].position = vec3(-0.5f, -0.5f, -0.5f);
-		outVertices[14].texcoord = vec2(0.f, 0.f);
-		outVertices[14].normal = Left;
-
-		outVertices[15].position = vec3(-0.5f, -0.5f, 0.5f);
-		outVertices[15].texcoord = vec2(0.f, 0.f);
-		outVertices[15].normal = Left;
-
-		// top
-		outVertices[16].position = vec3(-0.5f, 0.5f, 0.5f);
-		outVertices[16].texcoord = vec2(0.f, 0.f);
-		outVertices[16].normal = Up;
-
-		outVertices[17].position = vec3(0.5f, 0.5f, 0.5f);
-		outVertices[17].texcoord = vec2(0.f, 0.f);
-		outVertices[17].normal = Up;
-
-		outVertices[18].position = vec3(0.5f, 0.5f, -0.5f);
-		outVertices[18].texcoord = vec2(0.f, 0.f);
-		outVertices[18].normal = Up;
-
-		outVertices[19].position = vec3(-0.5f, 0.5f, -0.5f);
-		outVertices[19].texcoord = vec2(0.f, 0.f);
-		outVertices[19].normal = Up;
-
-		// bottom
-		outVertices[20].position = vec3(-0.5f, -0.5f, -0.5f);
-		outVertices[20].texcoord = vec2(0.f, 0.f);
-		outVertices[20].normal = Down;
-
-		outVertices[21].position = vec3(0.5f, -0.5f, -0.5f);
-		outVertices[21].texcoord = vec2(0.f, 0.f);
-		outVertices[21].normal = Down;
-
-		outVertices[22].position = vec3(0.5f, -0.5f, 0.5f);
-		outVertices[22].texcoord = vec2(0.f, 0.f);
-		outVertices[22].normal = Down;
-
-		outVertices[23].position = vec3(-0.5f, -0.5f, 0.5f);
-		outVertices[23].texcoord = vec2(0.f, 0.f);
-		outVertices[23].normal = Down;
-
-		// 인덱스 생성
-		outIndices.resize(36);
-
-		for (uint32_t i = 0; i < 6; ++i) {
-			uint32_t offset = i * 4;
-			outIndices[i * 6 + 0] = offset + 0;
-			outIndices[i * 6 + 1] = offset + 1;
-			outIndices[i * 6 + 2] = offset + 2;
-			outIndices[i * 6 + 3] = offset + 0;
-			outIndices[i * 6 + 4] = offset + 2;
-			outIndices[i * 6 + 5] = offset + 3;
-		}
-	}
-
-	void GenerateSphereMesh(std::vector<Vertex3D>& outVertices, std::vector<uint32_t>& outIndices, uint32_t sectorCount, uint32_t stackCount, float radius = 1.0f)
-	{
-		const float PI = 3.14159265359f;
-
-		for (uint32_t i = 0; i <= stackCount; ++i)
-		{
-			float stackAngle = PI / 2 - i * (PI / stackCount); // from +pi/2 to -pi/2
-			float xy = radius * cosf(stackAngle);
-			float z = radius * sinf(stackAngle);
-
-			for (uint32_t j = 0; j <= sectorCount; ++j)
-			{
-				float sectorAngle = j * (2 * PI / sectorCount); // from 0 to 2pi
-
-				float x = xy * cosf(sectorAngle);
-				float y = xy * sinf(sectorAngle);
-
-				vec3 position = { x, y, z };
-				vec3 normal = normalize(position);  // Normal calculation in right-handed coordinate
-				vec2 uv = {
-					(float)j / sectorCount,
-					(float)i / stackCount
-				};
-
-				outVertices.push_back({ position, uv, vec3(0.f), normal, vec3(0.f)});
-			}
-		}
-
-		for (uint32_t i = 0; i < stackCount; ++i)
-		{
-			for (uint32_t j = 0; j < sectorCount; ++j)
-			{
-				uint32_t first = i * (sectorCount + 1) + j;
-				uint32_t second = first + sectorCount + 1;
-
-				// To switch to clockwise ordering, we reverse the order of triangle vertices
-				outIndices.push_back(first);    // First triangle: first, second + 1, first + 1
-				outIndices.push_back(second + 1);
-				outIndices.push_back(first + 1);
-
-				outIndices.push_back(first);    // Second triangle: first, second, second + 1
-				outIndices.push_back(second);
-				outIndices.push_back(second + 1);
-			}
-		}
-	}
-
+	
 	void Renderer::Init() {
 		auto& context = Graphics::GetGraphicsContext();
 
@@ -205,7 +43,18 @@ namespace flaw {
 		// cube
 		std::vector<Vertex3D> vertices;
 		std::vector<uint32_t> indices;
-		GenerateCubeMesh(vertices, indices);
+		//GenerateCubeMesh(vertices, indices);
+		GenerateCube([&](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
+				Vertex3D vertex;
+				vertex.position = pos;
+				vertex.texcoord = uv;
+				vertex.normal = normal;
+				vertex.tangent = tangent;
+				vertex.binormal = binormal;
+				vertices.push_back(vertex);
+			},
+			indices
+		);
 
 		VertexBuffer::Descriptor vbDesc = {};
 		vbDesc.usage = UsageFlag::Static;
@@ -225,7 +74,17 @@ namespace flaw {
 		// sphere
 		std::vector<Vertex3D> sphereVertices;
 		std::vector<uint32_t> sphereIndices;
-		GenerateSphereMesh(sphereVertices, sphereIndices, 20, 20);
+		GenerateSphere([&](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
+				Vertex3D vertex;
+				vertex.position = pos;
+				vertex.texcoord = uv;
+				vertex.normal = normal;
+				vertex.tangent = tangent;
+				vertex.binormal = binormal;
+				sphereVertices.push_back(vertex);
+			}, 
+			sphereIndices, 20, 20
+		);
 
 		VertexBuffer::Descriptor sphereVBDesc = {};
 		sphereVBDesc.usage = UsageFlag::Static;
@@ -245,6 +104,7 @@ namespace flaw {
 		g_vpCB = context.CreateConstantBuffer(sizeof(VPMatrices));
 		g_globalCB = context.CreateConstantBuffer(sizeof(GlobalConstants));
 		g_lightCB = context.CreateConstantBuffer(sizeof(LightConstants));
+		g_materialCB = context.CreateConstantBuffer(sizeof(MaterialConstants));	
 
 		// Create a structured buffer for transforms
 		StructuredBuffer::Descriptor sbDesc = {};
@@ -276,18 +136,15 @@ namespace flaw {
 		g_spotLightSB = context.CreateStructuredBuffer(sbDesc);
 
 		// Create default pipeline
-		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std3d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-		shader->AddInputElement<float>("POSITION", 3);
-		shader->AddInputElement<float>("TEXCOORD", 2);
-		shader->AddInputElement<float>("TANGENT", 3);
-		shader->AddInputElement<float>("NORMAL", 3);
-		shader->AddInputElement<float>("BINORMAL", 3);
-		shader->CreateInputLayout();
+		g_std3dShader = context.CreateGraphicsShader("Resources/Shaders/std3d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		g_std3dShader->AddInputElement<float>("POSITION", 3);
+		g_std3dShader->AddInputElement<float>("TEXCOORD", 2);
+		g_std3dShader->AddInputElement<float>("TANGENT", 3);
+		g_std3dShader->AddInputElement<float>("NORMAL", 3);
+		g_std3dShader->AddInputElement<float>("BINORMAL", 3);
+		g_std3dShader->CreateInputLayout();
 
 		g_pipeLine = context.CreateGraphicsPipeline();
-		g_pipeLine->SetShader(shader);
-		g_pipeLine->SetBlendMode(BlendMode::Default);
-		g_pipeLine->SetCullMode(CullMode::Back);
 	}
 
 	void Renderer::Cleanup() {
@@ -295,8 +152,10 @@ namespace flaw {
 		g_cubeVB.reset();
 		g_sphereIB.reset();
 		g_sphereVB.reset();
+		g_std3dShader.reset();
 		g_vpCB.reset();
 		g_lightCB.reset();
+		g_materialCB.reset();
 		g_batchDataSB.reset();
 		g_directionalLightSB.reset();
 		g_pointLightSB.reset();
@@ -338,6 +197,15 @@ namespace flaw {
 	void Renderer::End() {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
+		g_pipeLine->SetShader(g_std3dShader);
+		g_pipeLine->SetBlendMode(BlendMode::Default);
+		g_pipeLine->SetCullMode(CullMode::Back);
+		g_pipeLine->SetDepthTest(DepthTest::Less);
+
+		MaterialConstants mc;
+		mc.defaultTextureBitMask = 0;
+		g_materialCB->Update(&mc, sizeof(MaterialConstants));
+
 		g_batchDataSB->Update(g_cubeBatchDatas.data(), sizeof(BatchedData) * g_cubeBatchDatas.size());
 
 		cmdQueue.Begin();
@@ -347,11 +215,12 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(g_vpCB, 0);
 		cmdQueue.SetConstantBuffer(g_globalCB, 1);
 		cmdQueue.SetConstantBuffer(g_lightCB, 2);
+		cmdQueue.SetConstantBuffer(g_materialCB, 3);
 		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
 		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
 		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
-		cmdQueue.DrawIndexedInstanced(g_cubeIB, 36, g_cubeBatchDatas.size());
+		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), g_cubeBatchDatas.size());
 		cmdQueue.End();
 
 		cmdQueue.Execute();
@@ -365,6 +234,7 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(g_vpCB, 0);
 		cmdQueue.SetConstantBuffer(g_globalCB, 1);
 		cmdQueue.SetConstantBuffer(g_lightCB, 2);
+		cmdQueue.SetConstantBuffer(g_materialCB, 3);
 		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
 		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
@@ -379,7 +249,68 @@ namespace flaw {
 		BatchedData data;
 		data.transform = transform;
 		data.id = id;
-		g_sphereBatchDatas.push_back(std::move(data));
+		g_cubeBatchDatas.push_back(std::move(data));
+	}
+
+	void Renderer::DrawCube(const uint32_t id, const mat4& transform, const Material& material) {
+		// TODO: 배치 드로우를 생각해보자.
+		auto& cmdQueue = Graphics::GetCommandQueue();
+
+		g_pipeLine->SetCullMode(material.cullMode);
+		g_pipeLine->SetDepthTest(material.depthTest, material.depthWrite);
+
+		if (material.shader) {
+			g_pipeLine->SetShader(material.shader);
+		}
+		else {
+			g_pipeLine->SetShader(g_std3dShader);
+		}
+
+		BatchedData data;
+		data.transform = transform;
+		data.id = id;
+
+		g_batchDataSB->Update(&data, sizeof(BatchedData));
+
+		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		cmdQueue.SetPipeline(g_pipeLine);
+		cmdQueue.SetVertexBuffer(g_cubeVB);
+		cmdQueue.SetConstantBuffer(g_vpCB, 0);
+		cmdQueue.SetConstantBuffer(g_globalCB, 1);
+		cmdQueue.SetConstantBuffer(g_lightCB, 2);
+
+		MaterialConstants mc;
+		mc.defaultTextureBitMask = 0;
+		if (material.albedoTexture) {
+			mc.defaultTextureBitMask |= 0x1;
+			cmdQueue.SetTexture(material.albedoTexture, DefaultTextureStartSlot);
+		}
+
+		if (material.normalTexture) {
+			mc.defaultTextureBitMask |= 0x2;
+			cmdQueue.SetTexture(material.normalTexture, DefaultTextureStartSlot + 1);
+		}
+
+		for (int32_t i = 0; i < material.cubeTextures.size(); ++i) {
+			if (material.cubeTextures[i]) {
+				mc.cubeTextureBitMask |= (1 << i);
+				cmdQueue.SetTexture(material.cubeTextures[i], CubeTextureStartSlot + i);
+			}
+		}
+
+		std::memcpy(mc.intConstants, material.intConstants, sizeof(uint32_t) * 4);
+		g_materialCB->Update(&mc, sizeof(MaterialConstants));
+
+		cmdQueue.SetConstantBuffer(g_materialCB, 3);
+		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
+		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
+		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
+		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
+		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), 1);
+		cmdQueue.End();
+
+		cmdQueue.Execute();
 	}
 
 	void Renderer::DrawSphere(const uint32_t id, const mat4& transform) {
@@ -387,5 +318,68 @@ namespace flaw {
 		data.transform = transform;
 		data.id = id;
 		g_sphereBatchDatas.push_back(std::move(data));
+	}
+
+	void Renderer::DrawSphere(const uint32_t id, const mat4& transform, const Material& material) {
+		// TODO: 배치 드로우를 생각해보자.
+		auto& cmdQueue = Graphics::GetCommandQueue();
+
+		g_pipeLine->SetCullMode(material.cullMode);
+		g_pipeLine->SetDepthTest(material.depthTest, material.depthWrite);
+
+		if (material.shader) {
+			g_pipeLine->SetShader(material.shader);
+		}
+		else {
+			g_pipeLine->SetShader(g_std3dShader);
+		}
+
+		BatchedData data;
+		data.transform = transform;
+		data.id = id;
+
+		g_batchDataSB->Update(&data, sizeof(BatchedData));
+	
+		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		cmdQueue.SetPipeline(g_pipeLine);
+		cmdQueue.SetVertexBuffer(g_sphereVB);
+		cmdQueue.SetConstantBuffer(g_vpCB, 0);
+		cmdQueue.SetConstantBuffer(g_globalCB, 1);
+		cmdQueue.SetConstantBuffer(g_lightCB, 2);
+
+		MaterialConstants mc;
+
+		mc.defaultTextureBitMask = 0;
+		if (material.albedoTexture) {
+			mc.defaultTextureBitMask |= 0x1;
+			cmdQueue.SetTexture(material.albedoTexture, DefaultTextureStartSlot);
+		}
+
+		if (material.normalTexture) {
+			mc.defaultTextureBitMask |= 0x2;
+			cmdQueue.SetTexture(material.normalTexture, DefaultTextureStartSlot + 1);
+		}
+		
+		for (int32_t i = 0; i < material.cubeTextures.size(); ++i) {
+			if (material.cubeTextures[i]) {
+				mc.cubeTextureBitMask |= (1 << i);
+				cmdQueue.SetTexture(material.cubeTextures[i], CubeTextureStartSlot + i);
+			}
+		}
+
+		std::memcpy(mc.intConstants, material.intConstants, sizeof(uint32_t) * 4);
+
+		g_materialCB->Update(&mc, sizeof(MaterialConstants));
+		
+		cmdQueue.SetConstantBuffer(g_materialCB, 3);
+		cmdQueue.SetStructuredBuffer(g_batchDataSB, 0);
+		cmdQueue.SetStructuredBuffer(g_directionalLightSB, 1);
+		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
+		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
+		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), 1);
+		cmdQueue.End();
+
+		cmdQueue.Execute();
 	}
 }

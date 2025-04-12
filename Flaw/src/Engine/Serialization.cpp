@@ -314,6 +314,14 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::SkyBoxComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SkyBoxComponent>();
+			out << YAML::Key << "SkyBoxComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Texture" << YAML::Value << comp.texture;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -629,6 +637,13 @@ namespace flaw {
 					comp.range = component.second["Range"].as<float>();
 					comp.inner = component.second["Inner"].as<float>();
 					comp.outer = component.second["Outer"].as<float>();
+				}
+				else if (name == "SkyBoxComponent") {
+					if (!entity.HasComponent<SkyBoxComponent>()) {
+						entity.AddComponent<SkyBoxComponent>();
+					}
+					auto& comp = entity.GetComponent<SkyBoxComponent>();
+					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 			}
 		}

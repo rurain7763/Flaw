@@ -332,4 +332,11 @@ namespace flaw {
 		SpotLightComponent() = default;
 		SpotLightComponent(const SpotLightComponent& other) = default;
 	};
+
+	struct SkyBoxComponent {
+		AssetHandle texture;
+
+		SkyBoxComponent() = default;
+		SkyBoxComponent(const SkyBoxComponent& other) = default;
+	};
 }

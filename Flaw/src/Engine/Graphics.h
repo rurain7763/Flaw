@@ -5,6 +5,9 @@
 #include "Graphics/GraphicsContext.h"
 
 namespace flaw {
+	constexpr uint32_t DefaultTextureStartSlot = 12;
+	constexpr uint32_t CubeTextureStartSlot = 28;
+
 	enum class GraphicsType {
 		DX11
 	};
@@ -28,6 +31,19 @@ namespace flaw {
 		uint32_t numPointLights;
 		uint32_t numSpotLights;
 		uint32_t padding;
+	};
+
+	struct MaterialConstants {
+		enum TextureType {
+			Albedo = 0x1,
+			Normal = 0x2
+		};
+
+		uint32_t defaultTextureBitMask = 0;
+		uint32_t cubeTextureBitMask = 0;
+
+		int32_t intConstants[4] = { 0 };
+		uint32_t paddingMaterialConstants[2];
 	};
 
 	struct QuadVertex {
@@ -57,7 +73,23 @@ namespace flaw {
 		vec2 texcoord;
 		vec3 tangent;
 		vec3 normal;
-		vec3 biNormal;
+		vec3 binormal;
+	};
+
+	struct Material {
+		CullMode cullMode = CullMode::Back;
+		DepthTest depthTest = DepthTest::Less;
+		bool depthWrite = true;
+
+		Ref<GraphicsShader> shader;
+
+		Ref<Texture2D> albedoTexture;
+		Ref<Texture2D> diffuseTexture;
+		Ref<Texture2D> normalTexture;
+
+		std::array<Ref<TextureCube>, 4> cubeTextures;
+
+		int32_t intConstants[4] = { 0 };
 	};
 
 	struct SkyLight {
@@ -105,6 +137,7 @@ namespace flaw {
 		static Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc);
 
 		static Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor);
+		static Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor);
 
 		static void SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]);
 		static void ResetRenderTexture(uint32_t slot);

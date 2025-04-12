@@ -29,10 +29,33 @@ namespace flaw {
 		archive >> textureData;
 		desc.data = textureData.data();
 
-		_texture = Graphics::GetGraphicsContext().CreateTexture2D(desc);
+		_texture = Graphics::CreateTexture2D(desc);
 	}
 
 	void Texture2DAsset::Unload() {
+		_texture.reset();
+	}
+
+	void TextureCubeAsset::Load() {
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+
+		TextureCube::Descriptor desc = {};
+		archive >> desc.format;
+		archive >> desc.width;
+		archive >> desc.height;
+		archive >> desc.layout;
+
+		std::vector<uint8_t> textureData;
+		archive >> textureData;
+		desc.data = textureData.data();
+
+		_texture = Graphics::CreateTextureCube(desc);
+	}
+
+	void TextureCubeAsset::Unload() {
 		_texture.reset();
 	}
 
@@ -60,7 +83,7 @@ namespace flaw {
 		desc.usage = UsageFlag::Static;
 		desc.bindFlags = BindFlag::ShaderResource;
 
-		_fontAtlas = Graphics::GetGraphicsContext().CreateTexture2D(desc);
+		_fontAtlas = Graphics::CreateTexture2D(desc);
 	}
 
 	void FontAsset::Unload() {

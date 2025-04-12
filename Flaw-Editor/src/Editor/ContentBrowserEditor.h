@@ -16,6 +16,7 @@ namespace flaw{
 			Directory,
 			Unknown,
 			Texture2D,
+			TextureCube,
 			Font,
 			Scene,
 			Sound,
@@ -26,6 +27,8 @@ namespace flaw{
 
 		void RefreshDirectory();
 
+		void ShowImportPopup();
+
 	private:
 		Application& _app;
 
@@ -35,5 +38,7 @@ namespace flaw{
 		std::vector<std::filesystem::directory_entry> _directoryEntries;
 
 		std::array<Ref<Texture2D>, (size_t)FileType::Count> _fileTypeIcons;
+
+		std::filesystem::path _importFilePath;
 	};
 }

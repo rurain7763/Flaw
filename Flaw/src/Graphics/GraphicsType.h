@@ -75,6 +75,11 @@ namespace flaw {
 		D24S8_UINT,
 	};
 
+	enum class TextureType {
+		Texture2D,
+		TextureCube,
+	};
+
 	enum TextureSlot {
 		_0 = 0,
 		_1,

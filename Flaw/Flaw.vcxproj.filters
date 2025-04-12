@@ -287,6 +287,8 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Engine\Renderer.h" />
+    <ClInclude Include="src\Engine\SkyBoxSystem.h" />
+    <ClInclude Include="src\Graphics\DX11\DXType.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -370,7 +372,7 @@
     <ClCompile Include="src\Graphics\DX11\DXStructedBuffer.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\DX11\DXTextures.cpp">
+    <ClCompile Include="src\Graphics\DX11\DXTexture2D.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp">
@@ -414,5 +416,7 @@
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\Engine\Renderer.cpp" />
+    <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
   </ItemGroup>
 </Project>

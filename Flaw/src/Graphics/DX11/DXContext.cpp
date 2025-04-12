@@ -146,6 +146,10 @@ namespace flaw {
 		return CreateRef<DXTexture2D>(*this, descriptor);
 	}
 
+	Ref<TextureCube> DXContext::CreateTextureCube(const TextureCube::Descriptor& descriptor) {
+		return CreateRef<DXTextureCube>(*this, descriptor);
+	}
+
 	void DXContext::SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) {
 		if (slot == 0) {
 			Log::Error("Cannot set render target to slot 0, it is reserved for main render target");

@@ -28,6 +28,7 @@ namespace flaw {
 		virtual Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc) = 0;
 
 		virtual Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) = 0;
+		virtual Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor) = 0;
 
 		virtual void SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) = 0;
 		virtual void ResetRenderTexture(uint32_t slot) = 0;

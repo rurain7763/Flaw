@@ -113,6 +113,7 @@
     <ClInclude Include="src\Engine\Entity.h" />
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
+    <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Renderer.h" />
     <ClInclude Include="src\Engine\LayerRegistry.h" />
     <ClInclude Include="src\Engine\ParticleSystem.h" />
@@ -143,6 +144,7 @@
     <ClInclude Include="src\Graphics\DX11\DXStructuredBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXTextures.h" />
     <ClInclude Include="src\Graphics\DX11\DXVertexBuffer.h" />
+    <ClInclude Include="src\Graphics\DX11\DXType.h" />
     <ClInclude Include="src\Graphics\GraphicsBuffers.h" />
     <ClInclude Include="src\Graphics\GraphicsCommandQueue.h" />
     <ClInclude Include="src\Graphics\GraphicsContext.h" />
@@ -198,6 +200,7 @@
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
     <ClCompile Include="src\Engine\Renderer.cpp" />
+    <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
@@ -210,8 +213,9 @@
     <ClCompile Include="src\Graphics\DX11\DXGraphicsShader.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXIndexBuffer.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXStructedBuffer.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXTextures.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTexture2D.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
     <ClCompile Include="src\Image\Image.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />

@@ -15,7 +15,7 @@ namespace flaw {
 		virtual void SetVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) = 0;
 		virtual void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) = 0;
 		virtual void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) = 0;
-		virtual void SetTexture(const Ref<Texture2D>& texture, uint32_t slot) = 0;
+		virtual void SetTexture(const Ref<Texture>& texture, uint32_t slot) = 0;
 
 		virtual void Draw(uint32_t vertexCount, uint32_t vertexOffset = 0) = 0;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset = 0, uint32_t vertexOffset = 0) = 0;
@@ -23,7 +23,7 @@ namespace flaw {
 		
 		virtual void SetComputePipeline(const Ref<ComputePipeline>& pipeline) = 0;
 		virtual void SetComputeConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) = 0;
-		virtual void SetComputeTexture(const Ref<Texture2D>& texture, BindFlag bindFlag, uint32_t slot) = 0;
+		virtual void SetComputeTexture(const Ref<Texture>& texture, BindFlag bindFlag, uint32_t slot) = 0;
 		virtual void SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) = 0;
 		virtual void Dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 

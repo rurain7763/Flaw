@@ -47,16 +47,10 @@ namespace flaw {
 		bool CreateShaderResourceView(const PixelFormat format);
 		bool CreateUnorderedAccessView(const PixelFormat format);
 
-		static DXGI_FORMAT GetFormat(PixelFormat format);
-		static D3D11_USAGE GetUsage(const UsageFlag usage);
-		static uint32_t GetAccessFlag(const uint32_t access);
-		static uint32_t GetBindFlags(uint32_t flags);
-
 	private:
 		DXContext& _context;
 
 		ComPtr<ID3D11Texture2D> _texture;
-		ComPtr<ID3D11Texture2D> _stagingTexture;
 
 		ComPtr<ID3D11RenderTargetView> _rtv;
 		ComPtr<ID3D11DepthStencilView> _dsv;
@@ -71,5 +65,31 @@ namespace flaw {
 
 		uint32_t _width;
 		uint32_t _height;
+	};
+
+	class DXTextureCube : public TextureCube {
+	public:
+		DXTextureCube(DXContext& context, const Descriptor& descriptor);
+
+		void BindToGraphicsShader(const uint32_t slot) override;
+		void BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) override;
+
+		void Unbind() override;
+
+	private:
+		bool CreateTexture(const Descriptor& descriptor);
+
+		bool CreateShaderResourceView(const PixelFormat format);
+
+	private:
+		DXContext& _context;
+
+		ComPtr<ID3D11Texture2D> _texture;
+
+		ComPtr<ID3D11ShaderResourceView> _srv;
+
+		std::function<void()> _unbindFunc;
+
+		PixelFormat _format;
 	};
 }

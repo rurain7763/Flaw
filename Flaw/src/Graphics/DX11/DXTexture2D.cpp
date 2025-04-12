@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "DXType.h"
 #include "DXTextures.h"
 #include "DXContext.h"
 #include "Graphics/GraphicsFunc.h"
@@ -256,74 +257,6 @@ namespace flaw {
 		}
 
 		return true;
-	}
-
-	DXGI_FORMAT DXTexture2D::GetFormat(PixelFormat format) {
-		switch (format) {
-		case PixelFormat::BGRX8:
-			return DXGI_FORMAT_B8G8R8X8_UNORM;
-		case PixelFormat::RGBA8:
-			return DXGI_FORMAT_R8G8B8A8_UNORM;
-		case PixelFormat::RGBA32F:
-			return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case PixelFormat::RG8:
-			return DXGI_FORMAT_R8G8_UNORM;
-		case PixelFormat::R8:
-			return DXGI_FORMAT_R8_UNORM;
-		case PixelFormat::R32_UINT:
-			return DXGI_FORMAT_R32_UINT;
-		case PixelFormat::D24S8_UINT:
-			return DXGI_FORMAT_D24_UNORM_S8_UINT;
-		default:
-			throw std::runtime_error("Unknown pixel format");
-		}
-	}
-
-	D3D11_USAGE DXTexture2D::GetUsage(const UsageFlag usage) {
-		switch (usage)
-		{
-		case UsageFlag::Static:
-			return D3D11_USAGE_DEFAULT;
-		case UsageFlag::Dynamic:
-			return D3D11_USAGE_DYNAMIC;
-		case UsageFlag::Staging:
-			return D3D11_USAGE_STAGING;
-		}
-
-		throw std::runtime_error("Unknown usage flag");
-	}
-
-	uint32_t DXTexture2D::GetAccessFlag(const uint32_t access) {
-		uint32_t accessFlag = 0;
-		if (access & AccessFlag::Write) {
-			accessFlag |= D3D11_CPU_ACCESS_WRITE;
-		}
-		if (access & AccessFlag::Read) {
-			accessFlag |= D3D11_CPU_ACCESS_READ;
-		}
-		return accessFlag;
-	}
-
-	uint32_t DXTexture2D::GetBindFlags(uint32_t flags) {
-		uint32_t bindFlags = 0;
-
-		if (flags & BindFlag::ShaderResource) {
-			bindFlags |= D3D11_BIND_SHADER_RESOURCE;
-		}
-
-		if (flags & BindFlag::RenderTarget) {
-			bindFlags |= D3D11_BIND_RENDER_TARGET;
-		}
-
-		if (flags & BindFlag::DepthStencil) {
-			bindFlags |= D3D11_BIND_DEPTH_STENCIL;
-		}
-
-		if (flags & BindFlag::UnorderedAccess) {
-			bindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-		}
-
-		return bindFlags;
 	}
 }
 

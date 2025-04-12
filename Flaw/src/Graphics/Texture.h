@@ -4,7 +4,17 @@
 #include "GraphicsType.h"
 
 namespace flaw {
-	class Texture2D {
+	class Texture {
+	public:
+		virtual ~Texture() = default;
+
+		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
+		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
+
+		virtual void Unbind() = 0;
+	};
+
+	class Texture2D : public Texture {
 	public:
 		enum class Wrap {
 			Repeat,
@@ -35,11 +45,6 @@ namespace flaw {
 		Texture2D() = default;
 		virtual ~Texture2D() = default;
 
-		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
-		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
-
-		virtual void Unbind() = 0;
-
 		virtual void Fetch(void* outData, uint32_t size) const = 0;
 
 		virtual void CopyTo(Ref<Texture2D>& target) const = 0;
@@ -47,6 +52,24 @@ namespace flaw {
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+	};
+
+	class TextureCube : public Texture {
+	public:
+		enum class Layout {
+			Horizontal,
+			HorizontalCross,
+		};
+
+		struct Descriptor {
+			Layout layout;
+			const uint8_t* data;
+			PixelFormat format;
+			uint32_t width, height;
+		};
+
+		TextureCube() = default;
+		virtual ~TextureCube() = default;
 	};
 }
 

@@ -113,9 +113,11 @@
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\EditorTypes.h" />
     <ClInclude Include="src\FlawEditor.h" />
+    <ClInclude Include="src\DebugRender.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetDatabase.cpp" />
+    <ClCompile Include="src\DebugRender.cpp" />
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp" />
     <ClCompile Include="src\Editor\DetailsEditor.cpp" />
     <ClCompile Include="src\Editor\GraphEditor.cpp" />

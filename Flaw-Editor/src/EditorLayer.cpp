@@ -376,8 +376,10 @@ namespace flaw {
 
     void EditorLayer::RenderTargetScene(const Ref<Scene>& scene) {
         auto& enttRegistry = scene->GetRegistry();
+		auto& skyBoxSystem = scene->GetSkyBoxSystem();
 
         scene->UpdateTransform();
+        skyBoxSystem.Update();
 
         RenderEnvironment renderEnv;
 		renderEnv.view = _camera.GetViewMatrix();
@@ -423,6 +425,8 @@ namespace flaw {
         Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
 		Renderer::Begin(renderEnv);
 
+		skyBoxSystem.Render(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
             if (!textureAsset) {
@@ -441,9 +445,38 @@ namespace flaw {
 		}
 
         for (auto&& [entity, transform, meshFilter, meshRenderer] : enttRegistry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
-            // TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
-            //Renderer::DrawCube();
-            Renderer::DrawSphere((uint32_t)entity, transform.worldTransform);
+            // TODO: 테스트 코드
+			static Material defaultMaterial;
+            if (!defaultMaterial.albedoTexture) {
+				Image image("Resources/PavingStone_albedo.jpg", 4);
+
+				Texture2D::Descriptor desc = {};
+				desc.width = image.Width();
+				desc.height = image.Height();
+                desc.format = PixelFormat::RGBA8;
+				desc.data = image.Data().data();
+				desc.usage = UsageFlag::Static;
+				desc.bindFlags = BindFlag::ShaderResource;
+
+				defaultMaterial.albedoTexture = _graphicsContext.CreateTexture2D(desc);
+            }
+
+            if (!defaultMaterial.normalTexture) {
+                Image image("Resources/PavingStone_normal.jpg", 4);
+
+                Texture2D::Descriptor desc = {};
+                desc.width = image.Width();
+                desc.height = image.Height();
+                desc.format = PixelFormat::RGBA8;
+                desc.data = image.Data().data();
+                desc.usage = UsageFlag::Static;
+                desc.bindFlags = BindFlag::ShaderResource;
+
+                defaultMaterial.normalTexture = _graphicsContext.CreateTexture2D(desc);
+            }
+
+			//Renderer::DrawCube((uint32_t)entity, transform.worldTransform);
+            Renderer::DrawSphere((uint32_t)entity, transform.worldTransform, defaultMaterial);
         }
 
 		Renderer2D::End();

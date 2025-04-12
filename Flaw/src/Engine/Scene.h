@@ -13,6 +13,7 @@ class b2World;
 namespace flaw {
 	class Entity;
 	class ParticleSystem;
+	class SkyBoxSystem;
 
 	class Scene {
 	public:
@@ -44,6 +45,7 @@ namespace flaw {
 
 		entt::registry& GetRegistry() { return _registry; }
 		ParticleSystem& GetParticleSystem() { return *_particleSystem; }
+		SkyBoxSystem& GetSkyBoxSystem() { return *_skyBoxSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -56,6 +58,7 @@ namespace flaw {
 		entt::registry _registry;
 		Scope<b2World> _physics2DWorld;
 		Scope<ParticleSystem> _particleSystem;
+		Scope<SkyBoxSystem> _skyBoxSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

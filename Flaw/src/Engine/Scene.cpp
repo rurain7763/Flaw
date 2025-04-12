@@ -7,6 +7,7 @@
 #include "Time/Time.h"
 #include "Platform/PlatformEvents.h"
 #include "ParticleSystem.h"
+#include "SkyBoxSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "Renderer.h"
@@ -20,6 +21,7 @@ namespace flaw {
 		: _app(app)
 	{
 		_particleSystem = CreateScope<ParticleSystem>(*this);
+		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
 
 		_registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*_particleSystem);
 		_registry.on_destroy<ParticleComponent>().connect<&ParticleSystem::UnregisterEntity>(*_particleSystem);
@@ -136,6 +138,7 @@ namespace flaw {
 		CopyComponentIfExists<DirectionalLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SpotLightComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SkyBoxComponent>(srcEntt, cloned);
 
 		// because uuid is changed, we need to set it again
 		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
@@ -243,6 +246,7 @@ namespace flaw {
 		UpdateTransform();
 		UpdateSound();
 		_particleSystem->Update();
+		_skyBoxSystem->Update();
 		UpdateRender();
 	}
 
@@ -415,6 +419,10 @@ namespace flaw {
 
 			Renderer2D::Begin(matrices.view, matrices.projection);
 			Renderer::Begin(renderEnv);
+
+			// draw skybox
+			// TODO: 한번만 그려야 할까? 아니면 각 카메라마다 그려야 할까?
+			_skyBoxSystem->Render(matrices.view, matrices.projection);
 
 			// draw sprite
 			for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {

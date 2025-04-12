@@ -1,5 +1,6 @@
 #include "ViewportEditor.h"
 #include "EditorEvents.h"
+#include "DebugRender.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -85,7 +86,7 @@ namespace flaw {
         }
 
         if (_selectedEntt) {
-            DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
+            //DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
             DrawDebugComponent();
         }
 
@@ -321,66 +322,12 @@ namespace flaw {
 
         if (_selectedEntt.HasComponent<PointLightComponent>()) {
 			PointLightComponent& pointLightComp = _selectedEntt.GetComponent<PointLightComponent>();
-
-            //TODO: this must be make function to drawdebugsphere
-            Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
-                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-            );
-
-            Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
-                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(glm::pi<float>() * 0.5f, 0.0, 0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-            );
-
-            Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
-                transComp.worldTransform * ModelMatrix(vec3(0.0f, 0.0f, 0.0f), vec3(0.0, glm::pi<float>() * 0.5f, 0.0), vec3(pointLightComp.range * 2.0f, pointLightComp.range * 2.0f, 1.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-            );
+            DebugRender::DrawSphere(transComp.worldTransform, pointLightComp.range, vec3(0.0, 1.0, 0.0));
         }
 
         if (_selectedEntt.HasComponent<SpotLightComponent>()) {
 			SpotLightComponent& spotLightComp = _selectedEntt.GetComponent<SpotLightComponent>();
-
-            float outterRadius = spotLightComp.range * tan(spotLightComp.outer);
-
-            Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
-                transComp.worldTransform * ModelMatrix(vec3(0.0, 0.0, spotLightComp.range), vec3(0.0), vec3(outterRadius * 2, outterRadius * 2, 0.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-            );
-
-            float innerRadius = spotLightComp.range * tan(spotLightComp.inner);
-
-            Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
-                transComp.worldTransform * ModelMatrix(vec3(0.0, 0.0, spotLightComp.range), vec3(0.0), vec3(innerRadius * 2, innerRadius * 2, 0.0)),
-                vec4(0.0, 1.0, 0.0, 1.0),
-                0.02f
-            );
-
-            vec3 front = transComp.GetWorldFront();
-            vec3 right = transComp.GetWorldRight();
-            vec3 up = transComp.GetWorldUp();
-            vec3 worldPosition = transComp.GetWorldPosition();
-            vec3 circlePosition = worldPosition + front * spotLightComp.range;
-
-            vec3 topPos = circlePosition + up * outterRadius;
-            vec3 rightPos = circlePosition + right * outterRadius;
-            vec3 leftPos = circlePosition + -right * outterRadius;
-            vec3 bottomPos = circlePosition + -up * outterRadius;
-
-            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, topPos, vec4(0.0, 1.0, 0.0, 1.0));
-            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, leftPos, vec4(0.0, 1.0, 0.0, 1.0));
-            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, rightPos, vec4(0.0, 1.0, 0.0, 1.0));
-            Renderer2D::DrawLine((uint32_t)_selectedEntt, worldPosition, bottomPos, vec4(0.0, 1.0, 0.0, 1.0));
+			DebugRender::DrawCone(transComp.worldTransform, spotLightComp.range, spotLightComp.outer, spotLightComp.inner, vec3(0.0, 1.0, 0.0));
         }
 
         Renderer2D::End();

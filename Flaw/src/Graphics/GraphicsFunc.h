@@ -77,4 +77,123 @@ namespace flaw {
 			outVec.push_back({ radius * cosf(radian), radius * sinf(radian), 0.0f });
 		}
 	}
+
+	inline void GenerateCube(std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices, std::vector<uint32_t>& outIndices)
+	{
+		const vec3 positions[6][4] = {
+			// Front (Z-)
+			{ {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f} },
+			// Right (X+)
+			{ {0.5f,  0.5f, -0.5f}, {0.5f,  0.5f,  0.5f}, {0.5f, -0.5f,  0.5f}, {0.5f, -0.5f, -0.5f} },
+			// Back (Z+)
+			{ {0.5f,  0.5f,  0.5f}, {-0.5f,  0.5f,  0.5f}, {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f} },
+			// Left (X-)
+			{ {-0.5f,  0.5f,  0.5f}, {-0.5f,  0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f,  0.5f} },
+			// Top (Y+)
+			{ {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}, {0.5f,  0.5f, -0.5f}, {-0.5f,  0.5f, -0.5f} },
+			// Bottom (Y-)
+			{ {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f,  0.5f}, {-0.5f, -0.5f,  0.5f} }
+		};
+
+		const vec3 normals[6] = {
+			{  0,  0, -1 }, // Front
+			{  1,  0,  0 }, // Right
+			{  0,  0,  1 }, // Back
+			{ -1,  0,  0 }, // Left
+			{  0,  1,  0 }, // Top
+			{  0, -1,  0 }  // Bottom
+		};
+
+		const vec3 tangents[6] = {
+			{  1,  0,  0 }, // Front
+			{  0,  0,  1 }, // Right
+			{ -1,  0,  0 }, // Back
+			{  0,  0, -1 }, // Left
+			{  1,  0,  0 }, // Top
+			{  1,  0,  0 }  // Bottom
+		};
+
+		const vec2 uvs[4] = {
+			{ 0.f, 0.f },
+			{ 1.f, 0.f },
+			{ 1.f, 1.f },
+			{ 0.f, 1.f }
+		};
+
+		uint32_t baseIndex = 0;
+		for (int face = 0; face < 6; ++face)
+		{
+			vec3 normal = normals[face];
+			vec3 tangent = tangents[face];
+			vec3 binormal = normalize(cross(normal, tangent));
+
+			for (int i = 0; i < 4; ++i)
+				vertices(positions[face][i], uvs[i], normal, tangent, binormal);
+
+			// Index order same as GenerateCubeMesh (CW winding)
+			outIndices.push_back(baseIndex + 0);
+			outIndices.push_back(baseIndex + 1);
+			outIndices.push_back(baseIndex + 2);
+			outIndices.push_back(baseIndex + 0);
+			outIndices.push_back(baseIndex + 2);
+			outIndices.push_back(baseIndex + 3);
+
+			baseIndex += 4;
+		}
+	}
+
+	inline void GenerateSphere(std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices, std::vector<uint32_t>& outIndices, uint32_t sectorCount, uint32_t stackCount, float radius = 1.0f) {
+		const float PI = 3.14159265359f;
+
+		for (uint32_t i = 0; i <= stackCount; ++i)
+		{
+			float stackAngle = PI / 2 - i * (PI / stackCount); // +Y(북극) -> -Y(남극)
+			float y = radius * sinf(stackAngle);               // Y축 방향
+			float r = radius * cosf(stackAngle);               // 수평 반지름
+
+			for (uint32_t j = 0; j <= sectorCount; ++j)
+			{
+				float sectorAngle = j * (2 * PI / sectorCount); // 0 -> 360도
+
+				float x = r * cosf(sectorAngle);
+				float z = r * sinf(sectorAngle);
+
+				vec3 position = { x, y, z };
+				vec3 normal = normalize(position);
+
+				// 탄젠트는 경도(sector) 방향의 변화율로 계산
+				vec3 tangent = normalize(vec3(-z, 0.0f, x));
+				if (length(tangent) < 0.001f)
+					tangent = vec3(1.0f, 0.0f, 0.0f); // 극(Pole)에서의 fallback
+
+				vec3 binormal = normalize(cross(normal, tangent));
+
+				vec2 uv = {
+					(float)j / sectorCount, // u: 경도
+					(float)i / stackCount   // v: 위도
+				};
+
+				vertices(position, uv, normal, tangent, binormal);
+			}
+		}
+
+		for (uint32_t i = 0; i < stackCount; ++i)
+		{
+			for (uint32_t j = 0; j < sectorCount; ++j)
+			{
+				uint32_t first = i * (sectorCount + 1) + j;
+				uint32_t second = first + sectorCount + 1;
+
+				// Triangle 1 (CW)
+				outIndices.push_back(first);
+				outIndices.push_back(first + 1);
+				outIndices.push_back(second + 1);
+
+				// Triangle 2 (CW)
+				outIndices.push_back(first);
+				outIndices.push_back(second + 1);
+				outIndices.push_back(second);
+			}
+		}
+	}
 }

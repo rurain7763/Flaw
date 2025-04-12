@@ -25,6 +25,24 @@ namespace flaw {
 		Ref<Texture2D> _texture;
 	};
 
+	class TextureCubeAsset : public Asset {
+	public:
+		TextureCubeAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::TextureCube; }
+
+		const Ref<TextureCube>& GetTexture() const { return _texture; }
+		bool IsLoaded() const override { return _texture != nullptr; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<TextureCube> _texture;
+	};
+
 	class FontAsset : public Asset {
 	public:
 		FontAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}

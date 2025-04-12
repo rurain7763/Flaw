@@ -271,6 +271,21 @@ namespace flaw {
 				ImGui::DragFloat("Outer", &spotLightComp.outer, 0.1f);
 			});
 
+			DrawComponent<SkyBoxComponent>("Sky Box", _selectedEntt, [](SkyBoxComponent& skyBoxComp) {
+				ImGui::Text("Sky Box");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::Texture2D || metadata.type == AssetType::TextureCube) {
+								skyBoxComp.texture = metadata.handle;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -296,6 +311,7 @@ namespace flaw {
 				DrawAddComponentItem<DirectionalLightComponent>("Directional Light", _selectedEntt);
 				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);\
 				DrawAddComponentItem<SpotLightComponent>("Spot Light", _selectedEntt);
+				DrawAddComponentItem<SkyBoxComponent>("Sky Box", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

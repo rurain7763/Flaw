@@ -49,7 +49,7 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::SetTexture(const Ref<Texture2D>& texture, uint32_t slot) {
+	void DXCommandQueue::SetTexture(const Ref<Texture>& texture, uint32_t slot) {
 		FASSERT(_open, "DXCommandQueue::SetTexture failed: Command queue is not open");
 		_commands.push([texture, slot]() { 
 			texture->Unbind();
@@ -91,7 +91,7 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::SetComputeTexture(const Ref<Texture2D>& texture, BindFlag bindFlag, uint32_t slot) {
+	void DXCommandQueue::SetComputeTexture(const Ref<Texture>& texture, BindFlag bindFlag, uint32_t slot) {
 		FASSERT(_open, "DXCommandQueue::SetComputeTexture failed: Command queue is not open");
 		_commands.push([texture, bindFlag, slot]() { 
 			texture->Unbind();
