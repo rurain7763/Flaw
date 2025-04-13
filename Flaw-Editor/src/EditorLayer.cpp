@@ -377,9 +377,11 @@ namespace flaw {
     void EditorLayer::RenderTargetScene(const Ref<Scene>& scene) {
         auto& enttRegistry = scene->GetRegistry();
 		auto& skyBoxSystem = scene->GetSkyBoxSystem();
+		auto& particleSys = scene->GetParticleSystem();
 
         scene->UpdateTransform();
         skyBoxSystem.Update();
+		particleSys.Update();
 
         RenderEnvironment renderEnv;
 		renderEnv.view = _camera.GetViewMatrix();
@@ -422,10 +424,10 @@ namespace flaw {
 		}
 
         // draw sprite
-        Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+        Renderer2D::Begin(renderEnv.view, renderEnv.projection);
 		Renderer::Begin(renderEnv);
 
-		skyBoxSystem.Render(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+		skyBoxSystem.Render(renderEnv.view, renderEnv.projection);
 
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
@@ -481,6 +483,8 @@ namespace flaw {
 
 		Renderer2D::End();
 		Renderer::End();
+
+		particleSys.Render(renderEnv.view, renderEnv.projection);
 
         _camera.OnUpdate();
     }

@@ -414,9 +414,6 @@ namespace flaw {
 			renderEnv.view = matrices.view;
 			renderEnv.projection = matrices.projection;
 
-			// draw particle
-			_particleSystem->Render(matrices.view, matrices.projection);
-
 			Renderer2D::Begin(matrices.view, matrices.projection);
 			Renderer::Begin(renderEnv);
 
@@ -452,6 +449,9 @@ namespace flaw {
 
 			Renderer2D::End();
 			Renderer::End();
+
+			// draw particle
+			_particleSystem->Render(matrices.view, matrices.projection);
 		}
 	}
 
