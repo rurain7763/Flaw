@@ -90,7 +90,10 @@ namespace flaw {
             DrawDebugComponent();
         }
 
-        _graphicsContext.CaptureRenderTargetTex(_captureRenderTargetTexture);
+		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+		auto renderTargetTex = mainMrt->GetRenderTargetTex(0);
+
+        renderTargetTex->CopyTo(_captureRenderTargetTexture);
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
 
 #if false
@@ -192,27 +195,21 @@ namespace flaw {
 		_platformContext.GetFrameBufferSize(frameBufferWidth, frameBufferHeight);
         desc.width = frameBufferWidth;
         desc.height = frameBufferHeight;
-
         desc.format = PixelFormat::RGBA8;
         desc.usage = UsageFlag::Static;
         desc.bindFlags = BindFlag::ShaderResource;
 
         _captureRenderTargetTexture = _graphicsContext.CreateTexture2D(desc);
-
-        desc.format = PixelFormat::R32_UINT;
-        desc.usage = UsageFlag::Static;
-        desc.bindFlags = BindFlag::RenderTarget;
-
-        _idRenderTexture = _graphicsContext.CreateTexture2D(desc);
-
-        float clearColor[4] = { std::numeric_limits<int32_t>().max(), 0.0f, 0.0f, 0.0f };
-        _graphicsContext.SetRenderTexture(1, _idRenderTexture, clearColor);
     }
 
     uint32_t ViewportEditor::MousePicking(int32_t x, int32_t y) {
-		if (x < 0 || x >= _idRenderTexture->GetWidth() || y < 0 || y >= _idRenderTexture->GetHeight()) {
+		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+		auto idRenderTargetTex = mainMrt->GetRenderTargetTex(1);
+
+		if (x < 0 || x >= idRenderTargetTex->GetWidth() || y < 0 || y >= idRenderTargetTex->GetHeight()) {
             return std::numeric_limits<int32_t>().max();
 		}
+
         Texture2D::Descriptor desc = {};
 		desc.width = 1;
 		desc.height = 1;
@@ -222,7 +219,7 @@ namespace flaw {
 
 		Ref<Texture2D> stagingTexture = _graphicsContext.CreateTexture2D(desc);
 
-		_idRenderTexture->CopyToSub(stagingTexture, x, y, 1, 1);
+        idRenderTargetTex->CopyToSub(stagingTexture, x, y, 1, 1);
 
         uint32_t pixel;
 		stagingTexture->Fetch(&pixel, sizeof(uint32_t));

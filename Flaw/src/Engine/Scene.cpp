@@ -7,6 +7,7 @@
 #include "Time/Time.h"
 #include "Platform/PlatformEvents.h"
 #include "ParticleSystem.h"
+#include "RenderSystem.h"
 #include "SkyBoxSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
@@ -21,6 +22,7 @@ namespace flaw {
 		: _app(app)
 	{
 		_particleSystem = CreateScope<ParticleSystem>(*this);
+		_renderSystem = CreateScope<RenderSystem>(*this);
 		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
 
 		_registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*_particleSystem);
@@ -438,13 +440,6 @@ namespace flaw {
 				if (fontAsset) {
 					Renderer2D::DrawString((uint32_t)entity, transform.worldTransform, text.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), text.color);
 				}
-			}
-
-			// draw mesh
-			for (auto&& [entity, transform, meshFilter, meshRenderer] : _registry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
-				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
-				//Renderer::DrawCube();
-				Renderer::DrawSphere((uint32_t)entity, transform.worldTransform);
 			}
 
 			Renderer2D::End();

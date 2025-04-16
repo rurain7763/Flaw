@@ -12,6 +12,7 @@
 #include "DXTextures.h"
 #include "DXComputeShader.h"
 #include "DXComputePipeline.h"
+#include "DXMultiRenderTarget.h"
 
 namespace flaw {
 	DXContext::DXContext(PlatformContext& context, int32_t width, int32_t height) {
@@ -52,11 +53,7 @@ namespace flaw {
 			return;
 		}
 
-		if (CreateRenderTarget()) {
-			return;
-		}
-
-		if (CreateDepthStencil()) {
+		if (CreateMultiRenderTarget()) {
 			return;
 		}
 
@@ -98,18 +95,9 @@ namespace flaw {
 	void DXContext::Prepare() {
 		std::vector<ID3D11RenderTargetView*> renderTargets;
 
-		_deviceContext->ClearRenderTargetView(_renderTargetView.Get(), _clearColor);
-		renderTargets.push_back(_renderTargetView.Get());
-
-		for (auto& rt : _additionalRenderTargets) {
-			if (rt.rtv) {
-				_deviceContext->ClearRenderTargetView(rt.rtv.Get(), rt.clearColor);
-				renderTargets.push_back(rt.rtv.Get());
-			}
-		}
-
-		_deviceContext->ClearDepthStencilView(_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		_deviceContext->OMSetRenderTargets(renderTargets.size(), renderTargets.data(), _depthStencilView.Get());
+		_mainMultiRenderTarget->ClearAllRenderTargets();
+		_mainMultiRenderTarget->ClearDepthStencil();
+		_mainMultiRenderTarget->Bind();
 
 		_deviceContext->RSSetViewports(1, &_viewPort);
 	}
@@ -150,31 +138,36 @@ namespace flaw {
 		return CreateRef<DXTextureCube>(*this, descriptor);
 	}
 
-	void DXContext::SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) {
-		if (slot == 0) {
-			Log::Error("Cannot set render target to slot 0, it is reserved for main render target");
-			return;
-		}
-		
-		slot = slot - 1;
-
-		auto dxTexture = std::static_pointer_cast<DXTexture2D>(texture);
-
-		auto rtv = dxTexture->GetRenderTargetView();
-		if (!rtv) {
-			Log::Error("RenderTargetView is null");
-			return;
-		}
-
-		_additionalRenderTargets[slot] = RenderTarget{ rtv, clearValue[0], clearValue[1], clearValue[2], clearValue[3] };
+	Ref<GraphicsMultiRenderTarget> DXContext::GetMainMultiRenderTarget() {
+		return _mainMultiRenderTarget;
 	}
 
-	void DXContext::ResetRenderTexture(uint32_t slot) {
-		_additionalRenderTargets[slot] = RenderTarget{ nullptr, 0.0f, 0.0f, 0.0f, 0.0f };
+	void DXContext::SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor, bool clearDepthStencil) {
+		_userMultiRenderTarget = multiRenderTarget;
+		_userMultiRenderTarget->Resize(_renderWidth, _renderHeight);
+
+		if (clearColor) {
+			_userMultiRenderTarget->ClearAllRenderTargets();
+		}
+
+		if (clearDepthStencil) {
+			_userMultiRenderTarget->ClearDepthStencil();
+		}
+
+		_userMultiRenderTarget->Bind();
+	}
+
+	void DXContext::ResetMultiRenderTarget() {
+		_userMultiRenderTarget.reset();
+		_mainMultiRenderTarget->Bind();
 	}
 
 	GraphicsCommandQueue& DXContext::GetCommandQueue() {
 		return *_commandQueue;
+	}
+
+	Ref<GraphicsMultiRenderTarget> DXContext::CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) {
+		return CreateRef<DXMultiRenderTarget>(*this, desc);
 	}
 
 	void DXContext::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -195,13 +188,6 @@ namespace flaw {
 		height = static_cast<int32_t>(_viewPort.Height);
 	}
 
-	void DXContext::SetClearColor(float r, float g, float b, float a) {
-		_clearColor[0] = r;
-		_clearColor[1] = g;
-		_clearColor[2] = b;
-		_clearColor[3] = a;
-	}
-
 	void DXContext::Resize(int32_t width, int32_t height) {
 		if (!_swapChain) {
 			return;
@@ -211,41 +197,19 @@ namespace flaw {
 			return;
 		}
 
-		_deviceContext->OMSetRenderTargets(0, nullptr, nullptr); // 기존 RenderTarget 해제
-
-		_renderTarget.Reset();
-		_renderTargetView.Reset();
-
-		_depthStencil.Reset();
-		_depthStencilView.Reset();
-
-		if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))) {
-			Log::Error("ResizeBuffers failed");
-			return;
-		}
-
 		_renderWidth = width;
 		_renderHeight = height;
 
-		if (CreateRenderTarget()) {
-			Log::Error("CreateRenderTarget failed");
-			return;
-		}
+		_mainMultiRenderTarget->Resize(width, height);
 
-		if (CreateDepthStencil()) {
-			Log::Error("CreateDepthStencil failed");
-			return;
+		if (_userMultiRenderTarget) {
+			_userMultiRenderTarget->Resize(width, height);
 		}
 	}
 
 	void DXContext::GetSize(int32_t& width, int32_t& height) {
 		width = _renderWidth;
 		height = _renderHeight;
-	}
-
-	void DXContext::CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) {
-		Ref<DXTexture2D> casted = std::static_pointer_cast<DXTexture2D>(dstTexture);
-		_deviceContext->CopyResource(casted->GetNativeTexture().Get(), _renderTarget.Get());
 	}
 
 	int32_t DXContext::CreateSwapChain() {
@@ -281,43 +245,50 @@ namespace flaw {
 		return 0;
 	}
 
-	int32_t DXContext::CreateRenderTarget() {
-		if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)_renderTarget.GetAddressOf()))) {
+	int32_t DXContext::CreateMultiRenderTarget() {
+		ComPtr<ID3D11Texture2D> backBuffer;
+		if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)backBuffer.GetAddressOf()))) {
 			Log::Error("GetBuffer failed");
 			return -1;
 		}
 
-		if (FAILED(_device->CreateRenderTargetView(_renderTarget.Get(), nullptr, _renderTargetView.GetAddressOf()))) {
-			Log::Error("CreateRenderTargetView failed");
-			return -1;
-		}
+		GraphicsMultiRenderTarget::Descriptor mrtDesc = {};
+		mrtDesc.renderTargets.resize(1);
+		mrtDesc.renderTargets[0].texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
+		mrtDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+		mrtDesc.renderTargets[0].resizeFunc = [this](int32_t width, int32_t height) {
+			if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))) {
+				throw std::runtime_error("ResizeBuffers failed");
+			}
 
-		return 0;
-	}
+			ComPtr<ID3D11Texture2D> backBuffer;
+			if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)backBuffer.GetAddressOf()))) {
+				throw std::runtime_error("GetBuffer failed");
+			}
 
-	int32_t DXContext::CreateDepthStencil() {
-		D3D11_TEXTURE2D_DESC dsDesc = {};
-		dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // depth 24bit, stencil 8bit
-		dsDesc.Width = _renderWidth;
-		dsDesc.Height = _renderHeight;
+			return CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
+		};
 
-		dsDesc.ArraySize = 1;
-		dsDesc.CPUAccessFlags = 0;
-		dsDesc.MipLevels = 1;
-		dsDesc.Usage = D3D11_USAGE_DEFAULT;
-		dsDesc.SampleDesc.Count = 1;
-		dsDesc.SampleDesc.Quality = 0;
-		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		Texture2D::Descriptor descDepth = {};
+		descDepth.format = PixelFormat::D24S8_UINT;
+		descDepth.width = _renderWidth;
+		descDepth.height = _renderHeight;
+		descDepth.usage = UsageFlag::Static;
+		descDepth.bindFlags = BindFlag::DepthStencil;
 
-		if (FAILED(_device->CreateTexture2D(&dsDesc, nullptr, _depthStencil.GetAddressOf()))) {
-			Log::Error("CreateTexture2D failed");
-			return -1;
-		}
+		mrtDesc.depthStencil.texture = CreateRef<DXTexture2D>(*this, descDepth);
+		mrtDesc.depthStencil.resizeFunc = [this](int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.format = PixelFormat::D24S8_UINT;
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::DepthStencil;
 
-		if (FAILED(_device->CreateDepthStencilView(_depthStencil.Get(), nullptr, _depthStencilView.GetAddressOf()))) {
-			Log::Error("CreateDepthStencilView failed");
-			return -1;
-		}
+			return CreateTexture2D(desc);
+		};
+
+		_mainMultiRenderTarget = CreateRef<DXMultiRenderTarget>(*this, mrtDesc);
 
 		return 0;
 	}

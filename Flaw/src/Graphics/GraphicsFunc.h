@@ -196,4 +196,73 @@ namespace flaw {
 			}
 		}
 	}
+
+	inline void GenerateCone(
+		std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices,
+		std::vector<uint32_t>& outIndices,
+		uint32_t sliceCount,
+		float radius,
+		float height)
+	{
+		const float PI = 3.14159265359f;
+
+		// Tip 정점 (맨 위)
+		vec3 tipPos = vec3(0, 0, height);
+		vec3 tipNormal = normalize(vec3(0, 0, 1)); // 임시
+		vec3 tipTangent = vec3(1, 0, 0);
+		vec3 tipBinormal = cross(tipNormal, tipTangent);
+		vec2 tipUV = vec2(0.5f, 1.0f);
+
+		uint32_t tipIndex = 0;
+		vertices(tipPos, tipUV, tipNormal, tipTangent, tipBinormal);
+
+		// Base center
+		vec3 baseCenterPos = vec3(0, 0, 0);
+		vec3 baseNormal = vec3(0, 0, -1);
+		vec3 baseTangent = vec3(1, 0, 0);
+		vec3 baseBinormal = cross(baseNormal, baseTangent);
+		vec2 baseUV = vec2(0.5f, 0.0f);
+
+		uint32_t baseCenterIndex = 1;
+		vertices(baseCenterPos, baseUV, baseNormal, baseTangent, baseBinormal);
+
+		// 둘레 정점들
+		uint32_t baseStartIndex = 2;
+
+		for (uint32_t i = 0; i <= sliceCount; ++i)
+		{
+			float angle = float(i) / sliceCount * 2.0f * PI;
+			float x = radius * cosf(angle);
+			float y = radius * sinf(angle);
+			vec3 pos = vec3(x, y, 0.0f);
+
+			// Normal은 원뿔 측면 방향
+			vec3 dirToTip = normalize(tipPos - pos);
+			vec3 axis = vec3(x, y, 0.0f); // 원 위 벡터
+			vec3 tangent = normalize(vec3(-y, x, 0.0f));
+			vec3 normal = normalize(cross(tangent, dirToTip));
+			vec3 binormal = cross(normal, tangent);
+
+			vec2 uv = vec2(float(i) / sliceCount, 0.0f);
+
+			vertices(pos, uv, normal, tangent, binormal);
+		}
+
+		// 인덱스 구성
+		for (uint32_t i = 0; i < sliceCount; ++i)
+		{
+			uint32_t curr = baseStartIndex + i;
+			uint32_t next = baseStartIndex + i + 1;
+
+			// 측면 삼각형 (tip 기준)
+			outIndices.push_back(tipIndex);
+			outIndices.push_back(next);
+			outIndices.push_back(curr);
+
+			// 바닥 삼각형 (base center 기준)
+			outIndices.push_back(baseCenterIndex);
+			outIndices.push_back(curr);
+			outIndices.push_back(next);
+		}
+	}
 }

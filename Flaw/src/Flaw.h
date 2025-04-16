@@ -15,6 +15,7 @@
 #include "Engine/Fonts.h"
 #include "Engine/Sounds.h"
 #include "Engine/ParticleSystem.h"
+#include "Engine/RenderSystem.h"
 #include "Engine/SkyBoxSystem.h"
 
 #include "Log/Log.h"

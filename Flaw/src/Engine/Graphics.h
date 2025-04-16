@@ -5,7 +5,7 @@
 #include "Graphics/GraphicsContext.h"
 
 namespace flaw {
-	constexpr uint32_t DefaultTextureStartSlot = 12;
+	constexpr uint32_t ReservedTextureStartSlot = 12;
 	constexpr uint32_t CubeTextureStartSlot = 28;
 
 	enum class GraphicsType {
@@ -39,7 +39,7 @@ namespace flaw {
 			Normal = 0x2
 		};
 
-		uint32_t defaultTextureBitMask = 0;
+		uint32_t reservedTextureBitMask = 0;
 		uint32_t cubeTextureBitMask = 0;
 
 		int32_t intConstants[4] = { 0 };
@@ -76,15 +76,29 @@ namespace flaw {
 		vec3 binormal;
 	};
 
+	struct Mesh {
+		std::vector<Vertex3D> vertices;
+		std::vector<uint32_t> indices;
+	};
+
+	enum class RenderMode {
+		Opaque,
+		Masked,
+		Transparent,
+		Count
+	};
+
 	struct Material {
+		RenderMode renderMode = RenderMode::Opaque;
+
 		CullMode cullMode = CullMode::Back;
 		DepthTest depthTest = DepthTest::Less;
 		bool depthWrite = true;
+		BlendMode blendMode = BlendMode::Default;
 
 		Ref<GraphicsShader> shader;
 
 		Ref<Texture2D> albedoTexture;
-		Ref<Texture2D> diffuseTexture;
 		Ref<Texture2D> normalTexture;
 
 		std::array<Ref<TextureCube>, 4> cubeTextures;
@@ -139,17 +153,16 @@ namespace flaw {
 		static Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor);
 		static Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor);
 
-		static void SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]);
-		static void ResetRenderTexture(uint32_t slot);
+		static Ref<GraphicsMultiRenderTarget> GetMainMultiRenderTarget();
+		static void SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor = true, bool clearDepthStencil = true);
+		static void ResetMultiRenderTarget();
 
 		static GraphicsCommandQueue& GetCommandQueue();
 
-		static void CaptureRenderTargetTex(Ref<Texture2D>& dstTexture);
+		static Ref<GraphicsMultiRenderTarget> CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc);
 
 		static void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height);
 		static void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height);
-
-		static void SetClearColor(float r, float g, float b, float a);
 
 		static void Resize(int32_t width, int32_t height);
 		static void GetSize(int32_t& width, int32_t& height);

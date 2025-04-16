@@ -48,6 +48,34 @@ namespace flaw {
 	{
 		_texture = texture;
 
+		D3D11_TEXTURE2D_DESC desc;
+		_texture->GetDesc(&desc);
+
+		_format = format;
+
+		if (desc.Usage == D3D11_USAGE_DEFAULT) {
+			_usage = UsageFlag::Static;
+		}
+		else if (desc.Usage == D3D11_USAGE_DYNAMIC) {
+			_usage = UsageFlag::Dynamic;
+		}
+		else if (desc.Usage == D3D11_USAGE_STAGING) {
+			_usage = UsageFlag::Staging;
+		}
+		
+		if (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) {
+			_acessFlags |= AccessFlag::Read;
+		}
+
+		if (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) {
+			_acessFlags |= AccessFlag::Write;
+		}
+
+		_bindFlags = bindFlags;
+
+		_width = desc.Width;
+		_height = desc.Height;
+
 		if (bindFlags & BindFlag::RenderTarget) {
 			if (!CreateRenderTargetView(format)) {
 				Log::Error("CreateRenderTargetView failed");
@@ -173,12 +201,12 @@ namespace flaw {
 		desc.Height = descriptor.height;
 		desc.MipLevels = 1;
 		desc.ArraySize = 1;
-		desc.Format = GetFormat(descriptor.format);
+		desc.Format = ConvertToDXGIFormat(descriptor.format);
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
-		desc.Usage = GetUsage(descriptor.usage);
-		desc.CPUAccessFlags = GetAccessFlag(descriptor.access);
-		desc.BindFlags = GetBindFlags(descriptor.bindFlags);
+		desc.Usage = ConvertD3D11Usage(descriptor.usage);
+		desc.CPUAccessFlags = ConvertD3D11Access(descriptor.access);
+		desc.BindFlags = ConvertD3D11Bind(descriptor.bindFlags);
 		desc.MiscFlags = 0;
 
 		if (descriptor.data) {
@@ -200,6 +228,7 @@ namespace flaw {
 		_format = descriptor.format;
 		_usage = descriptor.usage;
 		_acessFlags = descriptor.access;
+		_bindFlags = descriptor.bindFlags;
 
 		_width = descriptor.width;
 		_height = descriptor.height;
@@ -209,7 +238,7 @@ namespace flaw {
 
 	bool DXTexture2D::CreateRenderTargetView(const PixelFormat format) {
 		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-		rtvDesc.Format = GetFormat(format);
+		rtvDesc.Format = ConvertToDXGIFormat(format);
 		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		rtvDesc.Texture2D.MipSlice = 0;
 
@@ -222,7 +251,7 @@ namespace flaw {
 
 	bool DXTexture2D::CreateDepthStencilView(const PixelFormat format) {
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = GetFormat(format);
+		dsvDesc.Format = ConvertToDXGIFormat(format);
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
 
@@ -235,7 +264,7 @@ namespace flaw {
 
 	bool DXTexture2D::CreateShaderResourceView(const PixelFormat format) {
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = GetFormat(format);
+		srvDesc.Format = ConvertToDXGIFormat(format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
@@ -249,7 +278,7 @@ namespace flaw {
 
 	bool DXTexture2D::CreateUnorderedAccessView(const PixelFormat format) {
 		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-		uavDesc.Format = GetFormat(format);
+		uavDesc.Format = ConvertToDXGIFormat(format);
 		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 
 		if (FAILED(_context.Device()->CreateUnorderedAccessView(_texture.Get(), &uavDesc, _uav.GetAddressOf()))) {

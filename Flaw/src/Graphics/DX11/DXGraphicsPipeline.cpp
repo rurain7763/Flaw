@@ -15,45 +15,51 @@ namespace flaw {
 			Log::Error("CreateDepthStencilState failed");
 			return;
 		}
-
-		_blendState = CreateBlendState(D3D11_BLEND_ONE, D3D11_BLEND_ZERO, false);
-		if (!_blendState) {
-			Log::Error("CreateBlendState failed");
-			return;
-		}
 	}
 
 	void DXGraphicsPipeline::SetDepthTest(DepthTest depthTest, bool depthWrite) {
+		if (depthTest == _depthTest && depthWrite == _depthWrite) {
+			return;
+		}
+
+		_depthTest = depthTest;
+		_depthWrite = depthWrite;
+
 		D3D11_COMPARISON_FUNC depthFunc = GetDepthTest(depthTest);
 		D3D11_DEPTH_WRITE_MASK writeMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 
 		_depthStencilState = CreateDepthStencilState(depthFunc, writeMask);
 	}
 
-	void DXGraphicsPipeline::SetBlendMode(BlendMode blendMode, bool alphaToCoverage) {
-		D3D11_BLEND srcBlend, destBlend;
-		GetBlend(blendMode, srcBlend, destBlend);
-
-		_blendState = CreateBlendState(srcBlend, destBlend, alphaToCoverage);
-	}
-
 	void DXGraphicsPipeline::SetCullMode(CullMode cullMode) {
+		if (cullMode == _cullMode) {
+			return;
+		}
+
 		_cullMode = cullMode;
 
 		_rasterizerState = CreateRasterizerState(GetFillMode(_fillMode), GetCullMode(_cullMode));
 	}
 
 	void DXGraphicsPipeline::SetFillMode(FillMode fillMode) {
+		if (fillMode == _fillMode) {
+			return;
+		}
+
 		_fillMode = fillMode;
 
 		_rasterizerState = CreateRasterizerState(GetFillMode(_fillMode), GetCullMode(_cullMode));
+	}
+
+	void DXGraphicsPipeline::SetBlendMode(BlendMode blendMode, bool alphaToCoverage) {
+		auto& mainMRT = _context.GetMainMultiRenderTarget();
+		mainMRT->SetBlendMode(0, blendMode, alphaToCoverage);
 	}
 
 	void DXGraphicsPipeline::Bind() {
 		_shader->Bind();
 		_context.DeviceContext()->RSSetState(_rasterizerState.Get());
 		_context.DeviceContext()->OMSetDepthStencilState(_depthStencilState.Get(), 0);
-		_context.DeviceContext()->OMSetBlendState(_blendState.Get(), nullptr, 0xffffffff);
 	}
 
 	D3D11_COMPARISON_FUNC DXGraphicsPipeline::GetDepthTest(DepthTest depthTest) {
@@ -73,31 +79,11 @@ namespace flaw {
 			return D3D11_COMPARISON_NOT_EQUAL;
 		case DepthTest::Always:
 			return D3D11_COMPARISON_ALWAYS;
+		case DepthTest::Never:
+			return D3D11_COMPARISON_NEVER;
 		}
 
 		return D3D11_COMPARISON_LESS;
-	}
-
-	void DXGraphicsPipeline::GetBlend(BlendMode blendMode, D3D11_BLEND& outSrcBlend, D3D11_BLEND& outDestBlend) {
-		switch (blendMode)
-		{
-		case BlendMode::Default:
-			outSrcBlend = D3D11_BLEND_ONE;
-			outDestBlend = D3D11_BLEND_ZERO;
-			break;
-		case BlendMode::Alpha:
-			outSrcBlend = D3D11_BLEND_SRC_ALPHA;
-			outDestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-			break;
-		case BlendMode::Additive:
-			outSrcBlend = D3D11_BLEND_SRC_ALPHA;
-			outDestBlend = D3D11_BLEND_ONE;
-			break;
-		default:
-			outSrcBlend = D3D11_BLEND_ONE;
-			outDestBlend = D3D11_BLEND_ZERO;
-			break;
-		}
 	}
 
 	D3D11_FILL_MODE DXGraphicsPipeline::GetFillMode(FillMode fillMode) {
@@ -160,40 +146,5 @@ namespace flaw {
 		_depthStencilStateStore.emplace(key, depthStencilState);
 
 		return depthStencilState;
-	}
-
-	ComPtr<ID3D11BlendState> DXGraphicsPipeline::CreateBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend, bool alphaToCoverage) {
-		BlendStateKey key(srcBlend, destBlend, alphaToCoverage);
-		auto it = _blendStateStore.find(key);
-		if (it != _blendStateStore.end()) {
-			return it->second;
-		}
-		
-		D3D11_BLEND_DESC blendDesc = {};
-		blendDesc.AlphaToCoverageEnable = alphaToCoverage;
-		blendDesc.IndependentBlendEnable = TRUE; // blend only applies to the first render target, so other render targets blend settings are ignored
-		blendDesc.RenderTarget[0].BlendEnable = TRUE;
-		blendDesc.RenderTarget[0].SrcBlend = srcBlend;
-		blendDesc.RenderTarget[0].DestBlend = destBlend;
-		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		// set default values for other render targets
-		for (int32_t i = 1; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
-			blendDesc.RenderTarget[i].BlendEnable = FALSE;
-			blendDesc.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		}
-
-		ComPtr<ID3D11BlendState> blendState;
-		if (FAILED(_context.Device()->CreateBlendState(&blendDesc, &blendState))) {
-			return nullptr;
-		}
-
-		_blendStateStore.emplace(key, blendState);
-
-		return blendState;
 	}
 }

@@ -68,7 +68,7 @@ namespace flaw {
 		desc.Height = faceHeight;
 		desc.MipLevels = 1;
 		desc.ArraySize = 6; // 6 faces for cube map
-		desc.Format = GetFormat(descriptor.format);
+		desc.Format = ConvertToDXGIFormat(descriptor.format);
 		desc.SampleDesc.Count = 1;
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -150,7 +150,7 @@ namespace flaw {
 
 	bool DXTextureCube::CreateShaderResourceView(const PixelFormat format) {
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = GetFormat(format);
+		srvDesc.Format = ConvertToDXGIFormat(format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 		srvDesc.TextureCube.MipLevels = 1;
 		srvDesc.TextureCube.MostDetailedMip = 0;

@@ -203,7 +203,7 @@ namespace flaw {
 		g_pipeLine->SetDepthTest(DepthTest::Less);
 
 		MaterialConstants mc;
-		mc.defaultTextureBitMask = 0;
+		mc.reservedTextureBitMask = 0;
 		g_materialCB->Update(&mc, sizeof(MaterialConstants));
 
 		g_batchDataSB->Update(g_cubeBatchDatas.data(), sizeof(BatchedData) * g_cubeBatchDatas.size());
@@ -221,6 +221,7 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
 		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
 		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), g_cubeBatchDatas.size());
+		cmdQueue.ResetAllTextures();
 		cmdQueue.End();
 
 		cmdQueue.Execute();
@@ -240,6 +241,7 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
 		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
 		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), g_sphereBatchDatas.size());
+		cmdQueue.ResetAllTextures();
 		cmdQueue.End();
 
 		cmdQueue.Execute();
@@ -281,15 +283,15 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(g_lightCB, 2);
 
 		MaterialConstants mc;
-		mc.defaultTextureBitMask = 0;
+		mc.reservedTextureBitMask = 0;
 		if (material.albedoTexture) {
-			mc.defaultTextureBitMask |= 0x1;
-			cmdQueue.SetTexture(material.albedoTexture, DefaultTextureStartSlot);
+			mc.reservedTextureBitMask |= 0x1;
+			cmdQueue.SetTexture(material.albedoTexture, ReservedTextureStartSlot);
 		}
 
 		if (material.normalTexture) {
-			mc.defaultTextureBitMask |= 0x2;
-			cmdQueue.SetTexture(material.normalTexture, DefaultTextureStartSlot + 1);
+			mc.reservedTextureBitMask |= 0x2;
+			cmdQueue.SetTexture(material.normalTexture, ReservedTextureStartSlot + 1);
 		}
 
 		for (int32_t i = 0; i < material.cubeTextures.size(); ++i) {
@@ -308,6 +310,7 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
 		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
 		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), 1);
+		cmdQueue.ResetAllTextures();
 		cmdQueue.End();
 
 		cmdQueue.Execute();
@@ -350,15 +353,15 @@ namespace flaw {
 
 		MaterialConstants mc;
 
-		mc.defaultTextureBitMask = 0;
+		mc.reservedTextureBitMask = 0;
 		if (material.albedoTexture) {
-			mc.defaultTextureBitMask |= 0x1;
-			cmdQueue.SetTexture(material.albedoTexture, DefaultTextureStartSlot);
+			mc.reservedTextureBitMask |= 0x1;
+			cmdQueue.SetTexture(material.albedoTexture, ReservedTextureStartSlot);
 		}
 
 		if (material.normalTexture) {
-			mc.defaultTextureBitMask |= 0x2;
-			cmdQueue.SetTexture(material.normalTexture, DefaultTextureStartSlot + 1);
+			mc.reservedTextureBitMask |= 0x2;
+			cmdQueue.SetTexture(material.normalTexture, ReservedTextureStartSlot + 1);
 		}
 		
 		for (int32_t i = 0; i < material.cubeTextures.size(); ++i) {
@@ -378,6 +381,7 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(g_pointLightSB, 2);
 		cmdQueue.SetStructuredBuffer(g_spotLightSB, 3);
 		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), 1);
+		cmdQueue.ResetAllTextures();
 		cmdQueue.End();
 
 		cmdQueue.Execute();

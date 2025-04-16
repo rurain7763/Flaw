@@ -38,17 +38,16 @@ namespace flaw {
 		Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) override;
 		Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor) override;
 
-		void SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) override;
-		void ResetRenderTexture(uint32_t slot) override;
+		Ref<GraphicsMultiRenderTarget> GetMainMultiRenderTarget() override;
+		void SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor = true, bool clearDepthStencil = true) override;
+		void ResetMultiRenderTarget() override;
 
 		GraphicsCommandQueue& GetCommandQueue() override;
 
-		void CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) override;
+		Ref<GraphicsMultiRenderTarget> CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) override;
 
 		void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
 		void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) override;
-
-		void SetClearColor(float r, float g, float b, float a) override;
 
 		void Resize(int32_t width, int32_t height) override;
 		void GetSize(int32_t& width, int32_t& height) override;
@@ -58,11 +57,11 @@ namespace flaw {
 
 		inline ComPtr<ID3D11Device> Device() const { return _device; }
 		inline ComPtr<ID3D11DeviceContext> DeviceContext() const { return _deviceContext; }
+		inline ComPtr<IDXGISwapChain> SwapChain() const { return _swapChain; }
 
 	private:
 		int32_t CreateSwapChain();
-		int32_t CreateRenderTarget();
-		int32_t CreateDepthStencil();
+		int32_t CreateMultiRenderTarget();
 
 		ID3D11SamplerState* CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v);
 
@@ -82,20 +81,11 @@ namespace flaw {
 		ComPtr<ID3D11DeviceContext> _deviceContext;
 
 		ComPtr<IDXGISwapChain> _swapChain;
-		ComPtr<ID3D11Texture2D> _renderTarget;
-		ComPtr<ID3D11RenderTargetView> _renderTargetView;
-		float _clearColor[4];
 
-		// additional render target, limit 7
-		struct RenderTarget {
-			ComPtr<ID3D11RenderTargetView> rtv = nullptr;
-			float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		};
+		Ref<GraphicsMultiRenderTarget> _mainMultiRenderTarget;
+		Ref<GraphicsMultiRenderTarget> _userMultiRenderTarget;
 
-		std::array<RenderTarget, 7> _additionalRenderTargets;
-
-		ComPtr<ID3D11Texture2D> _depthStencil;
-		ComPtr<ID3D11DepthStencilView> _depthStencilView;
+		Ref<Texture2D> _depthStencil;
 
 		std::array<ID3D11SamplerState*, 1> _samplerStates;
 

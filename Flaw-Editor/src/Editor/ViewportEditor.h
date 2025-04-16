@@ -34,7 +34,6 @@ namespace flaw {
 		Entity _selectedEntt;
 
 		Ref<Texture2D> _captureRenderTargetTexture;
-		Ref<Texture2D> _idRenderTexture;
 
 		struct MVPMatrices {
 			mat4 world;

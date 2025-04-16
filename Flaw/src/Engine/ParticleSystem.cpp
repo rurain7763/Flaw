@@ -37,7 +37,6 @@ namespace flaw {
 		_graphicsPipeline = Graphics::CreateGraphicsPipeline();
 		_graphicsPipeline->SetShader(shader);
 		_graphicsPipeline->SetDepthTest(DepthTest::Less, false);
-		_graphicsPipeline->SetBlendMode(BlendMode::Alpha);
 
 		_vpMatricesCB = Graphics::CreateConstantBuffer(sizeof(VPMatrices));
 		_globalConstantsCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
@@ -319,6 +318,7 @@ namespace flaw {
 			cmdQueue.DrawIndexedInstanced(_indexBuffer, 1, particleComp.maxParticles);
 		}
 
+		cmdQueue.ResetAllTextures();
 		cmdQueue.End();
 
 		cmdQueue.Execute();

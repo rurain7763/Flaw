@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Graphics.h"
 #include "Platform.h"
+
+#define NOMINMAX
 #include "Graphics/DX11/DXContext.h"
 
 namespace flaw {
@@ -19,6 +21,22 @@ namespace flaw {
 			throw std::runtime_error("Unsupported graphics type");
 			break;
 		}
+
+		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+
+		Texture2D::Descriptor desc = {};
+		desc.width = width;
+		desc.height = height;
+		desc.format = PixelFormat::R32_UINT;
+		desc.usage = UsageFlag::Static;
+		desc.bindFlags = BindFlag::RenderTarget;
+
+		GraphicsRenderTarget renderTarget = {};
+		renderTarget.blendMode = BlendMode::Disabled;
+		renderTarget.texture = g_graphicsContext->CreateTexture2D(desc);
+		renderTarget.clearValue = { (float)std::numeric_limits<int32_t>().max(), 0.0f, 0.0f, 0.0f };
+
+		mainMrt->PushRenderTarget(renderTarget);
 	}
 
 	void Graphics::Cleanup() {
@@ -65,20 +83,24 @@ namespace flaw {
 		return g_graphicsContext->CreateTextureCube(descriptor);
 	}
 
-	void Graphics::SetRenderTexture(uint32_t slot, Ref<Texture2D> texture, float clearValue[4]) {
-		g_graphicsContext->SetRenderTexture(slot, texture, clearValue);
+	Ref<GraphicsMultiRenderTarget> Graphics::GetMainMultiRenderTarget() {
+		return g_graphicsContext->GetMainMultiRenderTarget();
 	}
 
-	void Graphics::ResetRenderTexture(uint32_t slot) {
-		g_graphicsContext->ResetRenderTexture(slot);
+	void Graphics::SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor, bool clearDepthStencil) {
+		g_graphicsContext->SetMultiRenderTarget(multiRenderTarget, clearColor, clearDepthStencil);
+	}
+
+	void Graphics::ResetMultiRenderTarget() {
+		g_graphicsContext->ResetMultiRenderTarget();
 	}
 
 	GraphicsCommandQueue& Graphics::GetCommandQueue() {
 		return g_graphicsContext->GetCommandQueue();
 	}
 
-	void Graphics::CaptureRenderTargetTex(Ref<Texture2D>& dstTexture) {
-		g_graphicsContext->CaptureRenderTargetTex(dstTexture);
+	Ref<GraphicsMultiRenderTarget> Graphics::CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) {
+		return g_graphicsContext->CreateMultiRenderTarget(desc);
 	}
 
 	void Graphics::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -87,10 +109,6 @@ namespace flaw {
 
 	void Graphics::GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) {
 		g_graphicsContext->GetViewport(x, y, width, height);
-	}
-
-	void Graphics::SetClearColor(float r, float g, float b, float a) {
-		g_graphicsContext->SetClearColor(r, g, b, a);
 	}
 
 	void Graphics::Resize(int32_t width, int32_t height) {

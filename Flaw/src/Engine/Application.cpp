@@ -69,10 +69,7 @@ namespace flaw {
 		_eventDispatcher.Register<MousePressEvent>([this](const MousePressEvent& event) { Input::OnMousePress(event.button); }, PID(this));
 		_eventDispatcher.Register<MouseReleaseEvent>([this](const MouseReleaseEvent& event) { Input::OnMouseRelease(event.button); }, PID(this));
 		_eventDispatcher.Register<MouseScrollEvent>([this](const MouseScrollEvent& event) { Input::OnMouseScroll(event.xOffset, event.yOffset); }, PID(this));
-		_eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& event) { 
-			Graphics::Resize(event.frameBufferWidth, event.frameBufferHeight); 
-			Graphics::SetViewport(0, 0, event.frameBufferWidth, event.frameBufferHeight);
-		}, PID(this));
+		_eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& event) { Graphics::Resize(event.frameBufferWidth, event.frameBufferHeight); Graphics::SetViewport(0, 0, event.frameBufferWidth, event.frameBufferHeight); }, PID(this));
 		_eventDispatcher.Register<WindowIconifyEvent>([this](const WindowIconifyEvent& event) { _minimized = event.iconified; }, PID(this));
 		_eventDispatcher.Register<WindowFocusEvent>([this](const WindowFocusEvent& event) { if (!event.focused) { Input::Reset(); } }, PID(this));
 

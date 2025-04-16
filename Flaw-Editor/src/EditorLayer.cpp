@@ -378,15 +378,20 @@ namespace flaw {
         auto& enttRegistry = scene->GetRegistry();
 		auto& skyBoxSystem = scene->GetSkyBoxSystem();
 		auto& particleSys = scene->GetParticleSystem();
-
-        scene->UpdateTransform();
-        skyBoxSystem.Update();
-		particleSys.Update();
+		auto& renderSys = scene->GetRenderSystem();
 
         RenderEnvironment renderEnv;
 		renderEnv.view = _camera.GetViewMatrix();
 		renderEnv.projection = _camera.GetProjectionMatrix();
 
+        scene->UpdateTransform();
+		renderSys.Update(renderEnv.view, renderEnv.projection);
+        skyBoxSystem.Update();
+		particleSys.Update();
+
+        renderSys.Render();
+
+#if false
         for (auto&& [entity, transform, skyLight] : enttRegistry.view<TransformComponent, SkyLightComponent>().each()) {
             // Skylight는 하나만 존재해야 함
             renderEnv.skyLight.color = skyLight.color;
@@ -422,13 +427,14 @@ namespace flaw {
 			light.range = spotLight.range;
 			renderEnv.spotLights.push_back(std::move(light));
 		}
+#endif
 
         // draw sprite
         Renderer2D::Begin(renderEnv.view, renderEnv.projection);
 		Renderer::Begin(renderEnv);
 
 		skyBoxSystem.Render(renderEnv.view, renderEnv.projection);
-
+#if true
         for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
             if (!textureAsset) {
@@ -445,42 +451,7 @@ namespace flaw {
 			    Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
-
-        for (auto&& [entity, transform, meshFilter, meshRenderer] : enttRegistry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
-            // TODO: 테스트 코드
-			static Material defaultMaterial;
-            if (!defaultMaterial.albedoTexture) {
-				Image image("Resources/PavingStone_albedo.jpg", 4);
-
-				Texture2D::Descriptor desc = {};
-				desc.width = image.Width();
-				desc.height = image.Height();
-                desc.format = PixelFormat::RGBA8;
-				desc.data = image.Data().data();
-				desc.usage = UsageFlag::Static;
-				desc.bindFlags = BindFlag::ShaderResource;
-
-				defaultMaterial.albedoTexture = _graphicsContext.CreateTexture2D(desc);
-            }
-
-            if (!defaultMaterial.normalTexture) {
-                Image image("Resources/PavingStone_normal.jpg", 4);
-
-                Texture2D::Descriptor desc = {};
-                desc.width = image.Width();
-                desc.height = image.Height();
-                desc.format = PixelFormat::RGBA8;
-                desc.data = image.Data().data();
-                desc.usage = UsageFlag::Static;
-                desc.bindFlags = BindFlag::ShaderResource;
-
-                defaultMaterial.normalTexture = _graphicsContext.CreateTexture2D(desc);
-            }
-
-			//Renderer::DrawCube((uint32_t)entity, transform.worldTransform);
-            Renderer::DrawSphere((uint32_t)entity, transform.worldTransform, defaultMaterial);
-        }
-
+#endif
 		Renderer2D::End();
 		Renderer::End();
 

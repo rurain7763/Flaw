@@ -39,6 +39,8 @@ namespace flaw {
 		void SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) override;
 		void Dispatch(uint32_t x, uint32_t y, uint32_t z) override;
 
+		void ResetAllTextures() override;
+
 		void Begin() override;
 		void End() override;
 		void Execute() override;

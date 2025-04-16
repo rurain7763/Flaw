@@ -15,7 +15,7 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 namespace flaw {
-	static DXGI_FORMAT GetFormat(PixelFormat format) {
+	static DXGI_FORMAT ConvertToDXGIFormat(PixelFormat format) {
 		switch (format) {
 		case PixelFormat::BGRX8:
 			return DXGI_FORMAT_B8G8R8X8_UNORM;
@@ -36,7 +36,7 @@ namespace flaw {
 		}
 	}
 
-	static D3D11_USAGE GetUsage(const UsageFlag usage) {
+	static D3D11_USAGE ConvertD3D11Usage(const UsageFlag usage) {
 		switch (usage)
 		{
 		case UsageFlag::Static:
@@ -50,7 +50,7 @@ namespace flaw {
 		throw std::runtime_error("Unknown usage flag");
 	}
 
-	static uint32_t GetAccessFlag(const uint32_t access) {
+	static uint32_t ConvertD3D11Access(const uint32_t access) {
 		uint32_t accessFlag = 0;
 		if (access & AccessFlag::Write) {
 			accessFlag |= D3D11_CPU_ACCESS_WRITE;
@@ -61,7 +61,7 @@ namespace flaw {
 		return accessFlag;
 	}
 
-	static uint32_t GetBindFlags(uint32_t flags) {
+	static uint32_t ConvertD3D11Bind(uint32_t flags) {
 		uint32_t bindFlags = 0;
 
 		if (flags & BindFlag::ShaderResource) {
@@ -81,5 +81,27 @@ namespace flaw {
 		}
 
 		return bindFlags;
+	}
+
+	static void GetBlend(BlendMode blendMode, D3D11_BLEND& outSrcBlend, D3D11_BLEND& outDestBlend) {
+		switch (blendMode)
+		{
+		case BlendMode::Default:
+			outSrcBlend = D3D11_BLEND_ONE;
+			outDestBlend = D3D11_BLEND_ZERO;
+			break;
+		case BlendMode::Alpha:
+			outSrcBlend = D3D11_BLEND_SRC_ALPHA;
+			outDestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			break;
+		case BlendMode::Additive:
+			outSrcBlend = D3D11_BLEND_SRC_ALPHA;
+			outDestBlend = D3D11_BLEND_ONE;
+			break;
+		default:
+			outSrcBlend = D3D11_BLEND_ONE;
+			outDestBlend = D3D11_BLEND_ZERO;
+			break;
+		}
 	}
 }

@@ -52,6 +52,9 @@ namespace flaw {
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+		virtual PixelFormat GetPixelFormat() const = 0;
+		virtual UsageFlag GetUsage() const = 0;
+		virtual uint32_t GetBindFlags() const = 0;
 	};
 
 	class TextureCube : public Texture {

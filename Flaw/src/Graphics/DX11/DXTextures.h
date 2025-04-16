@@ -34,10 +34,14 @@ namespace flaw {
 
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
+		PixelFormat GetPixelFormat() const override { return _format; }
+		UsageFlag GetUsage() const override { return _usage; }
+		uint32_t GetBindFlags() const override { return _bindFlags; }
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
 		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
 		ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return _rtv; }
+		ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const { return _dsv; }
 
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
@@ -62,6 +66,7 @@ namespace flaw {
 		PixelFormat _format;
 		UsageFlag _usage;
 		uint32_t _acessFlags;
+		uint32_t _bindFlags;
 
 		uint32_t _width;
 		uint32_t _height;

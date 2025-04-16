@@ -203,9 +203,6 @@
     <ClInclude Include="src\Graphics\GraphicsType.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="src\Graphics\Material.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="src\Graphics\Mesh.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -289,6 +286,9 @@
     <ClInclude Include="src\Engine\Renderer.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Graphics\DX11\DXType.h" />
+    <ClInclude Include="src\Graphics\DX11\DXMultiRenderTarget.h" />
+    <ClInclude Include="src\Graphics\GraphicsMultiRenderTarget.h" />
+    <ClInclude Include="src\Engine\RenderSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -418,5 +418,7 @@
     <ClCompile Include="src\Engine\Renderer.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXMultiRenderTarget.cpp" />
+    <ClCompile Include="src\Engine\RenderSystem.cpp" />
   </ItemGroup>
 </Project>
