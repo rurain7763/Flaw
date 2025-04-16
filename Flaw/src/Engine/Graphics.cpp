@@ -22,7 +22,7 @@ namespace flaw {
 			break;
 		}
 
-		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+		auto mainMrt = Graphics::GetMainRenderPass();
 
 		Texture2D::Descriptor desc = {};
 		desc.width = width;
@@ -83,24 +83,16 @@ namespace flaw {
 		return g_graphicsContext->CreateTextureCube(descriptor);
 	}
 
-	Ref<GraphicsMultiRenderTarget> Graphics::GetMainMultiRenderTarget() {
-		return g_graphicsContext->GetMainMultiRenderTarget();
-	}
-
-	void Graphics::SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor, bool clearDepthStencil) {
-		g_graphicsContext->SetMultiRenderTarget(multiRenderTarget, clearColor, clearDepthStencil);
-	}
-
-	void Graphics::ResetMultiRenderTarget() {
-		g_graphicsContext->ResetMultiRenderTarget();
+	Ref<GraphicsRenderPass> Graphics::GetMainRenderPass() {
+		return g_graphicsContext->GetMainRenderPass();
 	}
 
 	GraphicsCommandQueue& Graphics::GetCommandQueue() {
 		return g_graphicsContext->GetCommandQueue();
 	}
 
-	Ref<GraphicsMultiRenderTarget> Graphics::CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) {
-		return g_graphicsContext->CreateMultiRenderTarget(desc);
+	Ref<GraphicsRenderPass> Graphics::CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) {
+		return g_graphicsContext->CreateRenderPass(desc);
 	}
 
 	void Graphics::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {

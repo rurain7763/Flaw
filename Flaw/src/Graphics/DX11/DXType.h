@@ -83,7 +83,7 @@ namespace flaw {
 		return bindFlags;
 	}
 
-	static void GetBlend(BlendMode blendMode, D3D11_BLEND& outSrcBlend, D3D11_BLEND& outDestBlend) {
+	static void ConvertD3D11Blend(BlendMode blendMode, D3D11_BLEND& outSrcBlend, D3D11_BLEND& outDestBlend) {
 		switch (blendMode)
 		{
 		case BlendMode::Default:
@@ -103,5 +103,29 @@ namespace flaw {
 			outDestBlend = D3D11_BLEND_ZERO;
 			break;
 		}
+	}
+
+	static D3D11_COMPARISON_FUNC ConvertD3D11DepthTest(DepthTest depthTest) {
+		switch (depthTest)
+		{
+		case DepthTest::Less:
+			return D3D11_COMPARISON_LESS;
+		case DepthTest::LessEqual:
+			return D3D11_COMPARISON_LESS_EQUAL;
+		case DepthTest::Greater:
+			return D3D11_COMPARISON_GREATER;
+		case DepthTest::GreaterEqual:
+			return D3D11_COMPARISON_GREATER_EQUAL;
+		case DepthTest::Equal:
+			return D3D11_COMPARISON_EQUAL;
+		case DepthTest::NotEqual:
+			return D3D11_COMPARISON_NOT_EQUAL;
+		case DepthTest::Always:
+			return D3D11_COMPARISON_ALWAYS;
+		case DepthTest::Never:
+			return D3D11_COMPARISON_NEVER;
+		}
+
+		return D3D11_COMPARISON_LESS;
 	}
 }

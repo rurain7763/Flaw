@@ -103,7 +103,7 @@ namespace flaw {
 		Graphics::GetSize(width, height);
 
 		// object MRT
-		GraphicsMultiRenderTarget::Descriptor objMRTDesc = {};
+		GraphicsRenderPass::Descriptor objMRTDesc = {};
 		objMRTDesc.renderTargets.resize(3);
 
 		Texture2D::Descriptor texDesc = {};
@@ -126,15 +126,15 @@ namespace flaw {
 		objMRTDesc.renderTargets[2].texture = Graphics::CreateTexture2D(texDesc);
 		objMRTDesc.renderTargets[2].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		objMRTDesc.depthStencil.texture = Graphics::GetMainMultiRenderTarget()->GetDepthStencilTex();
+		objMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		objMRTDesc.depthStencil.resizeFunc = [](int32_t width, int32_t height) {
-			return Graphics::GetMainMultiRenderTarget()->GetDepthStencilTex();
+			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		};
 
-		_geometryMRT = Graphics::CreateMultiRenderTarget(objMRTDesc);
+		_geometryPass = Graphics::CreateRenderPass(objMRTDesc);
 
 		// light MRT
-		GraphicsMultiRenderTarget::Descriptor lightMRTDesc = {};
+		GraphicsRenderPass::Descriptor lightMRTDesc = {};
 		lightMRTDesc.renderTargets.resize(2);
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
@@ -149,7 +149,7 @@ namespace flaw {
 		lightMRTDesc.renderTargets[1].texture = Graphics::CreateTexture2D(texDesc);
 		lightMRTDesc.renderTargets[1].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		_lightingMRT = Graphics::CreateMultiRenderTarget(lightMRTDesc);
+		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
 
 	void RenderSystem::CreateBatchedBuffers() {
@@ -403,9 +403,9 @@ namespace flaw {
 	}
 
 	void RenderSystem::RenderGeometry(CameraRenderStage& stage) {
-		auto& cmdQueue = Graphics::GetCommandQueue();
+		_geometryPass->Bind();
 
-		Graphics::SetMultiRenderTarget(_geometryMRT);
+		auto& cmdQueue = Graphics::GetCommandQueue();
 
 		while (!stage.renderQueue.Empty()) {
 			auto& entry = stage.renderQueue.Front();
@@ -494,13 +494,13 @@ namespace flaw {
 			stage.renderQueue.Pop();
 		}
 
-		Graphics::ResetMultiRenderTarget();
+		_geometryPass->Unbind();
 	}
 
 	void RenderSystem::RenderDefferdLighting(CameraRenderStage& stage) {
-		auto& cmdQueue = Graphics::GetCommandQueue();
+		_lightingPass->Bind();
 
-		Graphics::SetMultiRenderTarget(_lightingMRT);
+		auto& cmdQueue = Graphics::GetCommandQueue();
 
 		//TODO: temp
 		static bool init = false;
@@ -584,15 +584,16 @@ namespace flaw {
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 	
 		_pipeline->SetShader(g_directionalLightShader);
-		_pipeline->SetCullMode(CullMode::None);
+		_pipeline->SetCullMode(CullMode::Back);
+		_pipeline->SetDepthTest(DepthTest::Disabled, false);
 
 		cmdQueue.SetPipeline(_pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetStructuredBuffer(_directionalLightSB, 0);
-		cmdQueue.SetTexture(_geometryMRT->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_geometryMRT->GetRenderTargetTex(1), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(0), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(1), 2);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.End();
@@ -605,23 +606,24 @@ namespace flaw {
 
 		_pipeline->SetShader(g_pointLightShader);
 		_pipeline->SetCullMode(CullMode::Front);
+		_pipeline->SetDepthTest(DepthTest::Disabled, false);
 
 		cmdQueue.SetPipeline(_pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetStructuredBuffer(_pointLightSB, 0);
-		cmdQueue.SetTexture(_geometryMRT->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_geometryMRT->GetRenderTargetTex(1), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(0), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(1), 2);
 		cmdQueue.SetVertexBuffer(g_sphereVB);
 		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), _lightConstants.numPointLights);
 		cmdQueue.End();
 
 		cmdQueue.Execute();
 
-		// render spot light
+		// TODO: render spot light
 
-		Graphics::ResetMultiRenderTarget();
+		_lightingPass->Unbind();
 	}
 
 	void RenderSystem::RenderTransparent(CameraRenderStage& stage) {
@@ -690,9 +692,9 @@ namespace flaw {
 
 		cmdQueue.SetPipeline(_pipeline);
 
-		cmdQueue.SetTexture(_geometryMRT->GetRenderTargetTex(2), 0);
-		cmdQueue.SetTexture(_lightingMRT->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_lightingMRT->GetRenderTargetTex(1), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(2), 0);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(0), 1);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(1), 2);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.ResetAllTextures();

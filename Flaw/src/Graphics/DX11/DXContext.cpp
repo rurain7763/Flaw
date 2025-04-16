@@ -12,7 +12,7 @@
 #include "DXTextures.h"
 #include "DXComputeShader.h"
 #include "DXComputePipeline.h"
-#include "DXMultiRenderTarget.h"
+#include "DXRenderPass.h"
 
 namespace flaw {
 	DXContext::DXContext(PlatformContext& context, int32_t width, int32_t height) {
@@ -53,9 +53,11 @@ namespace flaw {
 			return;
 		}
 
-		if (CreateMultiRenderTarget()) {
+		if (CreateMainRenderPass()) {
 			return;
 		}
+
+		_currentRenderPass = _mainRenderPass.get();
 
 		ID3D11SamplerState* samplerState = CreateSamplerState(
 			D3D11_FILTER_MIN_MAG_MIP_LINEAR,
@@ -93,11 +95,8 @@ namespace flaw {
 	}
 
 	void DXContext::Prepare() {
-		std::vector<ID3D11RenderTargetView*> renderTargets;
-
-		_mainMultiRenderTarget->ClearAllRenderTargets();
-		_mainMultiRenderTarget->ClearDepthStencil();
-		_mainMultiRenderTarget->Bind();
+		_currentRenderPass = _mainRenderPass.get();
+		_currentRenderPass->Bind();
 
 		_deviceContext->RSSetViewports(1, &_viewPort);
 	}
@@ -138,36 +137,16 @@ namespace flaw {
 		return CreateRef<DXTextureCube>(*this, descriptor);
 	}
 
-	Ref<GraphicsMultiRenderTarget> DXContext::GetMainMultiRenderTarget() {
-		return _mainMultiRenderTarget;
-	}
-
-	void DXContext::SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor, bool clearDepthStencil) {
-		_userMultiRenderTarget = multiRenderTarget;
-		_userMultiRenderTarget->Resize(_renderWidth, _renderHeight);
-
-		if (clearColor) {
-			_userMultiRenderTarget->ClearAllRenderTargets();
-		}
-
-		if (clearDepthStencil) {
-			_userMultiRenderTarget->ClearDepthStencil();
-		}
-
-		_userMultiRenderTarget->Bind();
-	}
-
-	void DXContext::ResetMultiRenderTarget() {
-		_userMultiRenderTarget.reset();
-		_mainMultiRenderTarget->Bind();
+	Ref<GraphicsRenderPass> DXContext::GetMainRenderPass() {
+		return _mainRenderPass;
 	}
 
 	GraphicsCommandQueue& DXContext::GetCommandQueue() {
 		return *_commandQueue;
 	}
 
-	Ref<GraphicsMultiRenderTarget> DXContext::CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) {
-		return CreateRef<DXMultiRenderTarget>(*this, desc);
+	Ref<GraphicsRenderPass> DXContext::CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) {
+		return CreateRef<DXRenderPass>(*this, desc);
 	}
 
 	void DXContext::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
@@ -199,12 +178,6 @@ namespace flaw {
 
 		_renderWidth = width;
 		_renderHeight = height;
-
-		_mainMultiRenderTarget->Resize(width, height);
-
-		if (_userMultiRenderTarget) {
-			_userMultiRenderTarget->Resize(width, height);
-		}
 	}
 
 	void DXContext::GetSize(int32_t& width, int32_t& height) {
@@ -245,14 +218,14 @@ namespace flaw {
 		return 0;
 	}
 
-	int32_t DXContext::CreateMultiRenderTarget() {
+	int32_t DXContext::CreateMainRenderPass() {
 		ComPtr<ID3D11Texture2D> backBuffer;
 		if (FAILED(_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)backBuffer.GetAddressOf()))) {
 			Log::Error("GetBuffer failed");
 			return -1;
 		}
 
-		GraphicsMultiRenderTarget::Descriptor mrtDesc = {};
+		GraphicsRenderPass::Descriptor mrtDesc = {};
 		mrtDesc.renderTargets.resize(1);
 		mrtDesc.renderTargets[0].texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
 		mrtDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -288,7 +261,7 @@ namespace flaw {
 			return CreateTexture2D(desc);
 		};
 
-		_mainMultiRenderTarget = CreateRef<DXMultiRenderTarget>(*this, mrtDesc);
+		_mainRenderPass = CreateRef<DXRenderPass>(*this, mrtDesc);
 
 		return 0;
 	}

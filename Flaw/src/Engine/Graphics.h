@@ -153,13 +153,11 @@ namespace flaw {
 		static Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor);
 		static Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor);
 
-		static Ref<GraphicsMultiRenderTarget> GetMainMultiRenderTarget();
-		static void SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor = true, bool clearDepthStencil = true);
-		static void ResetMultiRenderTarget();
+		static Ref<GraphicsRenderPass> GetMainRenderPass();
 
 		static GraphicsCommandQueue& GetCommandQueue();
 
-		static Ref<GraphicsMultiRenderTarget> CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc);
+		static Ref<GraphicsRenderPass> CreateRenderPass(const GraphicsRenderPass::Descriptor& desc);
 
 		static void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height);
 		static void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height);

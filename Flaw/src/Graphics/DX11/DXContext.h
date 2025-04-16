@@ -38,13 +38,11 @@ namespace flaw {
 		Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) override;
 		Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor) override;
 
-		Ref<GraphicsMultiRenderTarget> GetMainMultiRenderTarget() override;
-		void SetMultiRenderTarget(Ref<GraphicsMultiRenderTarget> multiRenderTarget, bool clearColor = true, bool clearDepthStencil = true) override;
-		void ResetMultiRenderTarget() override;
+		Ref<GraphicsRenderPass> GetMainRenderPass() override;
 
 		GraphicsCommandQueue& GetCommandQueue() override;
 
-		Ref<GraphicsMultiRenderTarget> CreateMultiRenderTarget(const GraphicsMultiRenderTarget::Descriptor& desc) override;
+		Ref<GraphicsRenderPass> CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) override;
 
 		void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
 		void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) override;
@@ -55,13 +53,22 @@ namespace flaw {
 		Ref<ComputeShader> CreateComputeShader(const char* filename) override;
 		Ref<ComputePipeline> CreateComputePipeline() override;
 
+		inline void SetRenderPass(GraphicsRenderPass* renderPass) { _currentRenderPass = renderPass; }
+
+		inline void ResetRenderPass() {
+			_currentRenderPass = _mainRenderPass.get();
+			_mainRenderPass->Bind(false, false);
+		}
+
+		inline GraphicsRenderPass* GetRenderPass() const { return _currentRenderPass; }
+
 		inline ComPtr<ID3D11Device> Device() const { return _device; }
 		inline ComPtr<ID3D11DeviceContext> DeviceContext() const { return _deviceContext; }
 		inline ComPtr<IDXGISwapChain> SwapChain() const { return _swapChain; }
 
 	private:
 		int32_t CreateSwapChain();
-		int32_t CreateMultiRenderTarget();
+		int32_t CreateMainRenderPass();
 
 		ID3D11SamplerState* CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v);
 
@@ -82,8 +89,8 @@ namespace flaw {
 
 		ComPtr<IDXGISwapChain> _swapChain;
 
-		Ref<GraphicsMultiRenderTarget> _mainMultiRenderTarget;
-		Ref<GraphicsMultiRenderTarget> _userMultiRenderTarget;
+		Ref<GraphicsRenderPass> _mainRenderPass;
+		GraphicsRenderPass* _currentRenderPass;
 
 		Ref<Texture2D> _depthStencil;
 

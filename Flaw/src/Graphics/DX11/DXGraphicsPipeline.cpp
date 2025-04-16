@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DXGraphicsPipeline.h"
-
+#include "DXType.h"
 #include "DXContext.h"
 #include "Log/Log.h"
 
@@ -10,7 +10,7 @@ namespace flaw {
 	{
 		_rasterizerState = CreateRasterizerState(D3D11_FILL_SOLID, D3D11_CULL_BACK);
 
-		_depthStencilState = CreateDepthStencilState(D3D11_COMPARISON_LESS, D3D11_DEPTH_WRITE_MASK_ALL);
+		_depthStencilState = CreateDepthStencilState(true, D3D11_COMPARISON_LESS, D3D11_DEPTH_WRITE_MASK_ALL);
 		if (!_depthStencilState) {
 			Log::Error("CreateDepthStencilState failed");
 			return;
@@ -25,10 +25,10 @@ namespace flaw {
 		_depthTest = depthTest;
 		_depthWrite = depthWrite;
 
-		D3D11_COMPARISON_FUNC depthFunc = GetDepthTest(depthTest);
+		D3D11_COMPARISON_FUNC depthFunc = ConvertD3D11DepthTest(depthTest);
 		D3D11_DEPTH_WRITE_MASK writeMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 
-		_depthStencilState = CreateDepthStencilState(depthFunc, writeMask);
+		_depthStencilState = CreateDepthStencilState(depthTest != DepthTest::Disabled, depthFunc, writeMask);
 	}
 
 	void DXGraphicsPipeline::SetCullMode(CullMode cullMode) {
@@ -52,7 +52,7 @@ namespace flaw {
 	}
 
 	void DXGraphicsPipeline::SetBlendMode(BlendMode blendMode, bool alphaToCoverage) {
-		auto& mainMRT = _context.GetMainMultiRenderTarget();
+		auto& mainMRT = _context.GetMainRenderPass();
 		mainMRT->SetBlendMode(0, blendMode, alphaToCoverage);
 	}
 
@@ -60,30 +60,6 @@ namespace flaw {
 		_shader->Bind();
 		_context.DeviceContext()->RSSetState(_rasterizerState.Get());
 		_context.DeviceContext()->OMSetDepthStencilState(_depthStencilState.Get(), 0);
-	}
-
-	D3D11_COMPARISON_FUNC DXGraphicsPipeline::GetDepthTest(DepthTest depthTest) {
-		switch (depthTest)
-		{
-		case DepthTest::Less:
-			return D3D11_COMPARISON_LESS;
-		case DepthTest::LessEqual:
-			return D3D11_COMPARISON_LESS_EQUAL;
-		case DepthTest::Greater:
-			return D3D11_COMPARISON_GREATER;
-		case DepthTest::GreaterEqual:
-			return D3D11_COMPARISON_GREATER_EQUAL;
-		case DepthTest::Equal:
-			return D3D11_COMPARISON_EQUAL;
-		case DepthTest::NotEqual:
-			return D3D11_COMPARISON_NOT_EQUAL;
-		case DepthTest::Always:
-			return D3D11_COMPARISON_ALWAYS;
-		case DepthTest::Never:
-			return D3D11_COMPARISON_NEVER;
-		}
-
-		return D3D11_COMPARISON_LESS;
 	}
 
 	D3D11_FILL_MODE DXGraphicsPipeline::GetFillMode(FillMode fillMode) {
@@ -125,15 +101,9 @@ namespace flaw {
 		return rasterizerState;
 	}
 
-	ComPtr<ID3D11DepthStencilState> DXGraphicsPipeline::CreateDepthStencilState(D3D11_COMPARISON_FUNC depthTest, D3D11_DEPTH_WRITE_MASK writeMask) {
-		DepthStencilStateKey key(depthTest, writeMask);
-		auto it = _depthStencilStateStore.find(key);
-		if (it != _depthStencilStateStore.end()) {
-			return it->second;
-		}
-		
+	ComPtr<ID3D11DepthStencilState> DXGraphicsPipeline::CreateDepthStencilState(bool enableDepthTest, D3D11_COMPARISON_FUNC depthTest, D3D11_DEPTH_WRITE_MASK writeMask) {
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
-		depthStencilDesc.DepthEnable = TRUE;
+		depthStencilDesc.DepthEnable = enableDepthTest;
 		depthStencilDesc.DepthFunc = depthTest;
 		depthStencilDesc.DepthWriteMask = writeMask;
 		depthStencilDesc.StencilEnable = FALSE;
@@ -142,8 +112,6 @@ namespace flaw {
 		if (FAILED(_context.Device()->CreateDepthStencilState(&depthStencilDesc, &depthStencilState))) {
 			return nullptr;
 		}
-
-		_depthStencilStateStore.emplace(key, depthStencilState);
 
 		return depthStencilState;
 	}

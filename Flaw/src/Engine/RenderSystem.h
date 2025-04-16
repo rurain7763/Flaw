@@ -91,8 +91,8 @@ namespace flaw {
 
 		Scene& _scene;
 
-		Ref<GraphicsMultiRenderTarget> _geometryMRT; // 0 : position, 1 : normal, 2 : objectColor
-		Ref<GraphicsMultiRenderTarget> _lightingMRT; // 0 : diffuse, 1 : specular
+		Ref<GraphicsRenderPass> _geometryPass; // 0 : position, 1 : normal, 2 : objectColor
+		Ref<GraphicsRenderPass> _lightingPass; // 0 : diffuse, 1 : specular
 
 		std::vector<CameraRenderStage> _renderStages;
 

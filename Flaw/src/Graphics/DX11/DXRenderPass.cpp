@@ -1,12 +1,12 @@
 #include "pch.h"
-#include "DXMultiRenderTarget.h"
+#include "DXRenderPass.h"
 #include "DXContext.h"
 #include "DXTextures.h"
 #include "Log/Log.h"
 #include "DXType.h"
 
 namespace flaw {
-	DXMultiRenderTarget::DXMultiRenderTarget(DXContext& context, const Descriptor& desc)
+	DXRenderPass::DXRenderPass(DXContext& context, const Descriptor& desc)
 		: _context(context) 
 	{
 		if (desc.renderTargets.size() > MaxRenderTargets) {
@@ -20,7 +20,26 @@ namespace flaw {
 		CreateBlendState();
 	}
 
-	void DXMultiRenderTarget::Bind() {
+	DXRenderPass::~DXRenderPass() {
+		Unbind();
+	}
+
+	void DXRenderPass::Bind(bool clearColor, bool clearDepthStencil) {
+		int32_t width, height;
+		_context.GetSize(width, height);
+
+		Resize(width, height);
+
+		if (clearColor) {
+			ClearAllRenderTargets();
+		}
+
+		if (clearDepthStencil) {
+			ClearDepthStencil();
+		}
+
+		_context.SetRenderPass(this);
+
 		std::vector<ID3D11RenderTargetView*> rtvArray(_renderTargets.size());
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
 			rtvArray[i] = std::static_pointer_cast<DXTexture2D>(_renderTargets[i].texture)->GetRenderTargetView().Get();
@@ -35,7 +54,15 @@ namespace flaw {
 		_context.DeviceContext()->OMSetBlendState(_blendState.Get(), nullptr, 0xffffffff);
 	}
 
-	void DXMultiRenderTarget::Resize(int32_t width, int32_t height) {
+	void DXRenderPass::Unbind() {
+		if (_context.GetRenderPass() != this) {
+			return;
+		}
+
+		_context.ResetRenderPass();
+	}
+
+	void DXRenderPass::Resize(int32_t width, int32_t height) {
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
 			auto& renderTarget = _renderTargets[i];
 
@@ -89,7 +116,7 @@ namespace flaw {
 		}
 	}
 
-	void DXMultiRenderTarget::PushRenderTarget(const GraphicsRenderTarget& renderTarget) {
+	void DXRenderPass::PushRenderTarget(const GraphicsRenderTarget& renderTarget) {
 		if (_renderTargets.size() >= MaxRenderTargets) {
 			Log::Error("DXMultiRenderTarget::PushRenderTarget: Max render targets reached");
 			return;
@@ -98,7 +125,7 @@ namespace flaw {
 		CreateBlendState();
 	}
 
-	void DXMultiRenderTarget::PopRenderTarget() {
+	void DXRenderPass::PopRenderTarget() {
 		if (_renderTargets.size() <= 1) {
 			Log::Error("DXMultiRenderTarget::PopRenderTarget: No render targets to pop");
 			return;
@@ -107,7 +134,7 @@ namespace flaw {
 		CreateBlendState();
 	}
 
-	void DXMultiRenderTarget::SetBlendMode(int32_t slot, BlendMode blendMode, bool alphaToCoverage) {
+	void DXRenderPass::SetBlendMode(int32_t slot, BlendMode blendMode, bool alphaToCoverage) {
 		FASSERT(slot >= 0 && slot < _renderTargets.size(), "Invalid render target slot");
 
 		auto& renderTarget = _renderTargets[slot];
@@ -122,30 +149,30 @@ namespace flaw {
 		CreateBlendState();
 	}
 
-	Ref<Texture2D> DXMultiRenderTarget::GetRenderTargetTex(int32_t slot) {
+	Ref<Texture2D> DXRenderPass::GetRenderTargetTex(int32_t slot) {
 		FASSERT(slot >= 0 && slot < _renderTargets.size(), "Invalid render target slot");
 		return _renderTargets[slot].texture;
 	}
 
-	Ref<Texture2D> DXMultiRenderTarget::GetDepthStencilTex() {
+	Ref<Texture2D> DXRenderPass::GetDepthStencilTex() {
 		return _depthStencil.texture;
 	}
 
-	void DXMultiRenderTarget::ClearAllRenderTargets() {
+	void DXRenderPass::ClearAllRenderTargets() {
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
 			auto dxTexture = std::static_pointer_cast<DXTexture2D>(_renderTargets[i].texture);
 			_context.DeviceContext()->ClearRenderTargetView(dxTexture->GetRenderTargetView().Get(), _renderTargets[i].clearValue.data());
 		}
 	}
 
-	void DXMultiRenderTarget::ClearDepthStencil() {
+	void DXRenderPass::ClearDepthStencil() {
 		if (_depthStencil.texture) {
 			auto dxTexture = std::static_pointer_cast<DXTexture2D>(_depthStencil.texture);
 			_context.DeviceContext()->ClearDepthStencilView(dxTexture->GetDepthStencilView().Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		}
 	}
 
-	void DXMultiRenderTarget::CreateBlendState() {
+	void DXRenderPass::CreateBlendState() {
 		D3D11_BLEND_DESC blendDesc = {};
 		blendDesc.IndependentBlendEnable = TRUE;
 
@@ -160,7 +187,7 @@ namespace flaw {
 			}
 
 			renderTargetDesc.BlendEnable = TRUE;
-			GetBlend(renderTarget.blendMode, renderTargetDesc.SrcBlend, renderTargetDesc.DestBlend);
+			ConvertD3D11Blend(renderTarget.blendMode, renderTargetDesc.SrcBlend, renderTargetDesc.DestBlend);
 			renderTargetDesc.BlendOp = D3D11_BLEND_OP_ADD;
 			renderTargetDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
 			renderTargetDesc.DestBlendAlpha = D3D11_BLEND_ZERO;

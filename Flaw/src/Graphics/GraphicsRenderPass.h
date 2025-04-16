@@ -21,16 +21,18 @@ namespace flaw {
 		std::function<Ref<Texture2D>(int32_t width, int32_t height)> resizeFunc;
 	};
 
-	class GraphicsMultiRenderTarget {
+	class GraphicsRenderPass {
 	public:
 		struct Descriptor {
 			std::vector<GraphicsRenderTarget> renderTargets;
 			GraphicsDepthStencil depthStencil;
 		};
 
-		virtual ~GraphicsMultiRenderTarget() = default;
+		virtual ~GraphicsRenderPass() = default;
 
-		virtual void Bind() = 0;
+		virtual void Bind(bool clearColor = true, bool clearDepthStencil = true) = 0;
+		virtual void Unbind() = 0;
+
 		virtual void Resize(int32_t width, int32_t height) = 0;
 
 		virtual void PushRenderTarget(const GraphicsRenderTarget& renderTarget) = 0;

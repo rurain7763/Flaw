@@ -55,7 +55,8 @@ namespace flaw {
 		Equal,
 		NotEqual,
 		Always,
-		Never
+		Never,
+		Disabled,
 	};
 
 	enum class BlendMode {

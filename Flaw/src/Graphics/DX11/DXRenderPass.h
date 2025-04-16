@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/GraphicsMultiRenderTarget.h"
+#include "Graphics/GraphicsRenderPass.h"
 
 #include <Windows.h>
 #include <wrl.h>
@@ -17,11 +17,14 @@ namespace flaw {
 	class DXContext;
 	class DXTexture2D;
 
-	class DXMultiRenderTarget : public GraphicsMultiRenderTarget {
+	class DXRenderPass : public GraphicsRenderPass {
 	public:
-		DXMultiRenderTarget(DXContext& context, const Descriptor& desc);
+		DXRenderPass(DXContext& context, const Descriptor& desc);
+		~DXRenderPass();
 
-		void Bind() override;
+		void Bind(bool clearColor = true, bool clearDepthStencil = true) override;
+		void Unbind() override;
+
 		void Resize(int32_t width, int32_t height) override;
 
 		void PushRenderTarget(const GraphicsRenderTarget& renderTarget) override;

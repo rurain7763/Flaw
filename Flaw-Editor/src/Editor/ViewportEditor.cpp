@@ -90,7 +90,7 @@ namespace flaw {
             DrawDebugComponent();
         }
 
-		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+		auto mainMrt = Graphics::GetMainRenderPass();
 		auto renderTargetTex = mainMrt->GetRenderTargetTex(0);
 
         renderTargetTex->CopyTo(_captureRenderTargetTexture);
@@ -203,7 +203,7 @@ namespace flaw {
     }
 
     uint32_t ViewportEditor::MousePicking(int32_t x, int32_t y) {
-		auto mainMrt = Graphics::GetMainMultiRenderTarget();
+		auto mainMrt = Graphics::GetMainRenderPass();
 		auto idRenderTargetTex = mainMrt->GetRenderTargetTex(1);
 
 		if (x < 0 || x >= idRenderTargetTex->GetWidth() || y < 0 || y >= idRenderTargetTex->GetHeight()) {
