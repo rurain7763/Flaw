@@ -221,7 +221,7 @@ namespace flaw {
 
 			commandQueue.DrawIndexed(g_ib, g_textIndexCount);
 		}
-
+		
 		commandQueue.End();
 
 		commandQueue.Execute();

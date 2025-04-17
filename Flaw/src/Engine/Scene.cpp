@@ -421,7 +421,7 @@ namespace flaw {
 
 			// draw skybox
 			// TODO: 한번만 그려야 할까? 아니면 각 카메라마다 그려야 할까?
-			_skyBoxSystem->Render(matrices.view, matrices.projection);
+			_skyBoxSystem->Render();
 
 			// draw sprite
 			for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {

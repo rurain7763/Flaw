@@ -5,6 +5,7 @@
 namespace flaw {
 	class DebugRender {
 	public:
+		static void DrawCube(const mat4& transform, const vec3& color);
 		static void DrawSphere(const mat4& transform, const float radius, const vec3& color);
 		static void DrawCone(const mat4& transform, const float height, const float outer, const float inner, const vec3& color);
 	};

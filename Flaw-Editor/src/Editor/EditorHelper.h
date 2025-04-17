@@ -9,6 +9,14 @@
 namespace flaw {
 	class EditorHelper {
 	public:
+		static void DrawTitle(const std::string& title, const vec3& color = { 0.2f, 0.7f, 0.3f }) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(color.x, color.y, color.z, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(color.x, color.y, color.z, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(color.x, color.y, color.z, 1.0f));
+			ImGui::Button(title.c_str());
+			ImGui::PopStyleColor(3);
+		}
+
 		static bool DrawCombo(const char* label, int32_t& value, const std::vector<std::string>& items) {
 			bool dirty = false;
 

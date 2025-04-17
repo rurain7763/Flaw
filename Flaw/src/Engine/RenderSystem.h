@@ -61,13 +61,14 @@ namespace flaw {
 		void Render();
 
 	private:
-		void CreateMultiRenderTargets();
+		void CreateRenderPasses();
 		void CreateBatchedBuffers();
 		void CreateConstantBuffers();
 		void CreateStructuredBuffers();
 		void CreatePipeline();
 
 		void GatherLights();
+		void GatherDecals();
 
 		struct CameraInfo {
 			mat4 view;
@@ -77,22 +78,42 @@ namespace flaw {
 		void GatherCameraStages(std::map<uint32_t, CameraInfo>& cameras);
 
 		void RenderGeometry(CameraRenderStage& stage);
+		void RenderDecal(CameraRenderStage& stage);
 		void RenderDefferdLighting(CameraRenderStage& stage);
+		void RenderSkyBox(CameraRenderStage& stage);
 		void RenderTransparent(CameraRenderStage& stage);
+		void RenderTemp(CameraRenderStage& stage);
 		void FinalizeRender(CameraRenderStage& stage);
 
 	private:
 		constexpr static uint32_t MaxBatchVertexCount = 10000;
 		constexpr static uint32_t MaxBatchIndexCount = 30000;
 		constexpr static uint32_t MaxBatchTransformCount = 100;
+		constexpr static uint32_t MaxDecalCount = 1000;
 		constexpr static uint32_t MaxDirectionalLights = 10;
 		constexpr static uint32_t MaxPointLights = 10;
 		constexpr static uint32_t MaxSpotLights = 10;
 
 		Scene& _scene;
 
-		Ref<GraphicsRenderPass> _geometryPass; // 0 : position, 1 : normal, 2 : objectColor
-		Ref<GraphicsRenderPass> _lightingPass; // 0 : diffuse, 1 : specular
+		enum RenderPassRenderTargetNumber {
+			GeometryPosition = 0,
+			GeometryNormal,
+			GeometryAlbedo,
+			GeometryEmissive,
+			GeometryRTCount,
+
+			DecalAlbedo = 0,
+			DecalRTCount,
+
+			LightingDiffuse = 0,
+			LightingSpecular,
+			LightingRTCount
+		};
+
+		Ref<GraphicsRenderPass> _geometryPass;
+		Ref<GraphicsRenderPass> _decalPass;
+		Ref<GraphicsRenderPass> _lightingPass;
 
 		std::vector<CameraRenderStage> _renderStages;
 
@@ -107,12 +128,17 @@ namespace flaw {
 		Ref<StructuredBuffer> _directionalLightSB;
 		Ref<StructuredBuffer> _pointLightSB;
 		Ref<StructuredBuffer> _spotLightSB;
+		Ref<StructuredBuffer> _decalSB;
 		Ref<GraphicsPipeline> _pipeline;
 
 		LightConstants _lightConstants;
 		std::vector<DirectionalLight> _directionalLights;
 		std::vector<PointLight> _pointLights;
 		std::vector<SpotLight> _spotLights;
+
+		std::vector<Decal> _decals;
+		std::map<Ref<Texture2D>, uint32_t> _decalTextureIndexMap;
+		std::vector<Ref<Texture2D>> _decalTextures;
 
 		VPMatrices _vpMatrices;
 		GlobalConstants _globalConstants;

@@ -327,6 +327,11 @@ namespace flaw {
 			DebugRender::DrawCone(transComp.worldTransform, spotLightComp.range, spotLightComp.outer, spotLightComp.inner, vec3(0.0, 1.0, 0.0));
         }
 
+        if (_selectedEntt.HasComponent<DecalComponent>()) {
+			TransformComponent& decalTransComp = _selectedEntt.GetComponent<TransformComponent>();
+			DebugRender::DrawCube(decalTransComp.worldTransform, vec3(0.0, 1.0, 0.0));
+        }
+
         Renderer2D::End();
     }
 

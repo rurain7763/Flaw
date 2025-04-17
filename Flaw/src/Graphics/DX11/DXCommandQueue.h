@@ -28,6 +28,7 @@ namespace flaw {
 		void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) override;
 		void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) override;
 		void SetTexture(const Ref<Texture>& texture, uint32_t slot) override;
+		void SetTextures(const Ref<Texture>* textures, uint32_t count, uint32_t startSlot) override;
 
 		void Draw(uint32_t vertexCount, uint32_t vertexOffset = 0) override;
 		void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset = 0, uint32_t vertexOffset = 0) override;

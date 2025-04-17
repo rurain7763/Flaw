@@ -322,6 +322,14 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::DecalComponent>()) {
+			auto& comp = entity.GetComponent<flaw::DecalComponent>();
+			out << YAML::Key << "DecalComponent";
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Texture" << YAML::Value << comp.texture;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -643,6 +651,13 @@ namespace flaw {
 						entity.AddComponent<SkyBoxComponent>();
 					}
 					auto& comp = entity.GetComponent<SkyBoxComponent>();
+					comp.texture = component.second["Texture"].as<uint64_t>();
+				}
+				else if (name == "DecalComponent") {
+					if (!entity.HasComponent<DecalComponent>()) {
+						entity.AddComponent<DecalComponent>();
+					}
+					auto& comp = entity.GetComponent<DecalComponent>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 			}

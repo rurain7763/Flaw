@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DXCommandQueue.h"
-
+#include "DXTextures.h"
 #include "DXContext.h"
 #include "Log/Log.h"
 
@@ -54,6 +54,16 @@ namespace flaw {
 		_commands.push([texture, slot]() { 
 			texture->Unbind();
 			texture->BindToGraphicsShader(slot);
+		});
+	}
+
+	void DXCommandQueue::SetTextures(const Ref<Texture>* textures, uint32_t count, uint32_t startSlot) {
+		FASSERT(_open, "DXCommandQueue::SetTextures failed: Command queue is not open");
+		_commands.push([this, textures, count, startSlot]() {
+			for (uint32_t i = 0; i < count; ++i) {
+				textures[i]->Unbind();
+				textures[i]->BindToGraphicsShader(startSlot + i);
+			}
 		});
 	}
 

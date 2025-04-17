@@ -339,4 +339,12 @@ namespace flaw {
 		SkyBoxComponent() = default;
 		SkyBoxComponent(const SkyBoxComponent& other) = default;
 	};
+
+	// Deffered rendering
+	struct DecalComponent {
+		AssetHandle texture;
+
+		DecalComponent() = default;
+		DecalComponent(const DecalComponent& other) = default;
+	};
 }

@@ -12,7 +12,7 @@ namespace flaw {
 		SkyBoxSystem(Scene& scene);
 
 		void Update();
-		void Render(const mat4& view, const mat4& proj);
+		void Render();
 
 	private:
 		Scene& _scene;

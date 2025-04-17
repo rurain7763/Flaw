@@ -385,79 +385,12 @@ namespace flaw {
 		renderEnv.projection = _camera.GetProjectionMatrix();
 
         scene->UpdateTransform();
+        _camera.OnUpdate();
 		renderSys.Update(renderEnv.view, renderEnv.projection);
         skyBoxSystem.Update();
 		particleSys.Update();
 
         renderSys.Render();
-
-#if false
-        for (auto&& [entity, transform, skyLight] : enttRegistry.view<TransformComponent, SkyLightComponent>().each()) {
-            // Skylight는 하나만 존재해야 함
-            renderEnv.skyLight.color = skyLight.color;
-            renderEnv.skyLight.intensity = skyLight.intensity;
-            break;
-        }
-
-        for (auto&& [entity, transform, directionalLight] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
-            DirectionalLight light;
-            light.color = directionalLight.color;
-            light.intensity = directionalLight.intensity;
-            light.direction = transform.GetWorldFront();
-            renderEnv.directionalLights.push_back(std::move(light));
-        }
-
-        for (auto&& [entity, transform, pointLight] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
-            PointLight light;
-            light.color = pointLight.color;
-            light.intensity = pointLight.intensity;
-            light.position = transform.GetWorldPosition();
-            light.range = pointLight.range;
-            renderEnv.pointLights.push_back(std::move(light));
-        }
-
-		for (auto&& [entity, transform, spotLight] : enttRegistry.view<TransformComponent, SpotLightComponent>().each()) {
-			SpotLight light;
-			light.color = spotLight.color;
-			light.intensity = spotLight.intensity;
-			light.position = transform.GetWorldPosition();
-			light.direction = transform.GetWorldFront();
-			light.inner = spotLight.inner;
-			light.outer = spotLight.outer;
-			light.range = spotLight.range;
-			renderEnv.spotLights.push_back(std::move(light));
-		}
-#endif
-
-        // draw sprite
-        Renderer2D::Begin(renderEnv.view, renderEnv.projection);
-		Renderer::Begin(renderEnv);
-
-		skyBoxSystem.Render(renderEnv.view, renderEnv.projection);
-#if true
-        for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
-			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
-            if (!textureAsset) {
-                Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
-            }
-            else {
-                Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
-            }
-        }
-
-		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
-			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
-			if (fontAsset) {
-			    Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
-			}
-		}
-#endif
-		Renderer2D::End();
-		Renderer::End();
-
-		particleSys.Render(renderEnv.view, renderEnv.projection);
-
-        _camera.OnUpdate();
     }
 
     void EditorLayer::OnRenderToolbar() {

@@ -36,7 +36,7 @@ namespace flaw {
 		}
 	}
 
-	void SkyBoxSystem::Render(const mat4& view, const mat4& proj) {
+	void SkyBoxSystem::Render() {
 		if (!_skyBoxTexture2D && !_skyBoxTextureCube) {
 			return;
 		}

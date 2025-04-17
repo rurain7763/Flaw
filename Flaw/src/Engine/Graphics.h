@@ -5,8 +5,8 @@
 #include "Graphics/GraphicsContext.h"
 
 namespace flaw {
-	constexpr uint32_t ReservedTextureStartSlot = 12;
-	constexpr uint32_t CubeTextureStartSlot = 28;
+	constexpr uint32_t ReservedTextureStartSlot = 50;
+	constexpr uint32_t CubeTextureStartSlot = 53;
 
 	enum class GraphicsType {
 		DX11
@@ -66,6 +66,10 @@ namespace flaw {
 		vec3 position;
 		vec4 color;
 		uint32_t id;
+	};
+
+	struct PointVertex {
+		vec3 position;
 	};
 
 	struct Vertex3D {
@@ -132,6 +136,12 @@ namespace flaw {
 		float inner;
 		float outer;
 		float range = 1.0f;
+	};
+
+	struct Decal {
+		mat4 transform;
+		mat4 inverseTransform;
+		uint32_t textureID;
 	};
 
 	class Graphics {

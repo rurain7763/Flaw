@@ -5,60 +5,6 @@
 #include "ParticleComponentDrawer.h"
 
 namespace flaw {
-	// TODO: this code must be some where else
-	static void DrawTitle(const std::string& title, const vec3& color = { 0.2f, 0.7f, 0.3f }) {
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(color.x, color.y, color.z, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(color.x, color.y, color.z, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(color.x, color.y, color.z, 1.0f));
-		ImGui::Button(title.c_str());
-		ImGui::PopStyleColor(3);
-	}
-
-	// TODO: this code must be some where else
-	template <typename T>
-	void DrawComponent(const char* name, Entity& entity, const std::function<void(T&)>& drawFunc) {
-		if (!entity.HasComponent<T>()) {
-			return;
-		}
-
-		ImGui::Separator();
-
-		ImGui::BeginChild(name, ImVec2(0, 0), ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
-
-		const ImVec2 size = ImGui::GetContentRegionAvail();
-
-		DrawTitle(name);
-
-		ImGui::SameLine(size.x - 20);
-
-		if (ImGui::Button("!")) {
-			ImGui::OpenPopup("ComponentSetting");
-		}
-
-		bool removed = false;
-		if (ImGui::BeginPopup("ComponentSetting")) {
-			if (ImGui::MenuItem("Remove")) {
-				removed = true;
-			}
-			ImGui::EndPopup();
-		}
-
-		std::invoke(drawFunc, entity.GetComponent<T>());
-
-		if (removed) {
-			entity.RemoveComponent<T>();
-		}
-
-		ImGui::EndChild();
-	}
-
-	template <typename T>
-	static void DrawAddComponentItem(const char* name, Entity& entity) {
-		if (ImGui::MenuItem(name) && !entity.HasComponent<T>()) {
-			entity.AddComponent<T>();
-		}
-	}
-
 	DetailsEditor::DetailsEditor(Application& app)
 		: _app(app) 
 	{
@@ -139,6 +85,12 @@ namespace flaw {
 						}
 					}
 					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("-")) {
+					spriteComp.texture.Invalidate();
 				}
 			});
 
@@ -286,6 +238,21 @@ namespace flaw {
 				}
 			});
 
+			DrawComponent<DecalComponent>("Decal", _selectedEntt, [](DecalComponent& decalComp) {
+				ImGui::Text("Decal");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::Texture2D) {
+								decalComp.texture = metadata.handle;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -312,6 +279,7 @@ namespace flaw {
 				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);\
 				DrawAddComponentItem<SpotLightComponent>("Spot Light", _selectedEntt);
 				DrawAddComponentItem<SkyBoxComponent>("Sky Box", _selectedEntt);
+				DrawAddComponentItem<DecalComponent>("Decal", _selectedEntt);
 
 				ImGui::EndPopup();
 			}

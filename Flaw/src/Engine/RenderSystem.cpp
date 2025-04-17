@@ -3,11 +3,16 @@
 #include "Scene.h"
 #include "Components.h"
 #include "AssetManager.h"
+#include "Assets.h"
 #include "Time/Time.h"
 #include "Graphics/GraphicsFunc.h"
 
 // TODO: remove this
 #include "Image/Image.h"
+#include "Renderer2D.h"
+#include "Renderer.h"
+#include "SkyBoxSystem.h"
+#include "ParticleSystem.h"
 
 namespace flaw {
 	RenderQueue::RenderQueue() {
@@ -91,20 +96,20 @@ namespace flaw {
 	RenderSystem::RenderSystem(Scene& scene)
 		: _scene(scene)
 	{
-		CreateMultiRenderTargets();
+		CreateRenderPasses();
 		CreateBatchedBuffers();
 		CreateConstantBuffers();
 		CreateStructuredBuffers();
 		CreatePipeline();
 	}
 
-	void RenderSystem::CreateMultiRenderTargets() {
+	void RenderSystem::CreateRenderPasses() {
 		int32_t width, height;
 		Graphics::GetSize(width, height);
 
 		// object MRT
 		GraphicsRenderPass::Descriptor objMRTDesc = {};
-		objMRTDesc.renderTargets.resize(3);
+		objMRTDesc.renderTargets.resize(GeometryRTCount);
 
 		Texture2D::Descriptor texDesc = {};
 		texDesc.width = width;
@@ -113,18 +118,27 @@ namespace flaw {
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		objMRTDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
-		objMRTDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryPosition].blendMode = BlendMode::Disabled;
+		objMRTDesc.renderTargets[GeometryPosition].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryPosition].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		objMRTDesc.renderTargets[1].texture = Graphics::CreateTexture2D(texDesc);
-		objMRTDesc.renderTargets[1].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryNormal].blendMode = BlendMode::Disabled;
+		objMRTDesc.renderTargets[GeometryNormal].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryNormal].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		objMRTDesc.renderTargets[2].texture = Graphics::CreateTexture2D(texDesc);
-		objMRTDesc.renderTargets[2].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryAlbedo].blendMode = BlendMode::Disabled;
+		objMRTDesc.renderTargets[GeometryAlbedo].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::RGBA32F;
+		objMRTDesc.renderTargets[GeometryEmissive].blendMode = BlendMode::Disabled;
+		objMRTDesc.renderTargets[GeometryEmissive].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryEmissive].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		objMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		objMRTDesc.depthStencil.resizeFunc = [](int32_t width, int32_t height) {
@@ -133,21 +147,34 @@ namespace flaw {
 
 		_geometryPass = Graphics::CreateRenderPass(objMRTDesc);
 
+		// decal pass
+		GraphicsRenderPass::Descriptor decalPassDesc = {};
+		decalPassDesc.renderTargets.resize(DecalRTCount);
+
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::RGBA32F;
+		decalPassDesc.renderTargets[DecalAlbedo].blendMode = BlendMode::Alpha;
+		decalPassDesc.renderTargets[DecalAlbedo].alphaToCoverage = true;
+		decalPassDesc.renderTargets[DecalAlbedo].texture = _geometryPass->GetRenderTargetTex(GeometryAlbedo);
+		decalPassDesc.renderTargets[DecalAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		_decalPass = Graphics::CreateRenderPass(decalPassDesc);
+
 		// light MRT
 		GraphicsRenderPass::Descriptor lightMRTDesc = {};
-		lightMRTDesc.renderTargets.resize(2);
+		lightMRTDesc.renderTargets.resize(LightingRTCount);
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		lightMRTDesc.renderTargets[0].blendMode = BlendMode::Additive;
-		lightMRTDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
-		lightMRTDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		lightMRTDesc.renderTargets[LightingDiffuse].blendMode = BlendMode::Additive;
+		lightMRTDesc.renderTargets[LightingDiffuse].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingDiffuse].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		lightMRTDesc.renderTargets[1].blendMode = BlendMode::Additive;
-		lightMRTDesc.renderTargets[1].texture = Graphics::CreateTexture2D(texDesc);
-		lightMRTDesc.renderTargets[1].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		lightMRTDesc.renderTargets[LightingSpecular].blendMode = BlendMode::Additive;
+		lightMRTDesc.renderTargets[LightingSpecular].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingSpecular].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
@@ -205,6 +232,13 @@ namespace flaw {
 		sbDesc.accessFlags = AccessFlag::Write;
 		sbDesc.bindFlags = BindFlag::ShaderResource;
 		_spotLightSB = Graphics::CreateStructuredBuffer(sbDesc);
+
+		// Create a structured buffer for decals
+		sbDesc.elmSize = sizeof(Decal);
+		sbDesc.count = MaxDecalCount;
+		sbDesc.accessFlags = AccessFlag::Write;
+		sbDesc.bindFlags = BindFlag::ShaderResource;
+		_decalSB = Graphics::CreateStructuredBuffer(sbDesc);
 	}
 
 	void RenderSystem::CreatePipeline() {
@@ -220,6 +254,7 @@ namespace flaw {
 		}
 
 		GatherLights();
+		GatherDecals();
 		GatherCameraStages(cameras);
 	}
 
@@ -228,6 +263,7 @@ namespace flaw {
 		cameras.insert({ 0, { view, projection } });
 
 		GatherLights();
+		GatherDecals();
 		GatherCameraStages(cameras);
 	}
 
@@ -283,6 +319,42 @@ namespace flaw {
 		_directionalLightSB->Update(_directionalLights.data(), sizeof(DirectionalLight) * _lightConstants.numDirectionalLights);
 		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
 		_spotLightSB->Update(_spotLights.data(), sizeof(SpotLight) * _lightConstants.numSpotLights);
+	}
+
+	void RenderSystem::GatherDecals() {
+		auto& enttRegistry = _scene.GetRegistry();
+
+		_decals.clear();
+		_decalTextureIndexMap.clear();
+		_decalTextures.clear();
+		for (auto&& [entity, transform, decalComp] : enttRegistry.view<TransformComponent, DecalComponent>().each()) {
+			Decal decalObj;
+			decalObj.transform = transform.worldTransform;
+			decalObj.inverseTransform = inverse(transform.worldTransform);
+
+			uint32_t textureID = 0xFFFFFFFF;
+
+			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(decalComp.texture);
+			if (textureAsset) {
+				if (auto it = _decalTextureIndexMap.find(textureAsset->GetTexture()); it != _decalTextureIndexMap.end()) {
+					textureID = it->second;
+				}
+				else {
+					const uint32_t offset = 3; // 0, 1, 2 are reserved for G-Buffer
+					textureID = offset + _decalTextures.size();
+					_decalTextureIndexMap[textureAsset->GetTexture()] = textureID;
+					_decalTextures.push_back(textureAsset->GetTexture());
+				}
+			}
+
+			decalObj.textureID = textureID;
+			
+			_decals.push_back(std::move(decalObj));
+		}
+
+		if (!_decals.empty()) {
+			_decalSB->Update(_decals.data(), sizeof(Decal) * _decals.size());
+		}
 	}
 
 	void RenderSystem::GatherCameraStages(std::map<uint32_t, CameraInfo>& cameras) {
@@ -395,9 +467,12 @@ namespace flaw {
 			_vpCB->Update(&_vpMatrices, sizeof(VPMatrices));
 
 			RenderGeometry(stage);
+			RenderDecal(stage);
 			RenderDefferdLighting(stage);
 			RenderTransparent(stage);
+			RenderSkyBox(stage);
 			// TODO: Add more render stages
+			RenderTemp(stage);
 			FinalizeRender(stage);
 		}
 	}
@@ -497,6 +572,77 @@ namespace flaw {
 		_geometryPass->Unbind();
 	}
 
+	void RenderSystem::RenderDecal(CameraRenderStage& stage) {
+		if (_decals.empty()) {
+			return;
+		}
+
+		// NOTE: because of decal albedo render target refrenced the geometry albedo render target texture, we should not clear clear it
+		_decalPass->Bind(false);
+
+		auto& cmdQueue = Graphics::GetCommandQueue();
+
+		// TODO: temp
+		static bool init = false;
+		static Ref<GraphicsShader> g_decalShader;
+		static Ref<VertexBuffer> g_cubeVB;
+		static Ref<IndexBuffer> g_cubeIB;
+
+		if (!init) {
+			g_decalShader = Graphics::CreateGraphicsShader("Resources/Shaders/decal3d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+			g_decalShader->AddInputElement<float>("POSITION", 3);
+			g_decalShader->CreateInputLayout();
+
+			std::vector<PointVertex> vertices;
+			std::vector<uint32_t> indices;
+			GenerateCube([&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
+					PointVertex vertex;
+					vertex.position = pos;
+					vertices.push_back(vertex);
+				},
+				indices
+			);
+
+			VertexBuffer::Descriptor vbDesc = {};
+			vbDesc.elmSize = sizeof(PointVertex);
+			vbDesc.bufferSize = sizeof(PointVertex) * vertices.size();
+			vbDesc.usage = UsageFlag::Static;
+			vbDesc.initialData = vertices.data();
+			g_cubeVB = Graphics::CreateVertexBuffer(vbDesc);
+
+			IndexBuffer::Descriptor ibDesc = {};
+			ibDesc.bufferSize = sizeof(uint32_t) * indices.size();
+			ibDesc.usage = UsageFlag::Static;
+			ibDesc.initialData = indices.data();
+			g_cubeIB = Graphics::CreateIndexBuffer(ibDesc);
+
+			init = true;
+		}
+
+		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+
+		_pipeline->SetShader(g_decalShader);
+		_pipeline->SetCullMode(CullMode::Front);
+		_pipeline->SetDepthTest(DepthTest::Disabled, false);
+
+		cmdQueue.SetPipeline(_pipeline);
+		cmdQueue.SetConstantBuffer(_vpCB, 0);
+		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(_lightCB, 2);
+		cmdQueue.SetStructuredBuffer(_decalSB, 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
+		cmdQueue.SetTextures((const Ref<Texture>*)_decalTextures.data(), _decalTextures.size(), 3);
+		cmdQueue.SetVertexBuffer(g_cubeVB);
+		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), _decals.size());
+		cmdQueue.End();
+
+		cmdQueue.Execute();
+
+		_decalPass->Unbind();
+	}
+
 	void RenderSystem::RenderDefferdLighting(CameraRenderStage& stage) {
 		_lightingPass->Bind();
 
@@ -592,8 +738,8 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetStructuredBuffer(_directionalLightSB, 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(1), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.End();
@@ -613,8 +759,8 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetStructuredBuffer(_pointLightSB, 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(1), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
 		cmdQueue.SetVertexBuffer(g_sphereVB);
 		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), _lightConstants.numPointLights);
 		cmdQueue.End();
@@ -624,6 +770,18 @@ namespace flaw {
 		// TODO: render spot light
 
 		_lightingPass->Unbind();
+	}
+
+	void RenderSystem::RenderSkyBox(CameraRenderStage& stage) {
+		auto& skyboxSys = _scene.GetSkyBoxSystem();
+
+		RenderEnvironment renderEnv;
+		renderEnv.view = stage.view;
+		renderEnv.projection = stage.projection;
+
+		Renderer::Begin(renderEnv);
+		skyboxSys.Render();
+		Renderer::End();
 	}
 
 	void RenderSystem::RenderTransparent(CameraRenderStage& stage) {
@@ -638,6 +796,41 @@ namespace flaw {
 
 			stage.renderQueue.Pop();
 		}
+	}
+
+	void RenderSystem::RenderTemp(CameraRenderStage& stage) {
+		auto& enttRegistry = _scene.GetRegistry();
+		auto& skyBoxSys = _scene.GetSkyBoxSystem();
+		auto& particleSys = _scene.GetParticleSystem();
+
+		RenderEnvironment renderEnv;
+		renderEnv.view = stage.view;
+		renderEnv.projection = stage.projection;
+
+		Renderer2D::Begin(stage.view, stage.projection);
+#if true
+		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
+			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
+			if (!textureAsset) {
+				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
+			}
+			else {
+				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
+			}
+		}
+#endif
+
+#if true
+		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
+			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
+			if (fontAsset) {
+				Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
+			}
+		}
+#endif
+		Renderer2D::End();
+
+		particleSys.Render(stage.view, stage.projection);
 	}
 
 	void RenderSystem::FinalizeRender(CameraRenderStage& stage) {
@@ -687,14 +880,17 @@ namespace flaw {
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 		_pipeline->SetShader(g_std3dFinalizeShader);
-		_pipeline->SetCullMode(CullMode::None);
+		_pipeline->SetCullMode(CullMode::Back);
 		_pipeline->SetDepthTest(DepthTest::Always, false);
 
 		cmdQueue.SetPipeline(_pipeline);
 
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(2), 0);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(0), 1);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(1), 2);
+		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(_lightCB, 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 1);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingDiffuse), 2);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingSpecular), 3);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.ResetAllTextures();

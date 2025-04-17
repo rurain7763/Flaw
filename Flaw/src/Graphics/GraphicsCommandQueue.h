@@ -16,7 +16,8 @@ namespace flaw {
 		virtual void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) = 0;
 		virtual void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) = 0;
 		virtual void SetTexture(const Ref<Texture>& texture, uint32_t slot) = 0;
-
+		virtual void SetTextures(const Ref<Texture>* textures, uint32_t count, uint32_t startSlot) = 0;
+		
 		virtual void Draw(uint32_t vertexCount, uint32_t vertexOffset = 0) = 0;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset = 0, uint32_t vertexOffset = 0) = 0;
 		virtual void DrawIndexedInstanced(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset = 0, uint32_t vertexOffset = 0) = 0;
