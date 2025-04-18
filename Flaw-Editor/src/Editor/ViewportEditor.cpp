@@ -86,7 +86,7 @@ namespace flaw {
         }
 
         if (_selectedEntt) {
-            //DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
+            DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
             DrawDebugComponent();
         }
 
@@ -330,6 +330,24 @@ namespace flaw {
         if (_selectedEntt.HasComponent<DecalComponent>()) {
 			TransformComponent& decalTransComp = _selectedEntt.GetComponent<TransformComponent>();
 			DebugRender::DrawCube(decalTransComp.worldTransform, vec3(0.0, 1.0, 0.0));
+        }
+
+        if (_selectedEntt.HasComponent<CameraComponent>()) {
+            auto& cameraComp = _selectedEntt.GetComponent<CameraComponent>();
+			auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
+            if (cameraComp.perspective) {
+                Frustum frustrum;
+                CreateFrustrum(
+                    GetFovX(cameraComp.fov, cameraComp.aspectRatio), 
+                    cameraComp.fov, 
+                    cameraComp.nearClip, 
+                    cameraComp.farClip, 
+                    frustrum
+                );
+
+				// TODO: render frustum
+				DebugRender::DrawFrustum(frustrum, transComp.worldTransform, vec3(0.0, 1.0, 0.0));
+            }
         }
 
         Renderer2D::End();

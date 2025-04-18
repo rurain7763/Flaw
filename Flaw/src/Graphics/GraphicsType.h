@@ -33,7 +33,8 @@ namespace flaw {
 		TriangleStrip,
 		LineList,
 		LineStrip,
-		PointList
+		PointList,
+		ControlPoint3_PatchList,
 	};
 
 	enum class CullMode {

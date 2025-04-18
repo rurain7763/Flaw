@@ -19,6 +19,90 @@ namespace flaw {
 	constexpr vec3 Up = vec3(0.0f, 1.0f, 0.0f);
 	constexpr vec3 Down = vec3(0.0f, -1.0f, 0.0f);
 
+	struct Plane {
+		vec4 data;
+
+		vec3 Normal() const {
+			return vec3(data.x, data.y, data.z);
+		}
+
+		float Distance() const {
+			return data.w;
+		}
+
+		float Distance(const vec3& point) const {
+			return dot(Normal(), point) - Distance();
+		}
+	};
+
+	struct Frustum {
+		enum PlaneType {
+			Left = 0,
+			Right,
+			Bottom,
+			Top,
+			Near,
+			Far,
+			PlaneCount
+		};
+
+		Plane planes[6];
+	};
+
+	inline float GetFovX(float fovY, float aspectRatio) {
+		return 2.0f * atan(tan(fovY * 0.5f) * aspectRatio);
+	}
+
+	inline vec3 ExtractPosition(const mat4& matrix) {
+		return vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
+	}
+
+	inline void CreateFrustrum(const float fovX, const float fovY, const float nearClip, const float farClip, const mat4& transform, Frustum& frustrum) {
+		vec3 cameraPos = ExtractPosition(transform);
+		vec3 forward = normalize(vec3(transform * vec4(Forward, 0)));
+		vec3 right = normalize(vec3(transform * vec4(Right, 0)));
+		vec3 up = normalize(vec3(transform * vec4(Up, 0)));
+
+		float nearHalfHeight = tan(fovY * 0.5f) * nearClip;
+		float nearHalfWidth = tan(fovX * 0.5f) * nearClip;
+
+		vec3 nearCenter = cameraPos + forward * nearClip;
+
+		// Left plane
+		auto origin = nearCenter - right * nearHalfWidth;
+		auto normal = normalize(cross(origin - cameraPos, up));
+		frustrum.planes[Frustum::Left].data = vec4(normal, dot(normal, origin));
+
+		// Right plane
+		origin = nearCenter + right * nearHalfWidth;
+		normal = normalize(cross(up, origin - cameraPos));
+		frustrum.planes[Frustum::Right].data = vec4(normal, dot(normal, origin));
+
+		// Top plane
+		origin = nearCenter + up * nearHalfHeight;
+		normal = normalize(cross(origin - cameraPos, right));
+		frustrum.planes[Frustum::Top].data = vec4(normal, dot(normal, origin));
+
+		// Bottom plane
+		origin = nearCenter - up * nearHalfHeight;
+		normal = normalize(cross(right, origin - cameraPos));
+		frustrum.planes[Frustum::Bottom].data = vec4(normal, dot(normal, origin));
+
+		// Near plane
+		origin = cameraPos + forward * nearClip;
+		normal = -forward;
+		frustrum.planes[Frustum::Near].data = vec4(normal, dot(normal, origin));
+
+		// Far plane
+		origin = cameraPos + forward * farClip;
+		normal = forward;
+		frustrum.planes[Frustum::Far].data = vec4(normal, dot(normal, origin));
+	}
+
+	inline void CreateFrustrum(const float fovX, const float fovY, const float nearClip, const float farClip, Frustum& frustrum) {
+		CreateFrustrum(fovX, fovY, nearClip, farClip, mat4(1.0f), frustrum);
+	}
+
 	inline mat4 Translate(const vec3& translation) {
 		return translate(mat4(1.0f), translation);
 	}
@@ -37,10 +121,6 @@ namespace flaw {
 
 	inline mat4 ModelMatrix(const vec3& position, const vec3& rotation, const vec3& scale) {
 		return Translate(position) * QRotate(rotation) * Scale(scale);
-	}
-
-	inline vec3 ExtractPosition(const mat4& matrix) {
-		return vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 	}
 
 	inline vec3 ExtractRotation(const mat4& matrix) {
@@ -88,25 +168,21 @@ namespace flaw {
 		return ortho(left, right, bottom, top, nearClip, farClip);
 	}
 
-	inline mat4 Perspective(float fov, float aspectRatio, float nearClip, float farClip) {
-		return glm::perspective(fov, aspectRatio, nearClip, farClip);
+	inline mat4 Perspective(float fovY, float aspectRatio, float nearClip, float farClip) {
+		return glm::perspective(fovY, aspectRatio, nearClip, farClip);
 	}
 
 	// Screen Space to Viewport Space(NDC: -1 ~ 1)
 	inline vec3 ScreenToViewport(const vec2& screenPos, const vec4& viewport) {
-		return vec3(
-			(2.0f * (screenPos.x - viewport.x)) / viewport.z - 1.0f,
-			-((2.0f * (screenPos.y - viewport.y)) / viewport.w - 1.0f),
-			0.0f
-		);
+		return vec3((2.0f * (screenPos.x - viewport.x)) / viewport.z - 1.0f, -((2.0f * (screenPos.y - viewport.y)) / viewport.w - 1.0f), 0.0f);
 	}
 
 	// Final: Screen Space to World Space
 	inline vec3 ScreenToWorld(const vec2& screenPos, const vec4& viewport, const mat4& projectionMat, const mat4& viewMat) {
-		// 1. Screen ¡æ Viewport (NDC)
+		// 1. Screen -> Viewport (NDC)
 		vec3 viewportPos = ScreenToViewport(screenPos, viewport);
 
-		// 2. Viewport ¡æ Projection
+		// 2. Viewport -> Projection
 		vec4 projectionPos = glm::inverse(projectionMat) * vec4(viewportPos, 1.0f);
 		projectionPos /= projectionPos.w;
 		

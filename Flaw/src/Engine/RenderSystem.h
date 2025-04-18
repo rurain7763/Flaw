@@ -56,7 +56,7 @@ namespace flaw {
 		RenderSystem(Scene& scene);
 
 		void Update();
-		void Update(const mat4& view, const mat4& projection);
+		void Update(Camera& camera);
 
 		void Render();
 
@@ -69,13 +69,10 @@ namespace flaw {
 
 		void GatherLights();
 		void GatherDecals();
+		void GatherCameraStages(std::map<uint32_t, Camera>& cameras);
 
-		struct CameraInfo {
-			mat4 view;
-			mat4 projection;
-		};
-
-		void GatherCameraStages(std::map<uint32_t, CameraInfo>& cameras);
+		bool TestInFrustum(const Frustum& frustrum, const std::vector<vec3>& boundingCube, const mat4& modelMatrix);
+		bool TestInFrustum(const Frustum& frustrum, const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix);
 
 		void RenderGeometry(CameraRenderStage& stage);
 		void RenderDecal(CameraRenderStage& stage);

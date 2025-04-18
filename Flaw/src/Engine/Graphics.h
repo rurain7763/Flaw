@@ -80,9 +80,19 @@ namespace flaw {
 		vec3 binormal;
 	};
 
+	struct Camera {
+		bool isPerspective;
+		mat4 view;
+		mat4 projection;
+		Frustum frustrum;
+	};
+
 	struct Mesh {
 		std::vector<Vertex3D> vertices;
 		std::vector<uint32_t> indices;
+		
+		vec3 boundingSphereCenter = vec3(0.0);
+		float boundingSphereRadius = 0;
 	};
 
 	enum class RenderMode {

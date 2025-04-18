@@ -380,13 +380,31 @@ namespace flaw {
 		auto& particleSys = scene->GetParticleSystem();
 		auto& renderSys = scene->GetRenderSystem();
 
-        RenderEnvironment renderEnv;
-		renderEnv.view = _camera.GetViewMatrix();
-		renderEnv.projection = _camera.GetProjectionMatrix();
-
+        // Updating
         scene->UpdateTransform();
         _camera.OnUpdate();
-		renderSys.Update(renderEnv.view, renderEnv.projection);
+
+		// Rendering
+        Camera camera;
+        camera.view = _camera.GetViewMatrix();
+		camera.projection = _camera.GetProjectionMatrix();
+        camera.isPerspective = _camera.IsPerspective();
+
+        if (camera.isPerspective) {
+            CreateFrustrum(
+                GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
+                _camera.GetFov(),
+                _camera.GetNearClip(),
+                _camera.GetFarClip(),
+                _camera.GetWorldMatrix(),
+                camera.frustrum
+            );
+        }
+        else {
+            // Orthographic
+        }
+
+		renderSys.Update(camera);
         skyBoxSystem.Update();
 		particleSys.Update();
 

@@ -94,6 +94,10 @@ namespace flaw {
         _moving = !EpsilonEqual(glm::length2(delta), 0);
     };
 
+    mat4 EditorCamera::GetWorldMatrix() const {
+        return ModelMatrix(_position, _rotation, vec3(1.0f));
+    }
+
     mat4 EditorCamera::GetViewMatrix() const {
         return ViewMatrix(_position, _rotation);
     }

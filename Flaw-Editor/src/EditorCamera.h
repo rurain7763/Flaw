@@ -11,10 +11,17 @@ namespace flaw {
         void OnUpdateOrthographic(const vec2& moveDelta);
         void OnUpdate();
 
+		float GetFov() const { return _fov; }
+
 		void SetAspectRatio(float aspectRatio) { this->_aspectRatio = aspectRatio; }
+		float GetAspectRatio() const { return _aspectRatio; }
+
+		float GetNearClip() const { return _nearClip; }
+		float GetFarClip() const { return _farClip; }
 
 		const vec3& GetPosition() const { return _position; }
 
+		mat4 GetWorldMatrix() const;
 		mat4 GetViewMatrix() const;
 		mat4 GetProjectionMatrix() const;
 

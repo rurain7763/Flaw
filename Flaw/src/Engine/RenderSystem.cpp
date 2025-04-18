@@ -157,6 +157,9 @@ namespace flaw {
 		decalPassDesc.renderTargets[DecalAlbedo].alphaToCoverage = true;
 		decalPassDesc.renderTargets[DecalAlbedo].texture = _geometryPass->GetRenderTargetTex(GeometryAlbedo);
 		decalPassDesc.renderTargets[DecalAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		decalPassDesc.renderTargets[DecalAlbedo].resizeFunc = [this](int32_t width, int32_t height) {
+			return _geometryPass->GetRenderTargetTex(GeometryAlbedo);
+		};
 
 		_decalPass = Graphics::CreateRenderPass(decalPassDesc);
 
@@ -246,11 +249,23 @@ namespace flaw {
 	}
 
 	void RenderSystem::Update() {
-		std::map<uint32_t, CameraInfo> cameras;
+		std::map<uint32_t, Camera> cameras;
 
 		auto& enttRegistry = _scene.GetRegistry();
-		for (auto&& [entity, transform, camera] : enttRegistry.view<TransformComponent, CameraComponent>().each()) {
-			cameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
+		for (auto&& [entity, transformComp, cameraComp] : enttRegistry.view<TransformComponent, CameraComponent>().each()) {
+			Camera camera;
+			camera.isPerspective = cameraComp.perspective;
+			camera.view = ViewMatrix(transformComp.position, transformComp.rotation);
+			camera.projection = cameraComp.GetProjectionMatrix();
+
+			if (cameraComp.perspective) {
+				CreateFrustrum(GetFovX(cameraComp.fov, cameraComp.aspectRatio), cameraComp.fov, cameraComp.nearClip, cameraComp.farClip, transformComp.worldTransform, camera.frustrum);
+			}
+			else {
+				// Orthographic
+			}
+
+			cameras[cameraComp.depth] = std::move(camera);
 		}
 
 		GatherLights();
@@ -258,9 +273,9 @@ namespace flaw {
 		GatherCameraStages(cameras);
 	}
 
-	void RenderSystem::Update(const mat4& view, const mat4& projection) {
-		std::map<uint32_t, CameraInfo> cameras;
-		cameras.insert({ 0, { view, projection } });
+	void RenderSystem::Update(Camera& camera) {
+		std::map<uint32_t, Camera> cameras;
+		cameras[0] = camera;
 
 		GatherLights();
 		GatherDecals();
@@ -357,15 +372,15 @@ namespace flaw {
 		}
 	}
 
-	void RenderSystem::GatherCameraStages(std::map<uint32_t, CameraInfo>& cameras) {
+	void RenderSystem::GatherCameraStages(std::map<uint32_t, Camera>& cameras) {
 		auto& enttRegistry = _scene.GetRegistry();
 
 		_renderStages.resize(cameras.size());
-		for (const auto& [depth, matrices] : cameras) {
+		for (const auto& [depth, camera] : cameras) {
 			auto& stage = _renderStages[depth];
 
-			stage.view = matrices.view;
-			stage.projection = matrices.projection;
+			stage.view = camera.view;
+			stage.projection = camera.projection;		
 
 			stage.renderQueue.Open();
 
@@ -377,6 +392,11 @@ namespace flaw {
 				if (meshAsset && materialAsset) {
 					auto mesh = meshAsset->GetMesh();
 					auto material = materialAsset->GetMaterial();
+
+					if (camera.isPerspective && !TestInFrustrum(camera.frustrum, mesh->boundingCube, transform.worldTransform)) {
+						continue;
+					}	
+
 					stage.renderQueue.Push(mesh, transform.worldTransform, material);
 				}
 #else
@@ -399,6 +419,10 @@ namespace flaw {
 						},
 						g_sphereMesh->indices, 20, 20
 					);
+
+					std::vector<vec3> vertices;
+					std::transform(g_sphereMesh->vertices.begin(), g_sphereMesh->vertices.end(), std::back_inserter(vertices), [](const Vertex3D& vertex) { return vertex.position; });
+					CreateBoundingSphere(vertices, g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius);
 				}
 
 				if (g_std3dShader == nullptr) {
@@ -444,12 +468,53 @@ namespace flaw {
 					g_material->normalTexture = Graphics::CreateTexture2D(desc);
 				}
 
-				stage.renderQueue.Push(g_sphereMesh, transform.worldTransform, g_material);
+				if (camera.isPerspective && TestInFrustum(camera.frustrum, g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius, transform.worldTransform)) {
+					stage.renderQueue.Push(g_sphereMesh, transform.worldTransform, g_material);
+				}
 #endif
 			}
 
 			stage.renderQueue.Close();
 		}
+	}
+
+	static bool TestPlane(const Plane& plane, const std::vector<vec3>& boundingCube) {
+		for (int32_t i = 0; i < boundingCube.size(); ++i) {
+			const auto& vertex = vec4(boundingCube[i], 1.0);
+			if (plane.Distance(vertex) <= 0.0f) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool RenderSystem::TestInFrustum(const Frustum& frustrum, const std::vector<vec3>& boundingCube, const mat4& modelMatrix) {
+		std::vector<vec3> transformedBoundingCube(boundingCube.size());
+		for (int32_t i = 0; i < boundingCube.size(); ++i) {
+			transformedBoundingCube[i] = modelMatrix * vec4(boundingCube[i], 1.0);
+		}
+
+		for (int i = 0; i < Frustum::PlaneCount; ++i) {
+			if (!TestPlane(frustrum.planes[i], transformedBoundingCube)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool RenderSystem::TestInFrustum(const Frustum& frustrum, const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) {
+		const float maxScale = glm::compMax(vec3(length(modelMatrix[0]), length(modelMatrix[1]), length(modelMatrix[2])));
+		const float scaledRadius = boundingSphereRadius * maxScale;
+		const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
+
+		for (const auto& plane : frustrum.planes) {
+			if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	void RenderSystem::Render() {

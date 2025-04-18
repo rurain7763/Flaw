@@ -112,4 +112,8 @@ namespace flaw {
         Renderer2D::DrawLine((uint32_t)entt::null, worldPosition, rightPos, vec4(color, 1.0));
         Renderer2D::DrawLine((uint32_t)entt::null, worldPosition, bottomPos, vec4(color, 1.0));
     }
+
+    void DebugRender::DrawFrustum(const Frustum& frustrum, const mat4& transform, const vec3& color) {
+
+    }
 }
