@@ -6,7 +6,7 @@
 
 namespace flaw {
 	DetailsEditor::DetailsEditor(Application& app)
-		: _app(app) 
+		: _app(app)
 	{
 		auto& eventDispatcher = _app.GetEventDispatcher();
 		eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
@@ -32,7 +32,7 @@ namespace flaw {
 				entityComp.name = nameBuffer;
 			}
 
-			DrawComponent<TransformComponent>("Transform", _selectedEntt, [](TransformComponent& transformComp) {
+			DrawComponent<TransformComponent>(_selectedEntt, [](TransformComponent& transformComp) {
 				if (EditorHelper::DrawVec3("Position", transformComp.position)) {
 					transformComp.dirty = true;
 				}
@@ -46,9 +46,9 @@ namespace flaw {
 				if (EditorHelper::DrawVec3("Scale", transformComp.scale)) {
 					transformComp.dirty = true;
 				}
-			});
+				});
 
-			DrawComponent<CameraComponent>("Camera", _selectedEntt, [](CameraComponent& cameraComp) {
+			DrawComponent<CameraComponent>(_selectedEntt, [](CameraComponent& cameraComp) {
 				bool perspective = cameraComp.perspective;
 
 				int32_t projectionSelected = perspective ? 1 : 0;
@@ -63,15 +63,15 @@ namespace flaw {
 					}
 				}
 				else {
-					ImGui::DragFloat("Ortho Size", &cameraComp.orthoSize, 0.1f);
+					ImGui::DragFloat("Otho Size", &cameraComp.orthoSize, 0.1f);
 				}
 
 				ImGui::DragFloat("Aspect Ratio", &cameraComp.aspectRatio, 0.1f);
 				ImGui::DragFloat("Near Clip", &cameraComp.nearClip, 0.1f);
 				ImGui::DragFloat("Far Clip", &cameraComp.farClip, 0.1f);
-			});
+				});
 
-			DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectedEntt, [this](SpriteRendererComponent& spriteComp) {
+			DrawComponent<SpriteRendererComponent>(_selectedEntt, [this](SpriteRendererComponent& spriteComp) {
 				ImGui::ColorEdit4("Color", &spriteComp.color.x);
 				ImGui::Text("Texture");
 
@@ -92,9 +92,9 @@ namespace flaw {
 				if (ImGui::Button("-")) {
 					spriteComp.texture.Invalidate();
 				}
-			});
+				});
 
-			DrawComponent<Rigidbody2DComponent>("Rigidbody 2D", _selectedEntt, [](Rigidbody2DComponent& rigidbody2DComp) {
+			DrawComponent<Rigidbody2DComponent>(_selectedEntt, [](Rigidbody2DComponent& rigidbody2DComp) {
 				int32_t bodyTypeSelected = (int32_t)rigidbody2DComp.bodyType;
 				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
 					rigidbody2DComp.bodyType = (Rigidbody2DComponent::BodyType)bodyTypeSelected;
@@ -105,19 +105,19 @@ namespace flaw {
 				ImGui::DragFloat("Friction", &rigidbody2DComp.friction, 0.1f);
 				ImGui::DragFloat("Restitution", &rigidbody2DComp.restitution, 0.1f);
 				ImGui::DragFloat("Restitution Threshold", &rigidbody2DComp.restitutionThreshold, 0.1f);
-			});
+				});
 
-			DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectedEntt, [](BoxCollider2DComponent& boxCollider2DComp) {
+			DrawComponent<BoxCollider2DComponent>(_selectedEntt, [](BoxCollider2DComponent& boxCollider2DComp) {
 				ImGui::DragFloat2("Offset", glm::value_ptr(boxCollider2DComp.offset), 0.1f);
 				ImGui::DragFloat2("Size", glm::value_ptr(boxCollider2DComp.size), 0.1f);
-			});
+				});
 
-			DrawComponent<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt, [](CircleCollider2DComponent& circleCollider2DComp) {
+			DrawComponent<CircleCollider2DComponent>(_selectedEntt, [](CircleCollider2DComponent& circleCollider2DComp) {
 				ImGui::DragFloat2("Offset", glm::value_ptr(circleCollider2DComp.offset), 0.1f);
 				ImGui::DragFloat("Radius", &circleCollider2DComp.radius, 0.1f);
-			});
+				});
 
-			DrawComponent<MonoScriptComponent>("Mono Script", _selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
+			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
 				char buffer[256] = { 0 };
 				strcpy_s(buffer, monoScriptComp.name.c_str());
 				if (ImGui::InputText("Name", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -133,16 +133,16 @@ namespace flaw {
 								field.SetValue(obj.get(), &value);
 							}
 						}
-					});
+						});
 				}
-			});
+				});
 
-			DrawComponent<TextComponent>("Text Component", _selectedEntt, [](TextComponent& textComp) {
+			DrawComponent<TextComponent>(_selectedEntt, [](TextComponent& textComp) {
 				std::string utf8Str = Utf16ToUtf8(textComp.text);
-					
+
 				char buffer[256] = { 0 };
 				strcpy_s(buffer, utf8Str.c_str());
-					
+
 				if (ImGui::InputTextMultiline("Text", buffer, sizeof(buffer), ImVec2(200, 100))) {
 					textComp.text = Utf8ToUtf16(buffer);
 				}
@@ -162,13 +162,13 @@ namespace flaw {
 				}
 
 				ImGui::ColorEdit4("Color", &textComp.color.x);
-			});
+				});
 
-			DrawComponent<SoundListenerComponent>("Sound Listener", _selectedEntt, [](SoundListenerComponent& soundListenerComp) {
+			DrawComponent<SoundListenerComponent>(_selectedEntt, [](SoundListenerComponent& soundListenerComp) {
 				EditorHelper::DrawVec3("Velocity", soundListenerComp.velocity);
-			});
+				});
 
-			DrawComponent<SoundSourceComponent>("Sound Source", _selectedEntt, [](SoundSourceComponent& soundSourceComp) {
+			DrawComponent<SoundSourceComponent>(_selectedEntt, [](SoundSourceComponent& soundSourceComp) {
 				ImGui::Text("Sound");
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
@@ -185,45 +185,45 @@ namespace flaw {
 				ImGui::Checkbox("Loop", &soundSourceComp.loop);
 				ImGui::Checkbox("Auto Play", &soundSourceComp.autoPlay);
 				ImGui::DragFloat("Volume", &soundSourceComp.volume, 0.01f, 0.f, 1.f);
-			});
+				});
 
-			DrawComponent<ParticleComponent>("Particle", _selectedEntt, [this](ParticleComponent& particleComp) {
+			DrawComponent<ParticleComponent>(_selectedEntt, [this](ParticleComponent& particleComp) {
 				ParticleComponentDrawer::Draw(_selectedEntt);
-			});
+				});
 
-			DrawComponent<MeshFilterComponent>("Mesh Filter", _selectedEntt, [](MeshFilterComponent& meshFilterComp) {
+			DrawComponent<MeshFilterComponent>(_selectedEntt, [](MeshFilterComponent& meshFilterComp) {
 				// TODO: mesh filter
-			});
+				});
 
-			DrawComponent<MeshRendererComponent>("Mesh Renderer", _selectedEntt, [](MeshRendererComponent& meshRendererComp) {
+			DrawComponent<MeshRendererComponent>(_selectedEntt, [](MeshRendererComponent& meshRendererComp) {
 				// TODO: mesh renderer
-			});
+				});
 
-			DrawComponent<SkyLightComponent>("Sky Light", _selectedEntt, [](SkyLightComponent& skyLightComp) {
+			DrawComponent<SkyLightComponent>(_selectedEntt, [](SkyLightComponent& skyLightComp) {
 				ImGui::ColorEdit3("Color", &skyLightComp.color.x);
 				ImGui::DragFloat("Intensity", &skyLightComp.intensity, 0.1f);
-			});
+				});
 
-			DrawComponent<DirectionalLightComponent>("Directional Light", _selectedEntt, [](DirectionalLightComponent& directionalLightComp) {
+			DrawComponent<DirectionalLightComponent>(_selectedEntt, [](DirectionalLightComponent& directionalLightComp) {
 				ImGui::ColorEdit3("Color", &directionalLightComp.color.x);
 				ImGui::DragFloat("Intensity", &directionalLightComp.intensity, 0.1f);
-			});
+				});
 
-			DrawComponent<PointLightComponent>("Point Light", _selectedEntt, [](PointLightComponent& pointLightComp) {
+			DrawComponent<PointLightComponent>(_selectedEntt, [](PointLightComponent& pointLightComp) {
 				ImGui::ColorEdit3("Color", &pointLightComp.color.x);
 				ImGui::DragFloat("Intensity", &pointLightComp.intensity, 0.1f);
 				ImGui::DragFloat("Range", &pointLightComp.range, 0.1f);
-			});
+				});
 
-			DrawComponent<SpotLightComponent>("Spot Light", _selectedEntt, [](SpotLightComponent& spotLightComp) {
+			DrawComponent<SpotLightComponent>(_selectedEntt, [](SpotLightComponent& spotLightComp) {
 				ImGui::ColorEdit3("Color", &spotLightComp.color.x);
 				ImGui::DragFloat("Intensity", &spotLightComp.intensity, 0.1f);
 				ImGui::DragFloat("Range", &spotLightComp.range, 0.1f);
 				ImGui::DragFloat("Inner", &spotLightComp.inner, 0.1f);
 				ImGui::DragFloat("Outer", &spotLightComp.outer, 0.1f);
-			});
+				});
 
-			DrawComponent<SkyBoxComponent>("Sky Box", _selectedEntt, [](SkyBoxComponent& skyBoxComp) {
+			DrawComponent<SkyBoxComponent>(_selectedEntt, [](SkyBoxComponent& skyBoxComp) {
 				ImGui::Text("Sky Box");
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
@@ -236,9 +236,9 @@ namespace flaw {
 					}
 					ImGui::EndDragDropTarget();
 				}
-			});
+				});
 
-			DrawComponent<DecalComponent>("Decal", _selectedEntt, [](DecalComponent& decalComp) {
+			DrawComponent<DecalComponent>(_selectedEntt, [](DecalComponent& decalComp) {
 				ImGui::Text("Decal");
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
@@ -251,7 +251,21 @@ namespace flaw {
 					}
 					ImGui::EndDragDropTarget();
 				}
-			});
+				});
+
+			DrawComponent<LandScaperComponent>(_selectedEntt, [](LandScaperComponent& landScaperComp) {
+				if (ImGui::DragInt("Tiling X", (int32_t*)&landScaperComp.tilingX, 1, 1)) {
+					landScaperComp.dirty = true;
+				}
+
+				if (ImGui::DragInt("Tiling Y", (int32_t*)&landScaperComp.tilingY, 1, 1)) {
+					landScaperComp.dirty = true;
+				}
+
+				if (ImGui::DragFloat("Tesselation Factor", &landScaperComp.tesselationFactor, 0.1f)) {
+					landScaperComp.dirty = true;
+				}
+				});
 
 			ImGui::Separator();
 
@@ -261,25 +275,26 @@ namespace flaw {
 			}
 
 			if (ImGui::BeginPopup("AddComponentPopup")) {
-				DrawAddComponentItem<TransformComponent>("Transform", _selectedEntt);
-				DrawAddComponentItem<CameraComponent>("Camera", _selectedEntt);
-				DrawAddComponentItem<SpriteRendererComponent>("Sprite Renderer", _selectedEntt);
-				DrawAddComponentItem<Rigidbody2DComponent>("Rigidbody 2D", _selectedEntt);
-				DrawAddComponentItem<BoxCollider2DComponent>("Box Collider 2D", _selectedEntt);
-				DrawAddComponentItem<CircleCollider2DComponent>("Circle Collider 2D", _selectedEntt);
-				DrawAddComponentItem<MonoScriptComponent>("Mono Script", _selectedEntt);
-				DrawAddComponentItem<TextComponent>("Text", _selectedEntt);
-				DrawAddComponentItem<SoundListenerComponent>("Sound Listener", _selectedEntt);
-				DrawAddComponentItem<SoundSourceComponent>("Sound Source", _selectedEntt);
-				DrawAddComponentItem<ParticleComponent>("Particle", _selectedEntt);
-				DrawAddComponentItem<MeshFilterComponent>("Mesh Filter", _selectedEntt);
-				DrawAddComponentItem<MeshRendererComponent>("Mesh Renderer", _selectedEntt);
-				DrawAddComponentItem<SkyLightComponent>("Sky Light", _selectedEntt);
-				DrawAddComponentItem<DirectionalLightComponent>("Directional Light", _selectedEntt);
-				DrawAddComponentItem<PointLightComponent>("Point Light", _selectedEntt);\
-				DrawAddComponentItem<SpotLightComponent>("Spot Light", _selectedEntt);
-				DrawAddComponentItem<SkyBoxComponent>("Sky Box", _selectedEntt);
-				DrawAddComponentItem<DecalComponent>("Decal", _selectedEntt);
+				DrawAddComponentItem<TransformComponent>(_selectedEntt);
+				DrawAddComponentItem<CameraComponent>(_selectedEntt);
+				DrawAddComponentItem<SpriteRendererComponent>(_selectedEntt);
+				DrawAddComponentItem<Rigidbody2DComponent>(_selectedEntt);
+				DrawAddComponentItem<BoxCollider2DComponent>(_selectedEntt);
+				DrawAddComponentItem<CircleCollider2DComponent>(_selectedEntt);
+				DrawAddComponentItem<MonoScriptComponent>(_selectedEntt);
+				DrawAddComponentItem<TextComponent>(_selectedEntt);
+				DrawAddComponentItem<SoundListenerComponent>(_selectedEntt);
+				DrawAddComponentItem<SoundSourceComponent>(_selectedEntt);
+				DrawAddComponentItem<ParticleComponent>(_selectedEntt);
+				DrawAddComponentItem<MeshFilterComponent>(_selectedEntt);
+				DrawAddComponentItem<MeshRendererComponent>(_selectedEntt);
+				DrawAddComponentItem<SkyLightComponent>(_selectedEntt);
+				DrawAddComponentItem<DirectionalLightComponent>(_selectedEntt);
+				DrawAddComponentItem<PointLightComponent>(_selectedEntt);
+				DrawAddComponentItem<SpotLightComponent>(_selectedEntt);
+				DrawAddComponentItem<SkyBoxComponent>(_selectedEntt);
+				DrawAddComponentItem<DecalComponent>(_selectedEntt);
+				DrawAddComponentItem<LandScaperComponent>(_selectedEntt);
 
 				ImGui::EndPopup();
 			}

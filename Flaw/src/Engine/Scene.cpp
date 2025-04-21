@@ -9,6 +9,7 @@
 #include "ParticleSystem.h"
 #include "RenderSystem.h"
 #include "SkyBoxSystem.h"
+#include "LandscapeSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "Renderer.h"
@@ -22,11 +23,16 @@ namespace flaw {
 		: _app(app)
 	{
 		_particleSystem = CreateScope<ParticleSystem>(*this);
-		_renderSystem = CreateScope<RenderSystem>(*this);
-		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
-
 		_registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*_particleSystem);
 		_registry.on_destroy<ParticleComponent>().connect<&ParticleSystem::UnregisterEntity>(*_particleSystem);
+
+		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
+
+		_landscapeSystem = CreateScope<LandscapeSystem>(*this);
+		_registry.on_construct<LandScaperComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
+		_registry.on_destroy<LandScaperComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
+
+		_renderSystem = CreateScope<RenderSystem>(*this);
 
 		_app.GetEventDispatcher().Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) {
 			for (auto&& [entity, camera] : _registry.view<CameraComponent>().each()) {
@@ -141,6 +147,8 @@ namespace flaw {
 		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SpotLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SkyBoxComponent>(srcEntt, cloned);
+		CopyComponentIfExists<DecalComponent>(srcEntt, cloned);
+		CopyComponentIfExists<LandScaperComponent>(srcEntt, cloned);
 
 		// because uuid is changed, we need to set it again
 		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
@@ -224,7 +232,7 @@ namespace flaw {
 				auto& circleCollider = entt.GetComponent<CircleCollider2DComponent>();
 
 				b2CircleShape shape;
-				// TODO: 부모-자식 관계를 고려한 offset으로 변경할 것
+				// TODO: 부모-자식 관계를 고려한 offset 변경할 것
 				shape.m_p = b2Vec2(circleCollider.offset.x, circleCollider.offset.y);
 				shape.m_radius = circleCollider.radius;
 
@@ -247,9 +255,11 @@ namespace flaw {
 		UpdatePhysics2D();
 		UpdateTransform();
 		UpdateSound();
-		_particleSystem->Update();
+		_landscapeSystem->Update();
 		_skyBoxSystem->Update();
-		UpdateRender();
+		_renderSystem->Update();
+
+		_renderSystem->Render();
 	}
 
 	void Scene::OnEnd() {
@@ -361,92 +371,6 @@ namespace flaw {
 			}
 
 			CalculateWorldTransformRecursive(mat4(1.0f), entt);
-		}
-	}
-
-	void Scene::UpdateRender() {
-		struct CameraMatrices {
-			mat4 view;
-			mat4 projection;
-		};
-
-		RenderEnvironment renderEnv;
-		for (auto&& [entity, transform, skyLightComp] : _registry.view<TransformComponent, SkyLightComponent>().each()) {
-			// Skylight는 하나만 존재해야 함
-			renderEnv.skyLight.color = skyLightComp.color;
-			renderEnv.skyLight.intensity = skyLightComp.intensity;
-			break;
-		}
-
-		for (auto&& [entity, transform, directionalLightComp] : _registry.view<TransformComponent, DirectionalLightComponent>().each()) {
-			DirectionalLight light;
-			light.color = directionalLightComp.color;
-			light.intensity = directionalLightComp.intensity;
-			light.direction = transform.GetWorldFront();
-			renderEnv.directionalLights.push_back(std::move(light));
-		}
-
-		for (auto&& [entity, transform, pointLight] : _registry.view<TransformComponent, PointLightComponent>().each()) {
-			PointLight light;
-			light.color = pointLight.color;
-			light.intensity = pointLight.intensity;
-			light.position = transform.GetWorldPosition();
-			light.range = pointLight.range;
-			renderEnv.pointLights.push_back(std::move(light));
-		}
-
-		for (auto&& [entity, transform, spotLight] : _registry.view<TransformComponent, SpotLightComponent>().each()) {
-			SpotLight light;
-			light.color = spotLight.color;
-			light.intensity = spotLight.intensity;
-			light.position = transform.GetWorldPosition();
-			light.direction = transform.GetWorldFront();
-			light.inner = spotLight.inner;
-			light.outer = spotLight.outer;
-			light.range = spotLight.range;
-			renderEnv.spotLights.push_back(std::move(light));
-		}
-
-		std::map<uint32_t, CameraMatrices> sortedCameras;
-		for (auto&& [entity, transform, camera] : _registry.view<TransformComponent, CameraComponent>().each()) {
-			sortedCameras.insert({ camera.depth, { ViewMatrix(transform.position, transform.rotation), camera.GetProjectionMatrix() } });
-		}
-
-		for (const auto& [depth, matrices] : sortedCameras) {
-			renderEnv.view = matrices.view;
-			renderEnv.projection = matrices.projection;
-
-			Renderer2D::Begin(matrices.view, matrices.projection);
-			Renderer::Begin(renderEnv);
-
-			// draw skybox
-			// TODO: 한번만 그려야 할까? 아니면 각 카메라마다 그려야 할까?
-			_skyBoxSystem->Render();
-
-			// draw sprite
-			for (auto&& [entity, transform, sprite] : _registry.view<TransformComponent, SpriteRendererComponent>().each()) {
-				auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprite.texture);
-				if (!textureAsset) {
-					Renderer2D::DrawQuad((uint32_t)entity, transform.worldTransform, sprite.color);
-				}
-				else {
-					Renderer2D::DrawQuad((uint32_t)entity, transform.worldTransform, textureAsset->GetTexture());
-				}
-			}
-
-			// draw text
-			for (auto&& [entity, transform, text] : _registry.view<TransformComponent, TextComponent>().each()) {
-				auto fontAsset = AssetManager::GetAsset<FontAsset>(text.font);
-				if (fontAsset) {
-					Renderer2D::DrawString((uint32_t)entity, transform.worldTransform, text.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), text.color);
-				}
-			}
-
-			Renderer2D::End();
-			Renderer::End();
-
-			// draw particle
-			_particleSystem->Render(matrices.view, matrices.projection);
 		}
 	}
 

@@ -17,6 +17,7 @@
 #include "Engine/ParticleSystem.h"
 #include "Engine/RenderSystem.h"
 #include "Engine/SkyBoxSystem.h"
+#include "Engine/LandscapeSystem.h"
 
 #include "Log/Log.h"
 #include "Input/Input.h"
@@ -31,6 +32,7 @@
 #include "Graphics/Texture.h"
 #include "Graphics/DX11/DXContext.h"
 #include "Graphics/DX11/DXTextures.h"
+#include "Graphics/GraphicsFunc.h"
 
 #include "Time/Time.h"
 

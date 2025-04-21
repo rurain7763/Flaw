@@ -177,8 +177,8 @@ namespace flaw {
 	public:
 		ParticleSystem(Scene& scene);
 
-		void Update();
-		void Render(const mat4& viewMatrix, const mat4& projectionMatrix);
+		void Update(const Ref<ConstantBuffer>& globalConstantsCB);
+		void Render(const Ref<ConstantBuffer>& vpMatricesCB, const Ref<ConstantBuffer>& globalConstantsCB);
 
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
@@ -274,9 +274,6 @@ namespace flaw {
 		Ref<VertexBuffer> _vertexBuffer;
 		Ref<IndexBuffer> _indexBuffer;
 		Ref<GraphicsPipeline> _graphicsPipeline;
-
-		Ref<ConstantBuffer> _vpMatricesCB;
-		Ref<ConstantBuffer> _globalConstantsCB;
 
 		ParticleUniform _particleUniform;
 

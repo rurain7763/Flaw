@@ -3,6 +3,7 @@
 #include "DXTextures.h"
 #include "DXContext.h"
 #include "Log/Log.h"
+#include "DXType.h"
 
 namespace flaw {
 	DXCommandQueue::DXCommandQueue(DXContext& context)
@@ -13,13 +14,7 @@ namespace flaw {
 	void DXCommandQueue::SetPrimitiveTopology(PrimitiveTopology primitiveTopology) {
 		FASSERT(_open, "DXCommandQueue::SetPrimitiveTopology failed: Command queue is not open");
 		_commands.push([this, primitiveTopology]() { 
-			switch (primitiveTopology) {
-				case PrimitiveTopology::PointList: _context.DeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST); break;
-				case PrimitiveTopology::LineList: _context.DeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST); break;
-				case PrimitiveTopology::LineStrip: _context.DeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP); break;
-				case PrimitiveTopology::TriangleList: _context.DeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); break;
-				case PrimitiveTopology::TriangleStrip: _context.DeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP); break;
-			}
+			_context.DeviceContext()->IASetPrimitiveTopology(ConvertToD3D11Topology(primitiveTopology));
 		});
 	}
 

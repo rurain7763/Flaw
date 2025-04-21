@@ -43,6 +43,7 @@ namespace flaw {
 
 		TextureImportSettings() {
 			type = AssetImportSettingsType::Texture;
+			textureType = TextureType::Texture2D;
 		}
 	};
 

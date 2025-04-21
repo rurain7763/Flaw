@@ -12,4 +12,9 @@ namespace flaw {
 		Edit,
 		Play,
 	};
+
+	enum class EditorMode {
+		Selection,
+		Landscape,
+	};
 }

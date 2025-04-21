@@ -15,6 +15,27 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 namespace flaw {
+	static D3D11_PRIMITIVE_TOPOLOGY ConvertToD3D11Topology(PrimitiveTopology topology) {
+		switch (topology) {
+		case PrimitiveTopology::PointList:
+			return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case PrimitiveTopology::LineList:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+		case PrimitiveTopology::LineStrip:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		case PrimitiveTopology::TriangleList:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case PrimitiveTopology::TriangleStrip:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case PrimitiveTopology::ControlPoint3_PatchList:
+			return D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
+		case PrimitiveTopology::ControlPoint4_PatchList:
+			return D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST;
+		default:
+			throw std::runtime_error("Unknown primitive topology");
+		}
+	}
+
 	static DXGI_FORMAT ConvertToDXGIFormat(PixelFormat format) {
 		switch (format) {
 		case PixelFormat::BGRX8:

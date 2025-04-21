@@ -4,9 +4,12 @@
 #include "Math/Math.h"
 #include "Graphics/GraphicsContext.h"
 
+#include <map>
+#include <vector>
+
 namespace flaw {
 	constexpr uint32_t ReservedTextureStartSlot = 50;
-	constexpr uint32_t CubeTextureStartSlot = 53;
+	constexpr uint32_t CubeTextureStartSlot = 54;
 
 	enum class GraphicsType {
 		DX11
@@ -36,13 +39,16 @@ namespace flaw {
 	struct MaterialConstants {
 		enum TextureType {
 			Albedo = 0x1,
-			Normal = 0x2
+			Normal = 0x2,
+			Emissive = 0x4,
+			Height = 0x8,
 		};
 
 		uint32_t reservedTextureBitMask = 0;
 		uint32_t cubeTextureBitMask = 0;
 
 		int32_t intConstants[4] = { 0 };
+		float floatConstants[4] = { 0.0f };
 		uint32_t paddingMaterialConstants[2];
 	};
 
@@ -85,9 +91,51 @@ namespace flaw {
 		mat4 view;
 		mat4 projection;
 		Frustum frustrum;
+
+		bool TestInFrustum(const std::vector<vec3>& boundingCube, const mat4& modelMatrix) const {
+			std::vector<vec3> transformedBoundingCube(boundingCube.size());
+			for (int32_t i = 0; i < boundingCube.size(); ++i) {
+				transformedBoundingCube[i] = modelMatrix * vec4(boundingCube[i], 1.0);
+			}
+
+			for (int i = 0; i < Frustum::PlaneCount; ++i) {
+				auto& plane = frustrum.planes[i];
+				
+				bool isInFrustum = false;
+				for (int32_t i = 0; i < boundingCube.size(); ++i) {
+					const auto& vertex = vec4(boundingCube[i], 1.0);
+					if (plane.Distance(vertex) <= 0.0f) {
+						isInFrustum = true;
+						break;
+					}
+				}
+
+				if (!isInFrustum) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool TestInFrustum(const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) const {
+			const float maxScale = glm::compMax(vec3(length(modelMatrix[0]), length(modelMatrix[1]), length(modelMatrix[2])));
+			const float scaledRadius = boundingSphereRadius * maxScale;
+			const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
+
+			for (const auto& plane : frustrum.planes) {
+				if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
+					return false;
+				}
+			}
+
+			return true;
+		}
 	};
 
 	struct Mesh {
+		PrimitiveTopology topology = PrimitiveTopology::TriangleList;
+
 		std::vector<Vertex3D> vertices;
 		std::vector<uint32_t> indices;
 		
@@ -114,10 +162,13 @@ namespace flaw {
 
 		Ref<Texture2D> albedoTexture;
 		Ref<Texture2D> normalTexture;
+		Ref<Texture2D> emissiveTexture;
+		Ref<Texture2D> heightTexture;
 
 		std::array<Ref<TextureCube>, 4> cubeTextures;
 
 		int32_t intConstants[4] = { 0 };
+		float floatConstants[4] = { 0.0f };
 	};
 
 	struct SkyLight {

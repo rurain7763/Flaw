@@ -24,7 +24,7 @@ namespace flaw {
 	private:
 		void CreateRequiredTextures();
 
-		void RenderTargetScene(const Ref<Scene>& scene);
+		void UpdateSceneAsEditorMode(const Ref<Scene>& scene);
 
 		void OnRenderToolbar();
 
@@ -45,17 +45,15 @@ namespace flaw {
 		Application& _app;
 		GraphicsContext& _graphicsContext;
 
-		Ref<Scene> _editorScene;
-		Ref<Scene> _runtimeScene;
-
 		OutlinerEditor _outlinerEditor;
 		ViewportEditor _viewportEditor;
 		ContentBrowserEditor _contentBrowserEditor;
 		DetailsEditor _detailsEditor;
 		LogEditor _logEditor;
 
+		Ref<Scene> _editorScene;
+		Ref<Scene> _runtimeScene;
 		SceneState _sceneState;
-
 		bool _pause;
 
 		Ref<Texture2D> _playButtonTex;
@@ -65,6 +63,8 @@ namespace flaw {
 
 		EditorCamera _camera;
 		std::string _currentScenePath;
+
+		EditorMode _editorMode;
 	};
 }
 

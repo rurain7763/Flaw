@@ -347,4 +347,27 @@ namespace flaw {
 		DecalComponent() = default;
 		DecalComponent(const DecalComponent& other) = default;
 	};
+
+	// Terrain
+	struct LandScaperComponent {
+		uint32_t tilingX = 1, tilingY = 1;
+		float tesselationFactor = 1.0f;
+
+		bool dirty;
+
+		LandScaperComponent() = default;
+
+		LandScaperComponent(const LandScaperComponent& other) {
+			tilingX = other.tilingX;
+			tilingY = other.tilingY;
+			tesselationFactor = other.tesselationFactor;
+		}
+
+		LandScaperComponent& operator=(const LandScaperComponent& other) {
+			tilingX = other.tilingX;
+			tilingY = other.tilingY;
+			tesselationFactor = other.tesselationFactor;
+			return *this;
+		}
+	};
 }

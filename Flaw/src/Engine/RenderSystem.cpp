@@ -6,6 +6,7 @@
 #include "Assets.h"
 #include "Time/Time.h"
 #include "Graphics/GraphicsFunc.h"
+#include "LandscapeSystem.h"
 
 // TODO: remove this
 #include "Image/Image.h"
@@ -15,84 +16,6 @@
 #include "ParticleSystem.h"
 
 namespace flaw {
-	RenderQueue::RenderQueue() {
-		_renderEntries.resize(uint32_t(RenderMode::Count));
-	}
-
-	void RenderQueue::Open() {
-		_currentRenderMode = RenderMode::Count;
-		_currentRenderEntry = {};
-		_currentRenderEntryEnd = {};
-		for (int32_t i = 0; i < _renderEntries.size(); i++) {
-			_renderEntries[i].clear();
-		}
-	}
-
-	void RenderQueue::Close() {
-		_currentRenderMode = RenderMode::Count;
-		for (int32_t i = 0; i < _renderEntries.size(); i++) {
-			if (_renderEntries[i].size() > 0) {
-				_currentRenderMode = (RenderMode)i;
-				_currentRenderEntry = _renderEntries[i].begin();
-				_currentRenderEntryEnd = _renderEntries[i].end();
-				break;
-			}
-		}
-	}
-
-	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& model, const Ref<Material>& material) {
-		auto& entry = _renderEntries[uint32_t(material->renderMode)][material];
-		entry.material = material;
-
-		// 이미 Instancing 중이면 그냥 추가
-		auto& instancingMap = entry.instancingObjects;
-		auto itInst = instancingMap.find(mesh);
-		if (itInst != instancingMap.end()) {
-			itInst->second.modelMatrices.push_back(model);
-			itInst->second.instanceCount++;
-			return;
-		}
-
-		// 기존에 일반 드로우에 있으면 -> Instancing으로 승격
-		auto itNoBatch = entry.noBatchedObjects.find(mesh);
-		if (itNoBatch != entry.noBatchedObjects.end()) {
-			InstancingObject instance;
-			instance.mesh = mesh;
-			instance.modelMatrices.push_back(itNoBatch->second); // 기존 것
-			instance.modelMatrices.push_back(model);             // 새 것
-			instance.instanceCount = 2;
-			instancingMap[mesh] = std::move(instance);
-			entry.noBatchedObjects.erase(itNoBatch); // 일반 드로우에서 제거
-			return;
-		}
-
-		// 처음 본 메시면 일단 일반 드로우로 등록
-		entry.noBatchedObjects[mesh] = model;
-	}
-
-	void RenderQueue::Pop() {
-		FASSERT(_currentRenderMode != RenderMode::Count, "RenderQueue is empty");
-		if (++_currentRenderEntry == _currentRenderEntryEnd) {
-			do {
-				_currentRenderMode = (RenderMode)(uint32_t(_currentRenderMode) + 1);
-				if (_currentRenderMode == RenderMode::Count) {
-					break;
-				}
-				_currentRenderEntry = _renderEntries[uint32_t(_currentRenderMode)].begin();
-				_currentRenderEntryEnd = _renderEntries[uint32_t(_currentRenderMode)].end();
-			} while (_currentRenderEntry == _currentRenderEntryEnd);
-		}
-	}
-
-	bool RenderQueue::Empty() {
-		return _currentRenderMode == RenderMode::Count;
-	}
-
-	RenderEntry& RenderQueue::Front() {
-		FASSERT(_currentRenderMode != RenderMode::Count, "RenderQueue is empty");
-		return _currentRenderEntry->second;
-	}
-
 	RenderSystem::RenderSystem(Scene& scene)
 		: _scene(scene)
 	{
@@ -251,8 +174,7 @@ namespace flaw {
 	void RenderSystem::Update() {
 		std::map<uint32_t, Camera> cameras;
 
-		auto& enttRegistry = _scene.GetRegistry();
-		for (auto&& [entity, transformComp, cameraComp] : enttRegistry.view<TransformComponent, CameraComponent>().each()) {
+		for (auto&& [entity, transformComp, cameraComp] : _scene.GetRegistry().view<TransformComponent, CameraComponent>().each()) {
 			Camera camera;
 			camera.isPerspective = cameraComp.perspective;
 			camera.view = ViewMatrix(transformComp.position, transformComp.rotation);
@@ -265,8 +187,18 @@ namespace flaw {
 				// Orthographic
 			}
 
-			cameras[cameraComp.depth] = std::move(camera);
+			cameras[cameraComp.depth] = camera;
 		}
+
+		int32_t width, height;
+		Graphics::GetSize(width, height);
+
+		_globalConstants.screenResolution = vec2((float)width, (float)height);
+		_globalConstants.time = Time::GetTime();
+		_globalConstants.deltaTime = Time::DeltaTime();
+		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
+
+		_scene.GetParticleSystem().Update(_globalCB);
 
 		GatherLights();
 		GatherDecals();
@@ -276,6 +208,16 @@ namespace flaw {
 	void RenderSystem::Update(Camera& camera) {
 		std::map<uint32_t, Camera> cameras;
 		cameras[0] = camera;
+
+		int32_t width, height;
+		Graphics::GetSize(width, height);
+
+		_globalConstants.screenResolution = vec2((float)width, (float)height);
+		_globalConstants.time = Time::GetTime();
+		_globalConstants.deltaTime = Time::DeltaTime();
+		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
+
+		_scene.GetParticleSystem().Update(_globalCB);
 
 		GatherLights();
 		GatherDecals();
@@ -291,7 +233,7 @@ namespace flaw {
 		_spotLights.clear();
 
 		for (auto&& [entity, transform, skyLightComp] : enttRegistry.view<TransformComponent, SkyLightComponent>().each()) {
-			// Skylight는 하나만 존재해야 함
+			// Skylight's 하나만 존재해야 함
 			_lightConstants.ambientColor = skyLightComp.color;
 			_lightConstants.ambientIntensity = skyLightComp.intensity;
 			break;
@@ -337,12 +279,10 @@ namespace flaw {
 	}
 
 	void RenderSystem::GatherDecals() {
-		auto& enttRegistry = _scene.GetRegistry();
-
 		_decals.clear();
 		_decalTextureIndexMap.clear();
 		_decalTextures.clear();
-		for (auto&& [entity, transform, decalComp] : enttRegistry.view<TransformComponent, DecalComponent>().each()) {
+		for (auto&& [entity, transform, decalComp] : _scene.GetRegistry().view<TransformComponent, DecalComponent>().each()) {
 			Decal decalObj;
 			decalObj.transform = transform.worldTransform;
 			decalObj.inverseTransform = inverse(transform.worldTransform);
@@ -373,8 +313,6 @@ namespace flaw {
 	}
 
 	void RenderSystem::GatherCameraStages(std::map<uint32_t, Camera>& cameras) {
-		auto& enttRegistry = _scene.GetRegistry();
-
 		_renderStages.resize(cameras.size());
 		for (const auto& [depth, camera] : cameras) {
 			auto& stage = _renderStages[depth];
@@ -385,20 +323,8 @@ namespace flaw {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, transform, meshFilter, meshRenderer] : enttRegistry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
+			for (auto&& [entity, transform, meshFilter, meshRenderer] : _scene.GetRegistry().view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
 #if false
-				auto meshAsset = AssetManager::GetAsset<MeshAsset>(meshFilter.mesh);
-				auto materialAsset = AssetManager::GetAsset<MaterialAsset>(meshRenderer.material);
-				if (meshAsset && materialAsset) {
-					auto mesh = meshAsset->GetMesh();
-					auto material = materialAsset->GetMaterial();
-
-					if (camera.isPerspective && !TestInFrustrum(camera.frustrum, mesh->boundingCube, transform.worldTransform)) {
-						continue;
-					}	
-
-					stage.renderQueue.Push(mesh, transform.worldTransform, material);
-				}
 #else
 				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
 				static Ref<Mesh> g_sphereMesh;
@@ -468,64 +394,20 @@ namespace flaw {
 					g_material->normalTexture = Graphics::CreateTexture2D(desc);
 				}
 
-				if (camera.isPerspective && TestInFrustum(camera.frustrum, g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius, transform.worldTransform)) {
+				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
+				if (camera.isPerspective && camera.TestInFrustum(g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius, transform.worldTransform)) {
 					stage.renderQueue.Push(g_sphereMesh, transform.worldTransform, g_material);
 				}
 #endif
 			}
 
+			_scene.GetLandscapeSystem().Render(camera, stage.renderQueue);
+
 			stage.renderQueue.Close();
 		}
 	}
 
-	static bool TestPlane(const Plane& plane, const std::vector<vec3>& boundingCube) {
-		for (int32_t i = 0; i < boundingCube.size(); ++i) {
-			const auto& vertex = vec4(boundingCube[i], 1.0);
-			if (plane.Distance(vertex) <= 0.0f) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool RenderSystem::TestInFrustum(const Frustum& frustrum, const std::vector<vec3>& boundingCube, const mat4& modelMatrix) {
-		std::vector<vec3> transformedBoundingCube(boundingCube.size());
-		for (int32_t i = 0; i < boundingCube.size(); ++i) {
-			transformedBoundingCube[i] = modelMatrix * vec4(boundingCube[i], 1.0);
-		}
-
-		for (int i = 0; i < Frustum::PlaneCount; ++i) {
-			if (!TestPlane(frustrum.planes[i], transformedBoundingCube)) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	bool RenderSystem::TestInFrustum(const Frustum& frustrum, const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) {
-		const float maxScale = glm::compMax(vec3(length(modelMatrix[0]), length(modelMatrix[1]), length(modelMatrix[2])));
-		const float scaledRadius = boundingSphereRadius * maxScale;
-		const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
-
-		for (const auto& plane : frustrum.planes) {
-			if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	void RenderSystem::Render() {
-		int32_t width, height;
-		Graphics::GetSize(width, height);
-
-		_globalConstants.screenResolution = vec2((float)width, (float)height);
-		_globalConstants.time = Time::GetTime();
-		_globalConstants.deltaTime = Time::DeltaTime();
-		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
-
 		for (auto& stage : _renderStages) {
 			_vpMatrices.view = stage.view;
 			_vpMatrices.projection = stage.projection;
@@ -537,7 +419,6 @@ namespace flaw {
 			RenderTransparent(stage);
 			RenderSkyBox(stage);
 			// TODO: Add more render stages
-			RenderTemp(stage);
 			FinalizeRender(stage);
 		}
 	}
@@ -554,7 +435,6 @@ namespace flaw {
 			}
 
 			cmdQueue.Begin();
-			cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 			// set pipeline
 			_pipeline->SetShader(entry.material->shader);
@@ -570,13 +450,23 @@ namespace flaw {
 			// set material properties
 			_materialConstants.reservedTextureBitMask = 0;
 			if (entry.material->albedoTexture) {
-				_materialConstants.reservedTextureBitMask |= 0x1;
+				_materialConstants.reservedTextureBitMask |= MaterialConstants::Albedo;
 				cmdQueue.SetTexture(entry.material->albedoTexture, ReservedTextureStartSlot);
 			}
 
 			if (entry.material->normalTexture) {
-				_materialConstants.reservedTextureBitMask |= 0x2;
+				_materialConstants.reservedTextureBitMask |= MaterialConstants::Normal;
 				cmdQueue.SetTexture(entry.material->normalTexture, ReservedTextureStartSlot + 1);
+			}
+
+			if (entry.material->emissiveTexture) {
+				_materialConstants.reservedTextureBitMask |= MaterialConstants::Emissive;
+				cmdQueue.SetTexture(entry.material->emissiveTexture, ReservedTextureStartSlot + 2);
+			}
+
+			if (entry.material->heightTexture) {
+				_materialConstants.reservedTextureBitMask |= MaterialConstants::Height;
+				cmdQueue.SetTexture(entry.material->heightTexture, ReservedTextureStartSlot + 3);
 			}
 
 			_materialConstants.cubeTextureBitMask = 0;
@@ -587,7 +477,12 @@ namespace flaw {
 				}
 			}
 
-			std::memcpy(_materialConstants.intConstants, entry.material->intConstants, sizeof(uint32_t) * 4);
+			std::memcpy(
+				_materialConstants.intConstants,
+				entry.material->intConstants,
+				sizeof(uint32_t) * 4 + sizeof(float) * 4
+			);
+
 			_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
 
 			cmdQueue.SetConstantBuffer(_materialCB, 3);
@@ -607,8 +502,9 @@ namespace flaw {
 				_batchedTransformSB->Update(instance.modelMatrices.data(), instance.modelMatrices.size() * sizeof(mat4));
 
 				cmdQueue.Begin();
+				cmdQueue.SetPrimitiveTopology(mesh->topology);
 				cmdQueue.SetVertexBuffer(_batchedVertexBuffer);
-				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, _batchedIndexBuffer->IndexCount(), instance.instanceCount);
+				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, mesh->indices.size(), instance.instanceCount);
 				cmdQueue.End();
 
 				cmdQueue.Execute();
@@ -624,8 +520,9 @@ namespace flaw {
 				_batchedTransformSB->Update(&modelMatrix, sizeof(mat4));
 
 				cmdQueue.Begin();
+				cmdQueue.SetPrimitiveTopology(mesh->topology);
 				cmdQueue.SetVertexBuffer(_batchedVertexBuffer);
-				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, _batchedIndexBuffer->IndexCount(), 1);
+				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, mesh->indices.size(), 1);
 				cmdQueue.End();
 
 				cmdQueue.Execute();
@@ -642,7 +539,7 @@ namespace flaw {
 			return;
 		}
 
-		// NOTE: because of decal albedo render target refrenced the geometry albedo render target texture, we should not clear clear it
+		// NOTE: because of decal albedo render target referenced the geometry albedo render target texture, we should not clear clear it
 		_decalPass->Bind(false);
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
@@ -661,8 +558,7 @@ namespace flaw {
 			std::vector<PointVertex> vertices;
 			std::vector<uint32_t> indices;
 			GenerateCube([&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-					PointVertex vertex;
-					vertex.position = pos;
+					PointVertex vertex = { pos };
 					vertices.push_back(vertex);
 				},
 				indices
@@ -863,41 +759,6 @@ namespace flaw {
 		}
 	}
 
-	void RenderSystem::RenderTemp(CameraRenderStage& stage) {
-		auto& enttRegistry = _scene.GetRegistry();
-		auto& skyBoxSys = _scene.GetSkyBoxSystem();
-		auto& particleSys = _scene.GetParticleSystem();
-
-		RenderEnvironment renderEnv;
-		renderEnv.view = stage.view;
-		renderEnv.projection = stage.projection;
-
-		Renderer2D::Begin(stage.view, stage.projection);
-#if true
-		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
-			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
-			if (!textureAsset) {
-				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
-			}
-			else {
-				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
-			}
-		}
-#endif
-
-#if true
-		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
-			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
-			if (fontAsset) {
-				Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
-			}
-		}
-#endif
-		Renderer2D::End();
-
-		particleSys.Render(stage.view, stage.projection);
-	}
-
 	void RenderSystem::FinalizeRender(CameraRenderStage& stage) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 	
@@ -962,5 +823,32 @@ namespace flaw {
 		cmdQueue.End();
 
 		cmdQueue.Execute();
+
+		auto& enttRegistry = _scene.GetRegistry();
+
+		Renderer2D::Begin(stage.view, stage.projection);
+#if true
+		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
+			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
+			if (!textureAsset) {
+				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
+			}
+			else {
+				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
+			}
+		}
+#endif
+
+#if true
+		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
+			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
+			if (fontAsset) {
+				Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
+			}
+		}
+#endif
+		Renderer2D::End();
+
+		_scene.GetParticleSystem().Render(_vpCB, _globalCB);
 	}
 }

@@ -15,6 +15,7 @@ namespace flaw {
 	class ParticleSystem;
 	class RenderSystem;
 	class SkyBoxSystem;
+	class LandscapeSystem;
 
 	class Scene {
 	public:
@@ -37,7 +38,6 @@ namespace flaw {
 		void UpdateScript();
 		void UpdatePhysics2D();
 		void UpdateTransform();
-		void UpdateRender();
 
 		void ToFile(const char* filepath);
 		void FromFile(const char* filepath);
@@ -48,6 +48,7 @@ namespace flaw {
 		ParticleSystem& GetParticleSystem() { return *_particleSystem; }
 		RenderSystem& GetRenderSystem() { return *_renderSystem; }
 		SkyBoxSystem& GetSkyBoxSystem() { return *_skyBoxSystem; }
+		LandscapeSystem& GetLandscapeSystem() { return *_landscapeSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -62,6 +63,7 @@ namespace flaw {
 		Scope<ParticleSystem> _particleSystem;
 		Scope<RenderSystem> _renderSystem;
 		Scope<SkyBoxSystem> _skyBoxSystem;
+		Scope<LandscapeSystem> _landscapeSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

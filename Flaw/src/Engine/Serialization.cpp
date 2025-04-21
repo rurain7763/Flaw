@@ -330,6 +330,16 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::LandScaperComponent>()) {
+			auto& comp = entity.GetComponent<flaw::LandScaperComponent>();
+			out << YAML::Key << TypeName<flaw::LandScaperComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "TilingX" << YAML::Value << comp.tilingX;
+			out << YAML::Key << "TilingY" << YAML::Value << comp.tilingY;
+			out << YAML::Key << "TesselationFactor" << YAML::Value << comp.tesselationFactor;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
@@ -659,6 +669,15 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<DecalComponent>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
+				}
+				else if (name == TypeName<LandScaperComponent>()) {
+					if (!entity.HasComponent<LandScaperComponent>()) {
+						entity.AddComponent<LandScaperComponent>();
+					}
+					auto& comp = entity.GetComponent<LandScaperComponent>();
+					comp.tilingX = component.second["TilingX"].as<float>();
+					comp.tilingY = component.second["TilingY"].as<float>();
+					comp.tesselationFactor = component.second["TesselationFactor"].as<float>();
 				}
 			}
 		}

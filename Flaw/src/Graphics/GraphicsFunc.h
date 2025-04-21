@@ -74,7 +74,56 @@ namespace flaw {
 		const float step = 360.0f / segments;
 		for (uint32_t i = 0; i < segments; i++) {
 			const float radian = glm::radians(i * step);
-			outVec.push_back({ radius * cosf(radian), radius * sinf(radian), 0.0f });
+			outVec.emplace_back(radius * cosf(radian), radius * sinf(radian), 0.0f);
+		}
+	}
+
+	inline void GenerateQuad(std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices, std::vector<uint32_t>& outIndices, int32_t tilingX = 1, int32_t tilingY = 1, bool triIndices = true) {
+		vec2 startLT = { -0.5f, 0.5f };
+		vec2 startUVLT = { 0.0f, 0.0f };
+
+		float elmentX = 1.0f / static_cast<float>(tilingX);
+		float elmentY = 1.0f / static_cast<float>(tilingY);
+
+		for (int32_t i = 0; i <= tilingY; i++) {
+			for (int32_t j = 0; j <= tilingX; j++) {
+				vec3 pos = { startLT.x + j * elmentX, startLT.y - i * elmentY, 0.0f };
+				vec2 uv = { startUVLT.x + j * elmentX, startUVLT.y + i * elmentY };
+				vec3 normal = Backward;
+				vec3 tangent = Right;
+				vec3 binormal = Down;
+
+				vertices(pos, uv, normal, tangent, binormal);
+			}
+		}
+
+		if (triIndices) {
+			// 0, 1, 3, 3, 2, 0
+			outIndices.reserve(tilingX * tilingY * 6);
+			for (int32_t i = 0; i < tilingY; i++) {
+				for (int32_t j = 0; j < tilingX; j++) {
+					uint32_t index = i * (tilingX + 1) + j;
+					outIndices.push_back(index);
+					outIndices.push_back(index + 1);
+					outIndices.push_back(index + (tilingX + 1) + 1);
+					outIndices.push_back(index + (tilingX + 1) + 1);
+					outIndices.push_back(index + (tilingX + 1));
+					outIndices.push_back(index);
+				}
+			}
+		}
+		else {
+			// 0, 1, 3, 2
+			outIndices.reserve(tilingX * tilingY * 4);
+			for (int32_t i = 0; i < tilingY; i++) {
+				for (int32_t j = 0; j < tilingX; j++) {
+					uint32_t index = i * (tilingX + 1) + j;
+					outIndices.push_back(index);
+					outIndices.push_back(index + 1);
+					outIndices.push_back(index + (tilingX + 1) + 1);
+					outIndices.push_back(index + (tilingX + 1));
+				}
+			}
 		}
 	}
 
@@ -300,5 +349,9 @@ namespace flaw {
 			float distance = glm::length(vertex - outCenter);
 			outRadius = std::max(outRadius, distance);
 		}
+	}
+
+	inline uint32_t CalculateDispatchGroupCount(uint32_t threadCount, uint32_t targetCount) {
+		return (targetCount + threadCount - 1) / threadCount;
 	}
 }

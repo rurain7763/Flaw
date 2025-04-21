@@ -113,6 +113,8 @@
     <ClInclude Include="src\Engine\Entity.h" />
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
+    <ClInclude Include="src\Engine\RenderQueue.h" />
+    <ClInclude Include="src\Engine\LandscapeSystem.h" />
     <ClInclude Include="src\Engine\RenderSystem.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Renderer.h" />
@@ -201,6 +203,8 @@
     <ClCompile Include="src\Engine\Renderer.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\RenderSystem.cpp" />
+    <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
+    <ClCompile Include="src\Engine\RenderQueue.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />

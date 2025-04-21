@@ -1,5 +1,6 @@
 #include "EditorLayer.h"
 #include "EditorEvents.h"
+#include "Editor/EditorHelper.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -18,6 +19,7 @@ namespace flaw {
 		, _detailsEditor(app)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
+		, _editorMode(EditorMode::Default)
     {
     }
 
@@ -73,14 +75,14 @@ namespace flaw {
     void EditorLayer::OnUpdate() {
         switch (_sceneState) {
         case SceneState::Edit:
-			RenderTargetScene(_editorScene);
+			UpdateSceneAsEditorMode(_editorScene);
             break;
         case SceneState::Play:
 			if (!_pause) {
 				_runtimeScene->OnUpdate();
 			}
             else {
-				RenderTargetScene(_runtimeScene);
+				UpdateSceneAsEditorMode(_runtimeScene);
             }
             break;
         }
@@ -374,10 +376,10 @@ namespace flaw {
 		_resumeButtonTex = _graphicsContext.CreateTexture2D(desc);
     }
 
-    void EditorLayer::RenderTargetScene(const Ref<Scene>& scene) {
+    void EditorLayer::UpdateSceneAsEditorMode(const Ref<Scene>& scene) {
         auto& enttRegistry = scene->GetRegistry();
 		auto& skyBoxSystem = scene->GetSkyBoxSystem();
-		auto& particleSys = scene->GetParticleSystem();
+		auto& landScapeSys = scene->GetLandscapeSystem();
 		auto& renderSys = scene->GetRenderSystem();
 
         // Updating
@@ -404,9 +406,9 @@ namespace flaw {
             // Orthographic
         }
 
-		renderSys.Update(camera);
+        landScapeSys.Update();
         skyBoxSystem.Update();
-		particleSys.Update();
+		renderSys.Update(camera);
 
         renderSys.Render();
     }
@@ -428,8 +430,19 @@ namespace flaw {
             dockNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;  // ¸í½ÃÀûÀ¸·Î ÅÇ ¹Ù ¼û±è
         }
 
+        // Select mode button
+		std::vector<std::string> editorModes = { "Default", "Landscape" };
+
+		int32_t selectedMode = static_cast<int32_t>(_editorMode);
+        
+        ImGui::SetNextItemWidth(120);
+        if (EditorHelper::DrawCombo("##Editor mode", selectedMode, editorModes)) {
+			_editorMode = static_cast<EditorMode>(selectedMode);
+			_app.GetEventDispatcher().Dispatch<OnEditorModeChangeEvent>(_editorMode);
+        }
+
         // Play/Stop ÀÌ¹ÌÁö ¹öÆ°
-		Ref<Texture2D> currentTexture = _sceneState == SceneState::Play ? _stopButtonTex : _playButtonTex;
+        Ref<Texture2D> currentTexture = _sceneState == SceneState::Play ? _stopButtonTex : _playButtonTex;
         if (_pause) {
 			currentTexture = _resumeButtonTex;
         }
@@ -437,6 +450,10 @@ namespace flaw {
 		Ref<DXTexture2D> dxTexture = std::static_pointer_cast<DXTexture2D>(currentTexture);
 
 		const ImVec2 buttonSizeEach = ImVec2(24, 24);
+
+		ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
 
 		if (ImGui::ImageButton(
             "##SceneStateButton",

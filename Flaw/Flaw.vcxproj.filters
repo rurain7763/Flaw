@@ -280,6 +280,8 @@
     <ClInclude Include="src\Graphics\DX11\DXRenderPass.h" />
     <ClInclude Include="src\Graphics\GraphicsRenderPass.h" />
     <ClInclude Include="src\Engine\RenderSystem.h" />
+    <ClInclude Include="src\Engine\LandscapeSystem.h" />
+    <ClInclude Include="src\Engine\RenderQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -411,5 +413,7 @@
     <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXRenderPass.cpp" />
     <ClCompile Include="src\Engine\RenderSystem.cpp" />
+    <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
+    <ClCompile Include="src\Engine\RenderQueue.cpp" />
   </ItemGroup>
 </Project>

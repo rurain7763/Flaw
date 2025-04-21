@@ -37,24 +37,11 @@ namespace flaw {
 		_graphicsPipeline = Graphics::CreateGraphicsPipeline();
 		_graphicsPipeline->SetShader(shader);
 		_graphicsPipeline->SetDepthTest(DepthTest::Less, false);
-
-		_vpMatricesCB = Graphics::CreateConstantBuffer(sizeof(VPMatrices));
-		_globalConstantsCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
 	}
 
-	void ParticleSystem::Update() {
+	void ParticleSystem::Update(const Ref<ConstantBuffer>& globalConstantsCB) {
 		auto& registry = _scene.GetRegistry();
 		auto& cmdQueue = Graphics::GetCommandQueue();
-
-		GlobalConstants globalContants;
-
-		int32_t width, height;
-		Platform::GetFrameBufferSize(width, height);
-		globalContants.screenResolution = vec2(static_cast<float>(width), static_cast<float>(height));
-		globalContants.time = Time::GetTime();
-		globalContants.deltaTime = Time::DeltaTime();
-
-		_globalConstantsCB->Update(&globalContants, sizeof(GlobalConstants));
 
 		for (auto&& [entity, transComp, particleComp] : registry.view<entt::entity, TransformComponent, ParticleComponent>().each()) {
 			ParticleResources& compResources = _entityResourceMap[(uint32_t)entity];
@@ -83,7 +70,7 @@ namespace flaw {
 
 			cmdQueue.Begin();
 			cmdQueue.SetComputePipeline(_computePipeline);
-			cmdQueue.SetComputeConstantBuffer(_globalConstantsCB, 1);
+			cmdQueue.SetComputeConstantBuffer(globalConstantsCB, 1);
 			cmdQueue.SetComputeStructuredBuffer(compResources.particleUniformBuffer, BindFlag::UnorderedAccess, 0);
 			cmdQueue.SetComputeStructuredBuffer(compResources.particleBuffer, BindFlag::UnorderedAccess, 1);
 			
@@ -287,20 +274,15 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::Render(const mat4& viewMatrix, const mat4& projectionMatrix) {
+	void ParticleSystem::Render(const Ref<ConstantBuffer>& vpMatricesCB, const Ref<ConstantBuffer>& globalConstantsCB) {
 		auto& registry = _scene.GetRegistry();
 		auto& cmdQueue = Graphics::GetCommandQueue();
-
-		VPMatrices vpMatrices;
-		vpMatrices.view = viewMatrix;
-		vpMatrices.projection = projectionMatrix;
-		_vpMatricesCB->Update(&vpMatrices, sizeof(VPMatrices));
 
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::PointList);
 		cmdQueue.SetPipeline(_graphicsPipeline);
-		cmdQueue.SetConstantBuffer(_vpMatricesCB, 0);
-		cmdQueue.SetConstantBuffer(_globalConstantsCB, 1);
+		cmdQueue.SetConstantBuffer(vpMatricesCB, 0);
+		cmdQueue.SetConstantBuffer(globalConstantsCB, 1);
 		cmdQueue.SetVertexBuffer(_vertexBuffer);
 
 		for (auto&& [entity, particleComp] : registry.view<entt::entity, ParticleComponent>().each()) {

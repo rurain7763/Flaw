@@ -14,12 +14,14 @@ namespace flaw {
 
 	private:
 		template <typename T>
-		void DrawComponent(const char* name, Entity& entity, const std::function<void(T&)>& drawFunc) {
+		void DrawComponent(Entity& entity, const std::function<void(T&)>& drawFunc) {
 			if (!entity.HasComponent<T>()) {
 				return;
 			}
 
 			ImGui::Separator();
+
+			const char* name = TypeName<T>().data();
 
 			ImGui::BeginChild(name, ImVec2(0, 0), ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
 
@@ -51,8 +53,8 @@ namespace flaw {
 		}
 
 		template <typename T>
-		void DrawAddComponentItem(const char* name, Entity& entity) {
-			if (ImGui::MenuItem(name) && !entity.HasComponent<T>()) {
+		void DrawAddComponentItem(Entity& entity) {
+			if (ImGui::MenuItem(TypeName<T>().data()) && !entity.HasComponent<T>()) {
 				entity.AddComponent<T>();
 			}
 		}

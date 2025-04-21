@@ -108,10 +108,18 @@ namespace flaw {
 			return;
 		}
 
+		_context.DeviceContext()->VSSetShaderResources(slot, 1, _srv.GetAddressOf());
+		_context.DeviceContext()->DSSetShaderResources(slot, 1, _srv.GetAddressOf());
+		_context.DeviceContext()->HSSetShaderResources(slot, 1, _srv.GetAddressOf());
+		_context.DeviceContext()->GSSetShaderResources(slot, 1, _srv.GetAddressOf());
 		_context.DeviceContext()->PSSetShaderResources(slot, 1, _srv.GetAddressOf());
 
 		_unbindFunc = [this, slot]() {
 			ID3D11ShaderResourceView* nullSRV = nullptr;
+			_context.DeviceContext()->VSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->DSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->HSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->GSSetShaderResources(slot, 1, &nullSRV);
 			_context.DeviceContext()->PSSetShaderResources(slot, 1, &nullSRV);
 			_unbindFunc = nullptr;
 		};

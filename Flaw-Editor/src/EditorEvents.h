@@ -30,4 +30,12 @@ namespace flaw {
 		{
 		}
 	};
+
+	struct OnEditorModeChangeEvent {
+		EditorMode mode;
+		OnEditorModeChangeEvent(EditorMode newMode)
+			: mode(newMode)
+		{
+		}
+	};
 }

@@ -35,6 +35,7 @@ namespace flaw {
 		LineStrip,
 		PointList,
 		ControlPoint3_PatchList,
+		ControlPoint4_PatchList,
 	};
 
 	enum class CullMode {
