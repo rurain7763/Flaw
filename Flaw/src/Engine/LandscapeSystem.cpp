@@ -72,9 +72,8 @@ namespace flaw {
 			tilingY
 		);
 
-		std::vector<vec3> vertices;
-		std::transform(mesh->vertices.begin(), mesh->vertices.end(), std::back_inserter(vertices), [](const Vertex3D& vertex) { return vertex.position; });
-		CreateBoundingSphere(vertices, mesh->boundingSphereCenter, mesh->boundingSphereRadius);
+		mesh->GenerateBVH();
+		mesh->GenerateBoundingSphere();
 
 		return mesh;
 	}

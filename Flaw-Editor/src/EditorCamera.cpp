@@ -3,17 +3,21 @@
 namespace flaw {
 	EditorCamera::EditorCamera() 
 		: _perspective(true)
-		, _fov(45.0f)
+		, _fov(glm::radians(45.0f))
 		, _zoomRate(1.0f)
 		, _orthoSize(1.0f)
 		, _zoomSpeed(0.1f)
-		, _aspectRatio(16.0f / 9.0f)
 		, _nearClip(0.1f)
 		, _farClip(1000.0f)
 		, _position(0.0f, 0.0f, -5.0f)
 		, _rotation(0.0f)
     {
         _prevMousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
+
+        int32_t width, height;
+        Graphics::GetSize(width, height);
+
+        _aspectRatio = (float)width / (float)height;
 	}
 
     void EditorCamera::OnUpdatePerspective(const vec2& moveDelta) {

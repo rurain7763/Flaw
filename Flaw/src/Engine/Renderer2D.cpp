@@ -186,7 +186,7 @@ namespace flaw {
 		commandQueue.SetConstantBuffer(g_vpCB, 0);
 		commandQueue.SetConstantBuffer(g_globalCB, 1);
 
-		{
+		if (g_quadIndexCount) {
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 			commandQueue.SetPipeline(g_quadPipeline);
 			commandQueue.SetVertexBuffer(g_quadVB);
@@ -196,21 +196,21 @@ namespace flaw {
 			commandQueue.DrawIndexed(g_ib, g_quadIndexCount);
 		}
 
-		{
+		if (g_circleIndexCount) {
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 			commandQueue.SetPipeline(g_circlePipeline);
 			commandQueue.SetVertexBuffer(g_circleVB);
 			commandQueue.DrawIndexed(g_ib, g_circleIndexCount);
 		}
 
-		{
+		if (g_lineIndexCount) {
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::LineList);
 			commandQueue.SetPipeline(g_linePipeline);
 			commandQueue.SetVertexBuffer(g_lineVB);
 			commandQueue.Draw(g_lineIndexCount);
 		}
 
-		{
+		if (g_textIndexCount) {
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 			commandQueue.SetPipeline(g_textPipeline);
 			commandQueue.SetVertexBuffer(g_textVB);

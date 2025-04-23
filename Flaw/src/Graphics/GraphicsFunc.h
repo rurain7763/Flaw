@@ -334,23 +334,6 @@ namespace flaw {
 		outCube[7] = vec3(min.x, min.y, max.z);
 	}
 
-	inline void CreateBoundingSphere(const std::vector<vec3>& vertices, vec3& outCenter, float& outRadius) {
-		vec3 min = vertices[0];
-		vec3 max = vertices[0];
-		for (const auto& vertex : vertices) {
-			min = glm::min(min, vertex);
-			max = glm::max(max, vertex);
-		}
-
-		outCenter = (min + max) * 0.5f;
-
-		outRadius = 0.0f;
-		for (const auto& vertex : vertices) {
-			float distance = glm::length(vertex - outCenter);
-			outRadius = std::max(outRadius, distance);
-		}
-	}
-
 	inline uint32_t CalculateDispatchGroupCount(uint32_t threadCount, uint32_t targetCount) {
 		return (targetCount + threadCount - 1) / threadCount;
 	}

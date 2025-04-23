@@ -14,7 +14,7 @@
 #include "Fonts.h"
 #include "Sounds.h"
 #include "Renderer2D.h"
-#include "Renderer.h"
+#include "PrimitiveManager.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) {
@@ -39,7 +39,6 @@ namespace flaw {
 			FLAW_PROFILE_SCOPE("Initialize Graphics");
 			Graphics::Init(GraphicsType::DX11);
 			Renderer2D::Init();
-			Renderer::Init();
 		}
 
 		{
@@ -58,6 +57,11 @@ namespace flaw {
 		}
 
 		{
+			FLAW_PROFILE_SCOPE("Initialize Primitive Manager");
+			PrimitiveManager::Init();
+		}
+
+		{
 			FLAW_PROFILE_SCOPE("Initialize Mono Scripting");
 			Scripting::Init(*this);
 		}
@@ -69,7 +73,7 @@ namespace flaw {
 		_eventDispatcher.Register<MousePressEvent>([this](const MousePressEvent& event) { Input::OnMousePress(event.button); }, PID(this));
 		_eventDispatcher.Register<MouseReleaseEvent>([this](const MouseReleaseEvent& event) { Input::OnMouseRelease(event.button); }, PID(this));
 		_eventDispatcher.Register<MouseScrollEvent>([this](const MouseScrollEvent& event) { Input::OnMouseScroll(event.xOffset, event.yOffset); }, PID(this));
-		_eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& event) { Graphics::Resize(event.frameBufferWidth, event.frameBufferHeight); Graphics::SetViewport(0, 0, event.frameBufferWidth, event.frameBufferHeight); }, PID(this));
+		_eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& event) { Graphics::Resize(event.frameBufferWidth, event.frameBufferHeight); }, PID(this));
 		_eventDispatcher.Register<WindowIconifyEvent>([this](const WindowIconifyEvent& event) { _minimized = event.iconified; }, PID(this));
 		_eventDispatcher.Register<WindowFocusEvent>([this](const WindowFocusEvent& event) { if (!event.focused) { Input::Reset(); } }, PID(this));
 
@@ -81,10 +85,10 @@ namespace flaw {
 		_eventDispatcher.UnregisterAll(PID(this));
 
 		Scripting::Cleanup();
+		PrimitiveManager::Cleanup();
 		AssetManager::Cleanup();
 		Sounds::Cleanup();
 		Fonts::Cleanup();
-		Renderer::Cleanup();
 		Renderer2D::Cleanup();
 		Graphics::Cleanup();
 		Platform::Cleanup();

@@ -55,9 +55,9 @@ namespace flaw {
 
         ImVec2 currentPos = ImGui::GetCursorScreenPos();
         ImVec2 currentSize = ImGui::GetContentRegionAvail();
-
         vec2 relativePos = vec2(currentPos.x - _platformContext.GetX(), currentPos.y - _platformContext.GetY());
-        vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
+
+		_viewport = vec4(relativePos.x, relativePos.y, currentSize.x, currentSize.y);
 
         // 에디터 카메라 및 모든 scene 내의 카메라 aspect ratio 업데이트
         const float aspectRatio = currentSize.x / currentSize.y;
@@ -90,10 +90,11 @@ namespace flaw {
             DrawDebugComponent();
         }
 
-		auto mainMrt = Graphics::GetMainRenderPass();
-		auto renderTargetTex = mainMrt->GetRenderTargetTex(0);
+        Renderer2D::End();
 
+		auto renderTargetTex = Graphics::GetMainRenderPass()->GetRenderTargetTex(0);
         renderTargetTex->CopyTo(_captureRenderTargetTexture);
+
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
 
 #if false
@@ -103,6 +104,8 @@ namespace flaw {
         }
 #else
         // NOTE: 마우스 피킹 render target 테스트
+		vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
+
         vec2 remap = Remap(
             vec2(0.0),
             vec2(currentSize.x, currentSize.y),
@@ -283,18 +286,16 @@ namespace flaw {
 
         return candidateEnttId;
     }
-
+    
     void ViewportEditor::DrawDebugComponent() {
-		if (!_useEditorCamera) {
-			return;
-		}
+        if (!_useEditorCamera) {
+            return;
+        }
 
-		TransformComponent& transComp = _selectedEntt.GetComponent<TransformComponent>();
-
-        Renderer2D::Begin(_editorCamera.GetViewMatrix(), _editorCamera.GetProjectionMatrix());
+        TransformComponent& transComp = _selectedEntt.GetComponent<TransformComponent>();
 
         if (_selectedEntt.HasComponent<BoxCollider2DComponent>()) {
-			BoxCollider2DComponent& boxColliderComp = _selectedEntt.GetComponent<BoxCollider2DComponent>();
+            BoxCollider2DComponent& boxColliderComp = _selectedEntt.GetComponent<BoxCollider2DComponent>();
 
             Renderer2D::DrawLineRect(
                 (uint32_t)_selectedEntt,
@@ -304,7 +305,7 @@ namespace flaw {
         }
 
         if (_selectedEntt.HasComponent<CircleCollider2DComponent>()) {
-			CircleCollider2DComponent& circleColliderComp = _selectedEntt.GetComponent<CircleCollider2DComponent>();
+            CircleCollider2DComponent& circleColliderComp = _selectedEntt.GetComponent<CircleCollider2DComponent>();
 
             const vec3 toCamera = _editorCamera.GetPosition() - transComp.position;
             const float offsetZ = dot(transComp.GetWorldFront(), toCamera) < 0 ? -0.001f : 0.001f;
@@ -318,39 +319,20 @@ namespace flaw {
         }
 
         if (_selectedEntt.HasComponent<PointLightComponent>()) {
-			PointLightComponent& pointLightComp = _selectedEntt.GetComponent<PointLightComponent>();
+            PointLightComponent& pointLightComp = _selectedEntt.GetComponent<PointLightComponent>();
             DebugRender::DrawSphere(transComp.worldTransform, pointLightComp.range, vec3(0.0, 1.0, 0.0));
         }
 
         if (_selectedEntt.HasComponent<SpotLightComponent>()) {
-			SpotLightComponent& spotLightComp = _selectedEntt.GetComponent<SpotLightComponent>();
-			DebugRender::DrawCone(transComp.worldTransform, spotLightComp.range, spotLightComp.outer, spotLightComp.inner, vec3(0.0, 1.0, 0.0));
+            SpotLightComponent& spotLightComp = _selectedEntt.GetComponent<SpotLightComponent>();
+            DebugRender::DrawCone(transComp.worldTransform, spotLightComp.range, spotLightComp.outer, spotLightComp.inner, vec3(0.0, 1.0, 0.0));
         }
 
         if (_selectedEntt.HasComponent<DecalComponent>()) {
-			TransformComponent& decalTransComp = _selectedEntt.GetComponent<TransformComponent>();
-			DebugRender::DrawCube(decalTransComp.worldTransform, vec3(0.0, 1.0, 0.0));
+            DebugRender::DrawCube(transComp.worldTransform, vec3(0.0, 1.0, 0.0));
         }
 
-        if (_selectedEntt.HasComponent<CameraComponent>()) {
-            auto& cameraComp = _selectedEntt.GetComponent<CameraComponent>();
-			auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
-            if (cameraComp.perspective) {
-                Frustum frustrum;
-                CreateFrustrum(
-                    GetFovX(cameraComp.fov, cameraComp.aspectRatio), 
-                    cameraComp.fov, 
-                    cameraComp.nearClip, 
-                    cameraComp.farClip, 
-                    frustrum
-                );
-
-				// TODO: render frustum
-				DebugRender::DrawFrustum(frustrum, transComp.worldTransform, vec3(0.0, 1.0, 0.0));
-            }
-        }
-
-        Renderer2D::End();
+		Renderer2D::End();
     }
 
     void ViewportEditor::DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj) {

@@ -7,11 +7,11 @@
 #include "Time/Time.h"
 #include "Graphics/GraphicsFunc.h"
 #include "LandscapeSystem.h"
+#include "PrimitiveManager.h"
 
 // TODO: remove this
 #include "Image/Image.h"
 #include "Renderer2D.h"
-#include "Renderer.h"
 #include "SkyBoxSystem.h"
 #include "ParticleSystem.h"
 
@@ -198,7 +198,9 @@ namespace flaw {
 		_globalConstants.deltaTime = Time::DeltaTime();
 		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
 
+		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
+		_scene.GetSkyBoxSystem().Update();
 
 		GatherLights();
 		GatherDecals();
@@ -217,7 +219,9 @@ namespace flaw {
 		_globalConstants.deltaTime = Time::DeltaTime();
 		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
 
+		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
+		_scene.GetSkyBoxSystem().Update();
 
 		GatherLights();
 		GatherDecals();
@@ -326,29 +330,13 @@ namespace flaw {
 			for (auto&& [entity, transform, meshFilter, meshRenderer] : _scene.GetRegistry().view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
 #if false
 #else
-				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려짐
+				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려서 테스트
 				static Ref<Mesh> g_sphereMesh;
 				static Ref<GraphicsShader> g_std3dShader;
 				static Ref<Material> g_material;
 				
 				if (g_sphereMesh == nullptr) {
-					g_sphereMesh = CreateRef<Mesh>();
-
-					GenerateSphere([](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-							Vertex3D vertex;
-							vertex.position = pos;
-							vertex.texcoord = uv;
-							vertex.normal = normal;
-							vertex.tangent = tangent;
-							vertex.binormal = binormal;
-							g_sphereMesh->vertices.push_back(vertex);
-						},
-						g_sphereMesh->indices, 20, 20
-					);
-
-					std::vector<vec3> vertices;
-					std::transform(g_sphereMesh->vertices.begin(), g_sphereMesh->vertices.end(), std::back_inserter(vertices), [](const Vertex3D& vertex) { return vertex.position; });
-					CreateBoundingSphere(vertices, g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius);
+					g_sphereMesh = PrimitiveManager::GetSphereMesh();
 				}
 
 				if (g_std3dShader == nullptr) {
@@ -413,11 +401,20 @@ namespace flaw {
 			_vpMatrices.projection = stage.projection;
 			_vpCB->Update(&_vpMatrices, sizeof(VPMatrices));
 
+			_scene.GetSkyBoxSystem().Render(
+				_pipeline,
+				_vpCB,
+				_globalCB,
+				_lightCB,
+				_materialCB,
+				_batchedVertexBuffer,
+				_batchedIndexBuffer
+			);
+
 			RenderGeometry(stage);
 			RenderDecal(stage);
 			RenderDefferdLighting(stage);
 			RenderTransparent(stage);
-			RenderSkyBox(stage);
 			// TODO: Add more render stages
 			FinalizeRender(stage);
 		}
@@ -544,7 +541,7 @@ namespace flaw {
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
-		// TODO: temp
+		// TODO: Decal 시스템 추가하여 구현
 		static bool init = false;
 		static Ref<GraphicsShader> g_decalShader;
 		static Ref<VertexBuffer> g_cubeVB;
@@ -609,7 +606,7 @@ namespace flaw {
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
-		//TODO: temp
+		//TODO: 라이팅 시스템 추가하여 구현할 것
 		static bool init = false;
 		static Ref<GraphicsShader> g_directionalLightShader;
 		static Ref<VertexBuffer> g_fullscreenQuadVB;
@@ -650,31 +647,19 @@ namespace flaw {
 			g_directionalLightShader->CreateInputLayout();
 
 			// sphere
-			std::vector<Vertex3D> sphereVertices;
-			std::vector<uint32_t> sphereIndices;
-			GenerateSphere([&sphereVertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-					Vertex3D vertex;
-					vertex.position = pos;
-					vertex.texcoord = uv;
-					vertex.normal = normal;
-					vertex.tangent = tangent;
-					vertex.binormal = binormal;
-					sphereVertices.push_back(vertex);
-				},
-				sphereIndices, 20, 20
-			);
+			Ref<Mesh> sphereMesh = PrimitiveManager::GetSphereMesh();
 			
 			vbDesc = {};
 			vbDesc.usage = UsageFlag::Static;
 			vbDesc.elmSize = sizeof(Vertex3D);
-			vbDesc.bufferSize = sizeof(Vertex3D) * sphereVertices.size();
-			vbDesc.initialData = sphereVertices.data();
+			vbDesc.bufferSize = sizeof(Vertex3D) * sphereMesh->vertices.size();
+			vbDesc.initialData = sphereMesh->vertices.data();
 			g_sphereVB = Graphics::CreateVertexBuffer(vbDesc);
 
 			ibDesc = {};
 			ibDesc.usage = UsageFlag::Static;
-			ibDesc.bufferSize = sizeof(uint32_t) * sphereIndices.size();
-			ibDesc.initialData = sphereIndices.data();
+			ibDesc.bufferSize = sizeof(uint32_t) * sphereMesh->indices.size();
+			ibDesc.initialData = sphereMesh->indices.data();
 			g_sphereIB = Graphics::CreateIndexBuffer(ibDesc);
 
 			g_pointLightShader = Graphics::CreateGraphicsShader("Resources/Shaders/lighting3d_point.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -733,20 +718,8 @@ namespace flaw {
 		_lightingPass->Unbind();
 	}
 
-	void RenderSystem::RenderSkyBox(CameraRenderStage& stage) {
-		auto& skyboxSys = _scene.GetSkyBoxSystem();
-
-		RenderEnvironment renderEnv;
-		renderEnv.view = stage.view;
-		renderEnv.projection = stage.projection;
-
-		Renderer::Begin(renderEnv);
-		skyboxSys.Render();
-		Renderer::End();
-	}
-
 	void RenderSystem::RenderTransparent(CameraRenderStage& stage) {
-		// forward rendering
+		// TODO: forward rendering
 		while (!stage.renderQueue.Empty()) {
 			auto& entry = stage.renderQueue.Front();
 			if (!(entry.material->renderMode == RenderMode::Transparent)) {
@@ -824,10 +797,12 @@ namespace flaw {
 
 		cmdQueue.Execute();
 
+		// TODO: test
+#if true
 		auto& enttRegistry = _scene.GetRegistry();
 
 		Renderer2D::Begin(stage.view, stage.projection);
-#if true
+
 		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
 			if (!textureAsset) {
@@ -837,17 +812,15 @@ namespace flaw {
 				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
 			}
 		}
-#endif
 
-#if true
 		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
 			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
 			if (fontAsset) {
 				Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
-#endif
 		Renderer2D::End();
+#endif
 
 		_scene.GetParticleSystem().Render(_vpCB, _globalCB);
 	}

@@ -44,18 +44,15 @@ namespace flaw {
 
 		Ref<GraphicsRenderPass> CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) override;
 
-		void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
-		void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) override;
-
 		void Resize(int32_t width, int32_t height) override;
 		void GetSize(int32_t& width, int32_t& height) override;
 
 		Ref<ComputeShader> CreateComputeShader(const char* filename) override;
 		Ref<ComputePipeline> CreateComputePipeline() override;
 
-		inline void SetRenderPass(GraphicsRenderPass* renderPass) { _currentRenderPass = renderPass; }
+		inline void SetRenderPass(GraphicsRenderPass* renderPass) override { _currentRenderPass = renderPass; }
 
-		inline void ResetRenderPass() {
+		inline void ResetRenderPass() override {
 			_currentRenderPass = _mainRenderPass.get();
 			_mainRenderPass->Bind(false, false);
 		}
@@ -78,8 +75,6 @@ namespace flaw {
 		HWND _hWnd;
 
 		float _swapInterval;
-
-		D3D11_VIEWPORT _viewPort;
 
 		// rendering size
 		int32_t _renderWidth, _renderHeight;

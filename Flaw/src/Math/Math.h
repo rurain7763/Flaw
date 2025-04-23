@@ -57,11 +57,30 @@ namespace flaw {
 		return vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 	}
 
+	inline vec3 ExtractScale(const mat4& matrix) {
+		return vec3(length(vec3(matrix[0][0], matrix[0][1], matrix[0][2])),
+					length(vec3(matrix[1][0], matrix[1][1], matrix[1][2])),
+					length(vec3(matrix[2][0], matrix[2][1], matrix[2][2])));
+	}
+
+	inline vec3 ExtractRotation(const mat4& matrix) {
+		float scaleX = length(vec3(matrix[0][0], matrix[0][1], matrix[0][2]));
+		float scaleY = length(vec3(matrix[1][0], matrix[1][1], matrix[1][2]));
+		float scaleZ = length(vec3(matrix[2][0], matrix[2][1], matrix[2][2]));
+
+		mat4 rotationMatrix = matrix;
+		rotationMatrix[0] /= scaleX;
+		rotationMatrix[1] /= scaleY;
+		rotationMatrix[2] /= scaleZ;
+
+		return eulerAngles(toQuat(rotationMatrix));
+	}
+
 	inline void CreateFrustrum(const float fovX, const float fovY, const float nearClip, const float farClip, const mat4& transform, Frustum& frustrum) {
 		vec3 cameraPos = ExtractPosition(transform);
 		vec3 forward = normalize(vec3(transform * vec4(Forward, 0)));
-		vec3 right = normalize(vec3(transform * vec4(Right, 0)));
-		vec3 up = normalize(vec3(transform * vec4(Up, 0)));
+		vec3 right = normalize(cross(Up, forward));
+		vec3 up = normalize(cross(forward, right));
 
 		float nearHalfHeight = tan(fovY * 0.5f) * nearClip;
 		float nearHalfWidth = tan(fovX * 0.5f) * nearClip;
@@ -121,19 +140,6 @@ namespace flaw {
 
 	inline mat4 ModelMatrix(const vec3& position, const vec3& rotation, const vec3& scale) {
 		return Translate(position) * QRotate(rotation) * Scale(scale);
-	}
-
-	inline vec3 ExtractRotation(const mat4& matrix) {
-		float scaleX = length(vec3(matrix[0][0], matrix[0][1], matrix[0][2]));
-		float scaleY = length(vec3(matrix[1][0], matrix[1][1], matrix[1][2]));
-		float scaleZ = length(vec3(matrix[2][0], matrix[2][1], matrix[2][2]));
-
-		mat4 rotationMatrix = matrix;
-		rotationMatrix[0] /= scaleX;
-		rotationMatrix[1] /= scaleY;
-		rotationMatrix[2] /= scaleZ;
-
-		return eulerAngles(toQuat(rotationMatrix));
 	}
 
 	inline void ExtractModelMatrix(const mat4& matrix, vec3& outPosition, vec3& outRotation, vec3& outScale) {

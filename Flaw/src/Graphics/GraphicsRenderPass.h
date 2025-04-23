@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Graphics/Texture.h"
+
 #include <vector>
 #include <array>
 #include <functional>
@@ -14,6 +15,7 @@ namespace flaw {
 		Ref<Texture2D> texture;
 		std::array<float, 4> clearValue;
 		std::function<Ref<Texture2D>(int32_t width, int32_t height)> resizeFunc;
+		std::function<void(float& x, float& y, float& width, float& height)> viewportFunc;
 	};
 
 	struct GraphicsDepthStencil {

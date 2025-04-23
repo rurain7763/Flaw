@@ -39,7 +39,6 @@ namespace flaw {
 		void RenderGeometry(CameraRenderStage& stage);
 		void RenderDecal(CameraRenderStage& stage);
 		void RenderDefferdLighting(CameraRenderStage& stage);
-		void RenderSkyBox(CameraRenderStage& stage);
 		void RenderTransparent(CameraRenderStage& stage);
 		void FinalizeRender(CameraRenderStage& stage);
 

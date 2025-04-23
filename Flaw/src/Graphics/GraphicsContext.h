@@ -36,9 +36,8 @@ namespace flaw {
 		virtual GraphicsCommandQueue& GetCommandQueue() = 0;
 
 		virtual Ref<GraphicsRenderPass> CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) = 0;
-
-		virtual void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) = 0;
-		virtual void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) = 0;
+		virtual void SetRenderPass(GraphicsRenderPass* renderPass) = 0;
+		virtual void ResetRenderPass() = 0;
 
 		virtual void Resize(int32_t width, int32_t height) = 0;
 		virtual void GetSize(int32_t& width, int32_t& height) = 0;

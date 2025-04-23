@@ -84,7 +84,6 @@ namespace flaw {
 
 		Log::Info("DirectX 11 Initialized");
 
-		SetViewport(0, 0, _renderWidth, _renderHeight);
 		SetVSync(false);
 	}
 
@@ -97,8 +96,6 @@ namespace flaw {
 	void DXContext::Prepare() {
 		_currentRenderPass = _mainRenderPass.get();
 		_currentRenderPass->Bind();
-
-		_deviceContext->RSSetViewports(1, &_viewPort);
 	}
 
 	void DXContext::Present() {
@@ -147,24 +144,6 @@ namespace flaw {
 
 	Ref<GraphicsRenderPass> DXContext::CreateRenderPass(const GraphicsRenderPass::Descriptor& desc) {
 		return CreateRef<DXRenderPass>(*this, desc);
-	}
-
-	void DXContext::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
-		_viewPort.TopLeftX = x;
-		_viewPort.TopLeftY = y;
-		_viewPort.Width = static_cast<float>(width);
-		_viewPort.Height = static_cast<float>(height);
-
-		// depth range
-		_viewPort.MinDepth = 0.0f;
-		_viewPort.MaxDepth = 1.0f;
-	}
-
-	void DXContext::GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) {
-		x = static_cast<int32_t>(_viewPort.TopLeftX);
-		y = static_cast<int32_t>(_viewPort.TopLeftY);
-		width = static_cast<int32_t>(_viewPort.Width);
-		height = static_cast<int32_t>(_viewPort.Height);
 	}
 
 	void DXContext::Resize(int32_t width, int32_t height) {

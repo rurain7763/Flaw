@@ -116,4 +116,14 @@ namespace flaw {
     void DebugRender::DrawFrustum(const Frustum& frustrum, const mat4& transform, const vec3& color) {
 
     }
+
+	void DebugRender::DrawLineTriangle(const mat4& transform, const vec3& p0, const vec3& p1, const vec3& p2, const vec3& color) {
+		vec3 worldP0 = transform * vec4(p0, 1.0);
+		vec3 worldP1 = transform * vec4(p1, 1.0);
+		vec3 worldP2 = transform * vec4(p2, 1.0);
+
+		Renderer2D::DrawLine((uint32_t)entt::null, worldP0, worldP1, vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, worldP1, worldP2, vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, worldP2, worldP0, vec4(color, 1.0));
+	}
 }

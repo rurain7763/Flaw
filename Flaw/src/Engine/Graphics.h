@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Math/Math.h"
 #include "Graphics/GraphicsContext.h"
+#include "Mesh.h"
 
 #include <map>
 #include <vector>
@@ -52,76 +53,20 @@ namespace flaw {
 		uint32_t paddingMaterialConstants[2];
 	};
 
-	struct QuadVertex {
-		vec3 position;
-		vec2 texcoord;
-		vec4 color;
-		uint32_t textureID;
-		uint32_t id;
-	};
-
-	struct CircleVertex {
-		vec3 localPosition;
-		vec3 worldPosition;
-		float thickness;
-		vec4 color;
-		uint32_t id;
-	};
-
-	struct LineVertex {
-		vec3 position;
-		vec4 color;
-		uint32_t id;
-	};
-
-	struct PointVertex {
-		vec3 position;
-	};
-
-	struct Vertex3D {
-		vec3 position;
-		vec2 texcoord;
-		vec3 tangent;
-		vec3 normal;
-		vec3 binormal;
-	};
-
 	struct Camera {
 		bool isPerspective;
 		mat4 view;
 		mat4 projection;
 		Frustum frustrum;
 
-		bool TestInFrustum(const std::vector<vec3>& boundingCube, const mat4& modelMatrix) const {
-			std::vector<vec3> transformedBoundingCube(boundingCube.size());
-			for (int32_t i = 0; i < boundingCube.size(); ++i) {
-				transformedBoundingCube[i] = modelMatrix * vec4(boundingCube[i], 1.0);
-			}
-
-			for (int i = 0; i < Frustum::PlaneCount; ++i) {
-				auto& plane = frustrum.planes[i];
-				
-				bool isInFrustum = false;
-				for (int32_t i = 0; i < boundingCube.size(); ++i) {
-					const auto& vertex = vec4(boundingCube[i], 1.0);
-					if (plane.Distance(vertex) <= 0.0f) {
-						isInFrustum = true;
-						break;
-					}
-				}
-
-				if (!isInFrustum) {
-					return false;
-				}
-			}
-
-			return true;
-		}
-
 		bool TestInFrustum(const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) const {
-			const float maxScale = glm::compMax(vec3(length(modelMatrix[0]), length(modelMatrix[1]), length(modelMatrix[2])));
+			const mat4 mvMatrix = view * modelMatrix;
+			
+			float maxScale = glm::compMax(vec3(length2(mvMatrix[0]), length2(mvMatrix[1]), length2(mvMatrix[2])));
+			maxScale = sqrt(maxScale);
+
 			const float scaledRadius = boundingSphereRadius * maxScale;
-			const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
+			const vec4 transformedBoundingSphereCenter = mvMatrix * vec4(boundingSphereCenter, 1.0);
 
 			for (const auto& plane : frustrum.planes) {
 				if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
@@ -131,16 +76,6 @@ namespace flaw {
 
 			return true;
 		}
-	};
-
-	struct Mesh {
-		PrimitiveTopology topology = PrimitiveTopology::TriangleList;
-
-		std::vector<Vertex3D> vertices;
-		std::vector<uint32_t> indices;
-		
-		vec3 boundingSphereCenter = vec3(0.0);
-		float boundingSphereRadius = 0;
 	};
 
 	enum class RenderMode {
@@ -229,9 +164,8 @@ namespace flaw {
 		static GraphicsCommandQueue& GetCommandQueue();
 
 		static Ref<GraphicsRenderPass> CreateRenderPass(const GraphicsRenderPass::Descriptor& desc);
-
-		static void SetViewport(int32_t x, int32_t y, int32_t width, int32_t height);
-		static void GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height);
+		static void SetRenderPass(GraphicsRenderPass* renderPass);
+		static void ResetRenderPass();
 
 		static void Resize(int32_t width, int32_t height);
 		static void GetSize(int32_t& width, int32_t& height);

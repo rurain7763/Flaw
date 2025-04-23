@@ -21,9 +21,11 @@
     <OutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -33,7 +35,8 @@
     <OutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>

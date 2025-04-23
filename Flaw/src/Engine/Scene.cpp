@@ -12,7 +12,6 @@
 #include "LandscapeSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
-#include "Renderer.h"
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Sounds.h"
@@ -255,8 +254,6 @@ namespace flaw {
 		UpdatePhysics2D();
 		UpdateTransform();
 		UpdateSound();
-		_landscapeSystem->Update();
-		_skyBoxSystem->Update();
 		_renderSystem->Update();
 
 		_renderSystem->Render();

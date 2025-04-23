@@ -17,9 +17,10 @@ namespace flaw {
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
 		, _detailsEditor(app)
+		, _landscapeEditor(app, _camera, _viewportEditor)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
-		, _editorMode(EditorMode::Default)
+		, _editorMode(EditorMode::Selection)
     {
     }
 
@@ -193,17 +194,22 @@ namespace flaw {
 
         {
             ImGui::Begin("Status");
-	        ImGui::Text("FPS: %d", flaw::Time::FPS());
+            ImGui::Text("FPS: %d", flaw::Time::FPS());
             ImGui::End();
         }
 
         OnRenderToolbar();
 
+        Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
+
         _outlinerEditor.OnRender();
-		_viewportEditor.OnRender();
+		_landscapeEditor.OnRender();
 		_contentBrowserEditor.OnRender();
 		_detailsEditor.OnRender();
         _logEditor.OnRender();
+
+		// NOTE: Renderer2D::End() called in ViewportEditor::OnRender()
+		_viewportEditor.OnRender();
 
 	    ImGui::Render();
 
@@ -377,9 +383,6 @@ namespace flaw {
     }
 
     void EditorLayer::UpdateSceneAsEditorMode(const Ref<Scene>& scene) {
-        auto& enttRegistry = scene->GetRegistry();
-		auto& skyBoxSystem = scene->GetSkyBoxSystem();
-		auto& landScapeSys = scene->GetLandscapeSystem();
 		auto& renderSys = scene->GetRenderSystem();
 
         // Updating
@@ -394,20 +397,17 @@ namespace flaw {
 
         if (camera.isPerspective) {
             CreateFrustrum(
-                GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
-                _camera.GetFov(),
-                _camera.GetNearClip(),
-                _camera.GetFarClip(),
-                _camera.GetWorldMatrix(),
-                camera.frustrum
+				GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
+				_camera.GetFov(),
+				_camera.GetNearClip(),
+				_camera.GetFarClip(),
+				camera.frustrum
             );
         }
         else {
-            // Orthographic
+			// TODO: Implement orthographic frustrum
         }
 
-        landScapeSys.Update();
-        skyBoxSystem.Update();
 		renderSys.Update(camera);
 
         renderSys.Render();
@@ -499,6 +499,7 @@ namespace flaw {
 		_editorScene = CreateRef<Scene>(_app);
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
+		_landscapeEditor.SetScene(_editorScene);
 		_currentScenePath = "";
 	}
 
@@ -538,6 +539,7 @@ namespace flaw {
 		_editorScene->FromFile(path);
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
+		_landscapeEditor.SetScene(_editorScene);
 		_currentScenePath = path;
 	}
 
@@ -558,6 +560,7 @@ namespace flaw {
 		_runtimeScene->OnStart();
 		_outlinerEditor.SetScene(_runtimeScene);
 		_viewportEditor.SetScene(_runtimeScene);
+		_landscapeEditor.SetScene(_runtimeScene);
 
 		_sceneState = SceneState::Play;
 
@@ -588,6 +591,7 @@ namespace flaw {
 
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
+		_landscapeEditor.SetScene(_editorScene);
 
 		_sceneState = SceneState::Edit;
 

@@ -52,6 +52,7 @@
     <ClInclude Include="src\EditorTypes.h" />
     <ClInclude Include="src\FlawEditor.h" />
     <ClInclude Include="src\DebugRender.h" />
+    <ClInclude Include="src\Editor\LandscapeEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetDatabase.cpp" />
@@ -93,5 +94,6 @@
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\DebugRender.cpp" />
+    <ClCompile Include="src\Editor\LandscapeEditor.cpp" />
   </ItemGroup>
 </Project>

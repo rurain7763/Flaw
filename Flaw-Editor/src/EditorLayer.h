@@ -8,6 +8,7 @@
 #include "Editor/ViewportEditor.h"
 #include "Editor/ContentBrowserEditor.h"
 #include "Editor/DetailsEditor.h"
+#include "Editor/LandscapeEditor.h"
 #include "Editor/LogEditor.h"
 
 namespace flaw {
@@ -50,6 +51,7 @@ namespace flaw {
 		ContentBrowserEditor _contentBrowserEditor;
 		DetailsEditor _detailsEditor;
 		LogEditor _logEditor;
+		LandscapeEditor _landscapeEditor;
 
 		Ref<Scene> _editorScene;
 		Ref<Scene> _runtimeScene;

@@ -20,6 +20,7 @@ namespace flaw {
 		float GetFarClip() const { return _farClip; }
 
 		const vec3& GetPosition() const { return _position; }
+		vec3 GetFront() const { return QRotate(_rotation, Forward); }
 
 		mat4 GetWorldMatrix() const;
 		mat4 GetViewMatrix() const;

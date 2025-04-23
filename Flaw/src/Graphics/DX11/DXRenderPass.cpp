@@ -41,8 +41,25 @@ namespace flaw {
 		_context.SetRenderPass(this);
 
 		std::vector<ID3D11RenderTargetView*> rtvArray(_renderTargets.size());
+		std::vector<D3D11_VIEWPORT> viewports(_renderTargets.size());
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
-			rtvArray[i] = std::static_pointer_cast<DXTexture2D>(_renderTargets[i].texture)->GetRenderTargetView().Get();
+			auto& renderTarget = _renderTargets[i];
+			
+			rtvArray[i] = std::static_pointer_cast<DXTexture2D>(renderTarget.texture)->GetRenderTargetView().Get();
+
+			auto& viewPort = viewports[i];
+			if (renderTarget.viewportFunc) {
+				renderTarget.viewportFunc(viewPort.TopLeftX, viewPort.TopLeftY, viewPort.Width, viewPort.Height);
+			}
+			else {
+				viewPort.TopLeftX = 0;
+				viewPort.TopLeftY = 0;
+				viewPort.Width = static_cast<float>(width);
+				viewPort.Height = static_cast<float>(height);
+			}
+
+			viewPort.MinDepth = 0.0f;
+			viewPort.MaxDepth = 1.0f;
 		}
 
 		ComPtr<ID3D11DepthStencilView> depthStencilView = nullptr;
@@ -51,6 +68,7 @@ namespace flaw {
 		}
 
 		_context.DeviceContext()->OMSetRenderTargets(static_cast<UINT>(rtvArray.size()), rtvArray.data(), depthStencilView.Get());
+		_context.DeviceContext()->RSSetViewports(static_cast<UINT>(viewports.size()), viewports.data());
 		_context.DeviceContext()->OMSetBlendState(_blendState.Get(), nullptr, 0xffffffff);
 	}
 

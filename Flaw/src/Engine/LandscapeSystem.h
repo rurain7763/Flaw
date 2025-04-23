@@ -24,6 +24,8 @@ namespace flaw {
 		void Update();
 		void Render(const Camera& camera, RenderQueue& renderQueue);
 
+		Landscape& GetLandscape(UUID landscapeID) { return _landscapes.at(landscapeID); }
+
 	private:
 		Ref<Mesh> CreateLandscapeMesh(uint32_t tilingX, uint32_t tilingY);
 

@@ -7,6 +7,9 @@
 namespace flaw {
 	DXGraphicsPipeline::DXGraphicsPipeline(DXContext& context)
 		: _context(context)
+		, _depthTest(DepthTest::Less)
+		, _depthWrite(true)
+
 	{
 		_rasterizerState = CreateRasterizerState(D3D11_FILL_SOLID, D3D11_CULL_BACK);
 

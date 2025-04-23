@@ -142,8 +142,6 @@ namespace flaw {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
 				uint32_t id = *(uint32_t*)payload->Data;
 				needToSetParent = Entity((entt::entity)id, _scene.get());
-				//Entity draggedEntity((entt::entity)id, _scene.get());
-				//draggedEntity.SetParent(entity);
 			}
 			ImGui::EndDragDropTarget();
 		}

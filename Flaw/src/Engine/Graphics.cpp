@@ -95,12 +95,12 @@ namespace flaw {
 		return g_graphicsContext->CreateRenderPass(desc);
 	}
 
-	void Graphics::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
-		g_graphicsContext->SetViewport(x, y, width, height);
+	void Graphics::SetRenderPass(GraphicsRenderPass* renderPass) {
+		g_graphicsContext->SetRenderPass(renderPass);
 	}
 
-	void Graphics::GetViewport(int32_t& x, int32_t& y, int32_t& width, int32_t& height) {
-		g_graphicsContext->GetViewport(x, y, width, height);
+	void Graphics::ResetRenderPass() {
+		g_graphicsContext->ResetRenderPass();
 	}
 
 	void Graphics::Resize(int32_t width, int32_t height) {

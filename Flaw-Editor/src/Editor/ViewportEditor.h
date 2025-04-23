@@ -13,6 +13,8 @@ namespace flaw {
 		void OnRender();
 		void SetScene(const Ref<Scene>& scene);
 
+		vec4 GetViewport() const { return _viewport; }
+
 	private:
 		void CreateRequiredTextures();
 
@@ -43,5 +45,7 @@ namespace flaw {
 
 		Ref<ConstantBuffer> _mvpConstantBuffer;
 		Ref<GraphicsPipeline> _outlineGraphicsPipeline;
+
+		vec4 _viewport = vec4(0.0f);
 	};
 }
