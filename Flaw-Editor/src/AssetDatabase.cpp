@@ -163,7 +163,37 @@ namespace flaw {
 		return g_contentsDir;
 	}
 
-	bool AssetDatabase::ImportAsset(AssetImportSettings* settings) {
+	bool AssetDatabase::CreateAsset(const AssetCreateSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		if (settings->type == AssetSettingsType::Texture) {
+			TextureCreateSettings* textureSettings = (TextureCreateSettings*)settings;
+
+			if (textureSettings->textureType == TextureType::Texture2D) {
+				meta.type = AssetType::Texture2D;
+				archive << meta;
+			}
+		}
+
+		settings->writeArchiveFunc(archive);
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {
 		if (!std::filesystem::exists(settings->srcPath)) {
 			Log::Error("File does not exist: %s", settings->srcPath);
 			return false;
@@ -181,33 +211,31 @@ namespace flaw {
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetImportSettingsType::Texture) {
+		if (settings->type == AssetSettingsType::Texture) {
 			TextureImportSettings* textureSettings = (TextureImportSettings*)settings;
 
 			if (textureSettings->textureType == TextureType::Texture2D) {
 				meta.type = AssetType::Texture2D;
+				archive << meta;
 
 				Image img(settings->srcPath.c_str(), 4);
 
-				archive << meta;
-				archive << PixelFormat::RGBA8;
-				archive << img.Width();
-				archive << img.Height();
-				archive << Texture2D::Wrap::ClampToEdge;
-				archive << Texture2D::Wrap::ClampToEdge;
-				archive << Texture2D::Filter::Linear;
-				archive << Texture2D::Filter::Linear;
-				archive << UsageFlag::Static;
-				archive << (uint32_t)0; // access
-				archive << BindFlag::ShaderResource;
-				archive << img.Data();
+				Texture2DAsset::WriteToArchive(
+					PixelFormat::RGBA8,
+					img.Width(),
+					img.Height(),
+					textureSettings->accessFlags,
+					textureSettings->bindFlags,
+					img.Data(),
+					archive
+				);
 			}
 			else if (textureSettings->textureType == TextureType::TextureCube) {
 				meta.type = AssetType::TextureCube;
+				archive << meta;
 
 				Image img(settings->srcPath.c_str(), 4);
 
-				archive << meta;
 				archive << PixelFormat::RGBA8;
 				archive << img.Width();
 				archive << img.Height();
@@ -215,9 +243,8 @@ namespace flaw {
 				archive << img.Data();
 			}
 		}
-		else if (settings->type == AssetImportSettingsType::Font) {
+		else if (settings->type == AssetSettingsType::Font) {
 			meta.type = AssetType::Font;
-
 			archive << meta;
 
 			std::vector<int8_t> fontData;
@@ -234,9 +261,8 @@ namespace flaw {
 			archive << fontAtlas.height;
 			archive << fontAtlas.data;
 		}
-		else if (settings->type == AssetImportSettingsType::Sound) {
+		else if (settings->type == AssetSettingsType::Sound) {
 			meta.type = AssetType::Sound;
-
 			archive << meta;
 
 			std::vector<int8_t> soundData;

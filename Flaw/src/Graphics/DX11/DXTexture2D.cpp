@@ -159,7 +159,6 @@ namespace flaw {
 	void DXTexture2D::Unbind() {
 		if (_unbindFunc) {
 			_unbindFunc();
-			_unbindFunc = nullptr;
 		}
 	}
 

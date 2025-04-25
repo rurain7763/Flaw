@@ -172,6 +172,15 @@ namespace flaw {
 
 		static Ref<ComputeShader> CreateComputeShader(const char* filePath);
 		static Ref<ComputePipeline> CreateComputePipeline();
+		static Ref<ComputePipeline> GetMainComputePipeline();
+
+		static int32_t Raycast(
+			const Ray& ray,
+			const std::function<std::vector<BVHNode>& (int32_t)>& getNodesFunc,
+			const std::function<std::vector<BVHTriangle>& (int32_t)>& getTrianglesFunc,
+			int32_t candidateCount,
+			RayHit& hit
+		);
 
 		static GraphicsContext& GetGraphicsContext();
 	};

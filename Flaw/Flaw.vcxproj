@@ -114,7 +114,7 @@
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
     <ClInclude Include="src\Engine\PrimitiveManager.h" />
-    <ClInclude Include="src\Engine\Raycast.h" />
+    <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Engine\Mesh.h" />
     <ClInclude Include="src\Engine\RenderQueue.h" />
     <ClInclude Include="src\Engine\LandscapeSystem.h" />
@@ -207,7 +207,7 @@
     <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
     <ClCompile Include="src\Engine\RenderQueue.cpp" />
     <ClCompile Include="src\Engine\Mesh.cpp" />
-    <ClCompile Include="src\Engine\Raycast.cpp" />
+    <ClCompile Include="src\Utils\Raycast.cpp" />
     <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />

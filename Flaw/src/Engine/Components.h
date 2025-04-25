@@ -36,6 +36,10 @@ namespace flaw {
 			return ExtractPosition(worldTransform);
 		}
 
+		inline vec3 GetWorldScale() const {
+			return ExtractScale(worldTransform);
+		}
+
 		inline vec3 GetWorldFront() {
 			return normalize(mat3(worldTransform) * Forward);
 		}
@@ -350,6 +354,7 @@ namespace flaw {
 
 	// Terrain
 	struct LandScaperComponent {
+		AssetHandle heightMap;
 		uint32_t tilingX = 1, tilingY = 1;
 		float tesselationFactor = 1.0f;
 
@@ -358,12 +363,14 @@ namespace flaw {
 		LandScaperComponent() = default;
 
 		LandScaperComponent(const LandScaperComponent& other) {
+			heightMap = other.heightMap;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
 			tesselationFactor = other.tesselationFactor;
 		}
 
 		LandScaperComponent& operator=(const LandScaperComponent& other) {
+			heightMap = other.heightMap;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
 			tesselationFactor = other.tesselationFactor;

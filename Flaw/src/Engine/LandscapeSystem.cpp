@@ -4,6 +4,8 @@
 #include "Components.h"
 #include "Graphics/GraphicsFunc.h"
 #include "Image/Image.h"
+#include "AssetManager.h"
+#include "Assets.h"
 
 namespace flaw {
 	LandscapeSystem::LandscapeSystem(Scene& scene)
@@ -24,7 +26,6 @@ namespace flaw {
 
 		Landscape landscape;
 
-		// TODO: test code
 		landscape.material = CreateRef<Material>();
 
 		landscape.material->shader = _landscapeShader;
@@ -32,18 +33,6 @@ namespace flaw {
 		landscape.material->cullMode = CullMode::Back;
 		landscape.material->depthTest = DepthTest::Less;
 		landscape.material->depthWrite = true;
-
-		Image albedo("Resources/HeightMap.jpg", 4);
-
-		Texture2D::Descriptor desc = {};
-		desc.width = albedo.Width();
-		desc.height = albedo.Height();
-		desc.format = PixelFormat::RGBA8;
-		desc.data = albedo.Data().data();
-		desc.usage = UsageFlag::Static;
-		desc.bindFlags = BindFlag::ShaderResource;
-
-		landscape.material->heightTexture = Graphics::CreateTexture2D(desc);
 		landscape.material->intConstants[TilingXIndex] = landscapeComp.tilingX;
 		landscape.material->intConstants[TilingYIndex] = landscapeComp.tilingY;
 		landscape.material->floatConstants[TesselationFactorIndex] = landscapeComp.tesselationFactor;
@@ -94,6 +83,15 @@ namespace flaw {
 			auto& landscape = _landscapes[enttComp.uuid];
 
 			landscape.mesh = CreateLandscapeMesh(landscapeComp.tilingX, landscapeComp.tilingY);
+
+			auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(landscapeComp.heightMap);
+			if (tex2DAsset) {
+				landscape.material->heightTexture = tex2DAsset->GetTexture();
+			}
+			else {
+				landscape.material->heightTexture = nullptr;
+			}
+
 			landscape.material->intConstants[TilingXIndex] = landscapeComp.tilingX;
 			landscape.material->intConstants[TilingYIndex] = landscapeComp.tilingY;
 			landscape.material->floatConstants[TesselationFactorIndex] = landscapeComp.tesselationFactor;

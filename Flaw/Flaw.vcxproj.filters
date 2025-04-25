@@ -282,7 +282,7 @@
     <ClInclude Include="src\Engine\LandscapeSystem.h" />
     <ClInclude Include="src\Engine\RenderQueue.h" />
     <ClInclude Include="src\Engine\Mesh.h" />
-    <ClInclude Include="src\Engine\Raycast.h" />
+    <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Engine\PrimitiveManager.h" />
   </ItemGroup>
   <ItemGroup>
@@ -417,7 +417,7 @@
     <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
     <ClCompile Include="src\Engine\RenderQueue.cpp" />
     <ClCompile Include="src\Engine\Mesh.cpp" />
-    <ClCompile Include="src\Engine\Raycast.cpp" />
+    <ClCompile Include="src\Utils\Raycast.cpp" />
     <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
 #include <Flaw.h>
 #include "EditorCamera.h"
 #include "ViewportEditor.h"
+#include "ContentBrowserEditor.h"
 
 namespace flaw {
 	class LandscapeEditor {
@@ -10,30 +11,52 @@ namespace flaw {
 		LandscapeEditor(
 			Application& app, 
 			EditorCamera& editorCam,
-			ViewportEditor& viewportEditor
+			ViewportEditor& viewportEditor,
+			ContentBrowserEditor& contentEditor
 		);
+
+		~LandscapeEditor();
 
 		void OnRender();
 
-		void SetScene(const Ref<Scene>& scene) { _scene = scene; }
+		void SetScene(const Ref<Scene>& scene);
 
 	private:
-		void UpdateLandscapeTexture();
+		bool GetBrushPos(vec2& pos);
+		void UpdateLandscapeTexture(const Ref<Texture2D>& texture);
 
 	private:
+		enum class BrushType {
+			Round,
+			Texture,
+		};
+
+		struct LandscapeUniform {
+			float deltaTime;
+
+			uint32_t brushType;
+			vec2 brushPos;
+
+			uint32_t width;
+			uint32_t height;
+
+			uint32_t padding[2];
+		};
+
 		Application& _app;
 		EditorCamera& _editorCamera;
 		ViewportEditor& _viewportEditor;
+		ContentBrowserEditor& _contentEditor;
 
 		Ref<Scene> _scene;
 
-		struct LandscapeUniform {
-			uint32_t width;
-			uint32_t height;
-		};
+		Entity _selectedEntt;
+
+		BrushType _brushType = BrushType::Round;
+		vec2 _brushPos = vec2(0.0f);
+		Ref<Texture2DAsset> _brushTextureAsset;
 
 		Ref<ConstantBuffer> _landscapeUniformCB;
-		Ref<Texture2D> _landscapeTexture;
 
 		Ref<ComputeShader> _landscapeShader;
 		Ref<ComputePipeline> _landscapePipeline;

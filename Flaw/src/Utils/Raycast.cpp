@@ -83,7 +83,7 @@ namespace flaw {
 		Split(nodes, triangles, nodes[parent].childB, depth + 1);
 	}
 
-	void BuildBVH(const std::function<vec3(int32_t)>& getVertex, int32_t vertexCount, std::vector<BVHNode>& nodes, std::vector<BVHTriangle>& triangles) {
+	void Raycast::BuildBVH(const std::function<vec3(int32_t)>& getVertex, int32_t vertexCount, std::vector<BVHNode>& nodes, std::vector<BVHTriangle>& triangles) {
 		BVHNode rootNode;
 
 		triangles.reserve(vertexCount / 3);
@@ -104,7 +104,7 @@ namespace flaw {
 		Split(nodes, triangles, 0, 0);
 	}
 
-	bool BVHBoundingBoxLineIntersect(const BVHBoundingBox& box, const Ray& ray) {
+	bool Raycast::BVHBoundingBoxLineIntersect(const BVHBoundingBox& box, const Ray& ray) {
 		float xMin = (box.min.x - ray.origin.x) / ray.direction.x;
 		float xMax = (box.max.x - ray.origin.x) / ray.direction.x;
 		if (xMin > xMax) {
@@ -133,12 +133,12 @@ namespace flaw {
 		return true;
 	}
 
-	bool RayTriangleIntersect(const vec3& rayOrigin, const vec3& rayDir, const float rayLength, const vec3& v0, const vec3& v1, const vec3& v2, vec3& outPos, float& outT) {
+	bool Raycast::BVHTriangleLineIntersect(const BVHTriangle& tri, const Ray& ray, vec3& outPos, float& outT) {
 		const float EPSILON = 1e-6f;
 
-		vec3 edge1 = v1 - v0;
-		vec3 edge2 = v2 - v0;
-		vec3 h = cross(rayDir, edge2);
+		vec3 edge1 = tri.p1 - tri.p0;
+		vec3 edge2 = tri.p2 - tri.p0;
+		vec3 h = cross(ray.direction, edge2);
 		float a = dot(edge1, h);
 
 		if (fabs(a) < EPSILON) {
@@ -146,29 +146,29 @@ namespace flaw {
 		}
 
 		float f = 1.0f / a;
-		vec3 s = rayOrigin - v0;
+		vec3 s = ray.origin - tri.p0;
 		float u = f * dot(s, h);
 		if (u < 0.0f || u > 1.0f) {
 			return false;
 		}
 
 		vec3 q = cross(s, edge1);
-		float v = f * dot(rayDir, q);
+		float v = f * dot(ray.direction, q);
 		if (v < 0.0f || u + v > 1.0f) {
 			return false;
 		}
 
 		float t = f * dot(edge2, q);
-		if (t < 0.0f || t > rayLength) {
+		if (t < 0.0f || t > ray.length) {
 			return false;
 		}
 
 		outT = t;
-		outPos = rayOrigin + rayDir * t;
+		outPos = ray.origin + ray.direction * t;
 		return true;
 	}
 
-	bool RayCastBVHImpl(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const int32_t current, const Ray& ray, RayHit& hit) {
+	bool Raycast::RayCastBVHImpl(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const int32_t current, const Ray& ray, RayHit& hit) {
 		const auto& node = nodes[current];
 
 		if (!BVHBoundingBoxLineIntersect(node.boundingBox, ray)) {
@@ -184,7 +184,7 @@ namespace flaw {
 
 				vec3 hitPoint;
 				float t;
-				if (RayTriangleIntersect(ray.origin, ray.direction, ray.length, tri.p0, tri.p1, tri.p2, hitPoint, t)) {
+				if (BVHTriangleLineIntersect(tri, ray, hitPoint, t)) {
 					if (t < hit.t) {
 						hit.position = hitPoint;
 						hit.normal = tri.normal;
@@ -218,7 +218,31 @@ namespace flaw {
 		return result;
 	}
 
-	bool RaycastBVH(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const Ray& ray, RayHit& hit) {
+	bool Raycast::RaycastBVH(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const Ray& ray, RayHit& hit) {
 		return RayCastBVHImpl(nodes, triangles, 0, ray, hit);
+	}
+
+	void Raycast::GetCandidateBVHTrianglesImpl(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const Ray& ray, int32_t current, const std::function<void(int32_t, int32_t)>& callback) {
+		const auto& node = nodes[current];
+
+		if (!BVHBoundingBoxLineIntersect(node.boundingBox, ray)) {
+			return;
+		}
+
+		if (node.IsLeaf()) {
+			callback(node.triangleStart, node.triangleCount);
+		}
+		else {
+			if (node.childA != -1) {
+				GetCandidateBVHTrianglesImpl(nodes, triangles, ray, node.childA, callback);
+			}
+			if (node.childB != -1) {
+				GetCandidateBVHTrianglesImpl(nodes, triangles, ray, node.childB, callback);
+			}
+		}
+	}
+
+	void Raycast::GetCandidateBVHTriangles(const std::vector<BVHNode>& nodes, const std::vector<BVHTriangle>& triangles, const Ray& ray, const std::function<void(int32_t, int32_t)>& callback) {
+		GetCandidateBVHTrianglesImpl(nodes, triangles, ray, 0, callback);
 	}
 }

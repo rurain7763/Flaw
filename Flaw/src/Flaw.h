@@ -42,3 +42,5 @@
 #include "Image/Image.h"
 
 #include "Debug/Instrumentor.h"	
+
+#include "Utils/Finalizer.h"

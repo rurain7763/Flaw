@@ -10,7 +10,7 @@ namespace flaw {
 		bvhTriangles.clear();
 		bvhNodes.clear();
 
-		BuildBVH(
+		Raycast::BuildBVH(
 			[this](int32_t index) { return vertices[indices[index]].position; },
 			indices.size(),
 			bvhNodes,

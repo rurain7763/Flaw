@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "Graphics/GraphicsContext.h"
 #include "Math/Math.h"
-#include "Raycast.h"
+#include "Utils/Raycast.h"
 
 namespace flaw {
 	struct QuadVertex {

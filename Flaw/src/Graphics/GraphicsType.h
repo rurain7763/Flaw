@@ -76,6 +76,8 @@ namespace flaw {
 		BGRX8,
 		RG8,
 		R8,
+		R8_UINT,
+		R32F,
 		R32_UINT,
 		D24S8_UINT,
 	};

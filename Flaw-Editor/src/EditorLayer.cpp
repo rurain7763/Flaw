@@ -17,7 +17,7 @@ namespace flaw {
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
 		, _detailsEditor(app)
-		, _landscapeEditor(app, _camera, _viewportEditor)
+		, _landscapeEditor(app, _camera, _viewportEditor, _contentBrowserEditor)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
 		, _editorMode(EditorMode::Selection)
@@ -203,7 +203,9 @@ namespace flaw {
         Renderer2D::Begin(_camera.GetViewMatrix(), _camera.GetProjectionMatrix());
 
         _outlinerEditor.OnRender();
-		_landscapeEditor.OnRender();
+        if (_sceneState == SceneState::Edit && _editorMode == EditorMode::Landscape) {
+		    _landscapeEditor.OnRender();
+        }
 		_contentBrowserEditor.OnRender();
 		_detailsEditor.OnRender();
         _logEditor.OnRender();

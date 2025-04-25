@@ -36,6 +36,28 @@ namespace flaw {
 		_texture.reset();
 	}
 
+	void Texture2DAsset::WriteToArchive(
+		PixelFormat format,
+		int32_t width,
+		int32_t height,
+		uint32_t access,
+		uint32_t bindFlags,
+		const std::vector<uint8_t>& data,
+		SerializationArchive& archive)
+	{
+		archive << format;
+		archive << width;
+		archive << height;
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Filter::Linear;
+		archive << Texture2D::Filter::Linear;
+		archive << UsageFlag::Static;
+		archive << access,
+		archive << bindFlags;
+		archive << data;
+	}
+
 	void TextureCubeAsset::Load() {
 		std::vector<int8_t> data;
 		_getMemoryFunc(data);

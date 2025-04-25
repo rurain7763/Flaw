@@ -48,6 +48,10 @@ namespace flaw {
 			return DXGI_FORMAT_R8G8_UNORM;
 		case PixelFormat::R8:
 			return DXGI_FORMAT_R8_UNORM;
+		case PixelFormat::R8_UINT:
+			return DXGI_FORMAT_R8_UINT;
+		case PixelFormat::R32F:
+			return DXGI_FORMAT_R32_FLOAT;
 		case PixelFormat::R32_UINT:
 			return DXGI_FORMAT_R32_UINT;
 		case PixelFormat::D24S8_UINT:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Flaw.h>
+#include "EditorTypes.h"
 
 #include "EditorCamera.h"
 
@@ -19,7 +20,6 @@ namespace flaw {
 		void CreateRequiredTextures();
 
 		uint32_t MousePicking(int32_t x, int32_t y);
-		uint32_t MousePickingWithRay(const vec2& mousePos, const vec2& relativePos, const vec2& currentSize);
 
 		void DrawDebugComponent();
 		void DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj);
@@ -31,6 +31,7 @@ namespace flaw {
 		EditorCamera& _editorCamera;
 
 		bool _useEditorCamera;
+		bool _selectionEnabled;
 
 		Ref<Scene> _scene;
 		Entity _selectedEntt;

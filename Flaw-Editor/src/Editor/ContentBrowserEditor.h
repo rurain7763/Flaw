@@ -11,6 +11,8 @@ namespace flaw{
 
 		void OnRender();
 
+		std::string GetCurrentDir() const { return _currentDirectory.generic_string(); }
+
 	private:
 		enum class FileType {
 			Directory,

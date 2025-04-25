@@ -19,6 +19,16 @@ namespace flaw {
 		const Ref<Texture2D>& GetTexture() const { return _texture; }
 		bool IsLoaded() const override { return _texture != nullptr; }
 
+		static void WriteToArchive(
+			PixelFormat format,
+			int32_t width,
+			int32_t height,
+			uint32_t access,
+			uint32_t bindFlags,
+			const std::vector<uint8_t>& data,
+			SerializationArchive& archive
+		);
+
 	private:
 		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
 

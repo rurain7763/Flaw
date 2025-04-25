@@ -25,14 +25,30 @@ namespace flaw {
 		}
 	};
 
-	enum class AssetImportSettingsType {
+	enum class AssetSettingsType {
 		Texture,
 		Font,
 		Sound,
 	};
 
+	struct AssetCreateSettings {
+		AssetSettingsType type;
+
+		std::function<void(SerializationArchive&)> writeArchiveFunc;
+		std::string destPath;
+	};
+
+	struct TextureCreateSettings : public AssetCreateSettings {
+		TextureType textureType;
+
+		TextureCreateSettings() {
+			type = AssetSettingsType::Texture;
+			textureType = TextureType::Texture2D;
+		}
+	};
+
 	struct AssetImportSettings {
-		AssetImportSettingsType type;
+		AssetSettingsType type;
 
 		std::string srcPath;
 		std::string destPath;
@@ -40,22 +56,26 @@ namespace flaw {
 
 	struct TextureImportSettings : public AssetImportSettings {
 		TextureType textureType;
+		BindFlag bindFlags;
+		uint32_t accessFlags;
 
 		TextureImportSettings() {
-			type = AssetImportSettingsType::Texture;
+			type = AssetSettingsType::Texture;
 			textureType = TextureType::Texture2D;
+			bindFlags = BindFlag::ShaderResource;
+			accessFlags = 0;
 		}
 	};
 
 	struct FontImportSettings : public AssetImportSettings {
 		FontImportSettings() {
-			type = AssetImportSettingsType::Font;
+			type = AssetSettingsType::Font;
 		}
 	};	
 
 	struct SoundImportSettings : public AssetImportSettings {
 		SoundImportSettings() {
-			type = AssetImportSettingsType::Sound;
+			type = AssetSettingsType::Sound;
 		}
 	};
 
@@ -70,7 +90,9 @@ namespace flaw {
 
 		static const std::filesystem::path& GetContentsDirectory();
 
-		static bool ImportAsset(AssetImportSettings* importSettings);
+		static bool CreateAsset(const AssetCreateSettings* settings);
+
+		static bool ImportAsset(const AssetImportSettings* importSettings);
 
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);

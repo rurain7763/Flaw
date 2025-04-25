@@ -117,6 +117,19 @@ namespace flaw {
 		_commands.push([this, x, y, z]() { _context.DeviceContext()->Dispatch(x, y, z); });
 	}
 
+	void DXCommandQueue::ResetTexture(const uint32_t slot) {
+		FASSERT(_open, "DXCommandQueue::ResetTexture failed: Command queue is not open");
+		_commands.push([this, slot]() {
+			ID3D11ShaderResourceView* nullSRV = nullptr;
+			_context.DeviceContext()->PSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->VSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->GSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->HSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->DSSetShaderResources(slot, 1, &nullSRV);
+			_context.DeviceContext()->CSSetShaderResources(slot, 1, &nullSRV);
+		});
+	}
+
 	void DXCommandQueue::ResetAllTextures() {
 		FASSERT(_open, "DXCommandQueue::ResetAllTextures failed: Command queue is not open");
 		_commands.push([this]() {

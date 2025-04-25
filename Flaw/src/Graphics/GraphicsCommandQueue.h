@@ -28,6 +28,7 @@ namespace flaw {
 		virtual void SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) = 0;
 		virtual void Dispatch(uint32_t x, uint32_t y, uint32_t z) = 0;
 
+		virtual void ResetTexture(const uint32_t slot) = 0;
 		virtual void ResetAllTextures() = 0;
 
 		virtual void Begin() = 0;

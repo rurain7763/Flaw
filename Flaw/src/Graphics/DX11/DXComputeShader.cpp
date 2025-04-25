@@ -38,7 +38,7 @@ namespace flaw {
 			errorBlob.GetAddressOf()
 		))) {
 			if (errorBlob) {
-				Log::Error("{}", (char*)errorBlob->GetBufferPointer());
+				Log::Error("%s", (char*)errorBlob->GetBufferPointer());
 			}
 			else {
 				Log::Error("D3DCompileFromFile failed");

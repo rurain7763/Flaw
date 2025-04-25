@@ -254,6 +254,27 @@ namespace flaw {
 				});
 
 			DrawComponent<LandScaperComponent>(_selectedEntt, [](LandScaperComponent& landScaperComp) {
+				ImGui::Text("Height Map");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::Texture2D) {
+								landScaperComp.heightMap = metadata.handle;
+								landScaperComp.dirty = true;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("-")) {
+					landScaperComp.heightMap.Invalidate();
+					landScaperComp.dirty = true;
+				}
+
 				if (ImGui::DragInt("Tiling X", (int32_t*)&landScaperComp.tilingX, 1, 1)) {
 					landScaperComp.dirty = true;
 				}

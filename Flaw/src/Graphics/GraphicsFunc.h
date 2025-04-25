@@ -8,6 +8,7 @@ namespace flaw {
 	inline uint32_t GetSizePerPixel(const PixelFormat format) {
 		switch (format) {
 		case PixelFormat::R8:
+		case PixelFormat::R8_UINT:
 			return 1;
 		case PixelFormat::RG8:
 			return 2;
@@ -15,6 +16,7 @@ namespace flaw {
 			return 3;
 		case PixelFormat::RGBA8:
 		case PixelFormat::BGRX8:
+		case PixelFormat::R32F:
 		case PixelFormat::R32_UINT:
 		case PixelFormat::D24S8_UINT:
 			return 4;

@@ -337,6 +337,7 @@ namespace flaw {
 			out << YAML::Key << "TilingX" << YAML::Value << comp.tilingX;
 			out << YAML::Key << "TilingY" << YAML::Value << comp.tilingY;
 			out << YAML::Key << "TesselationFactor" << YAML::Value << comp.tesselationFactor;
+			out << YAML::Key << "HeightMap" << YAML::Value << comp.heightMap;
 			out << YAML::EndMap;
 		}
 
@@ -678,6 +679,7 @@ namespace flaw {
 					comp.tilingX = component.second["TilingX"].as<float>();
 					comp.tilingY = component.second["TilingY"].as<float>();
 					comp.tesselationFactor = component.second["TesselationFactor"].as<float>();
+					comp.heightMap = component.second["HeightMap"].as<uint64_t>();
 				}
 			}
 		}

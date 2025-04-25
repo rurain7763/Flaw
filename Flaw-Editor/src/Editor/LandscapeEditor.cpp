@@ -1,52 +1,123 @@
 #include "LandscapeEditor.h"
 #include "DebugRender.h"
+#include "EditorEvents.h"
+#include "Editor/EditorHelper.h"
+#include "AssetDatabase.h"
 
 namespace flaw {
-	LandscapeEditor::LandscapeEditor(Application& app, EditorCamera& editorCam, ViewportEditor& viewportEditor)
+	LandscapeEditor::LandscapeEditor(Application& app, EditorCamera& editorCam, ViewportEditor& viewportEditor, ContentBrowserEditor& contentEditor)
 		: _app(app)
 		, _editorCamera(editorCam)
 		, _viewportEditor(viewportEditor)
+		, _contentEditor(contentEditor)
 	{
-#if false
-		//TODO: test code
-		_landscapeUniformCB = Graphics::CreateConstantBuffer(sizeof(LandscapeUniform));
+		auto& EventDispatcher = _app.GetEventDispatcher();
 
-		Texture2D::Descriptor desc = {};
-		desc.width = 1024;
-		desc.height = 1024;
-		desc.format = PixelFormat::RGBA32F;
-		desc.usage = UsageFlag::Static;
-		desc.bindFlags = BindFlag::ShaderResource | BindFlag::UnorderedAccess;
-	
-		_landscapeTexture = Graphics::CreateTexture2D(desc);
+		_landscapeUniformCB = Graphics::CreateConstantBuffer(sizeof(LandscapeUniform));
 
 		_landscapeShader = Graphics::CreateComputeShader("Resources/Shaders/landscape_compute.fx");
 
 		_landscapePipeline = Graphics::CreateComputePipeline();
 		_landscapePipeline->SetShader(_landscapeShader);
-#endif
+
+		EventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
 	}
 
-	void DrawBVH(const std::vector<BVHNode>& bvhNodes, const std::vector<BVHTriangle>& bvhTriangles, int32_t current, const mat4& transform) {
-		auto& node = bvhNodes[current];
+	LandscapeEditor::~LandscapeEditor() {
+		_app.GetEventDispatcher().UnregisterAll(PID(this));
+	}
 
-		if (node.IsLeaf()) {
-			vec3 size = ExtractScale(transform) * (node.boundingBox.max - node.boundingBox.min);
-			vec3 center = transform * vec4(node.boundingBox.center, 1.0);
-			DebugRender::DrawCube(ModelMatrix(center, vec3(0), size), vec3(0, 1, 0));
-		}
-		else {
-			DrawBVH(bvhNodes, bvhTriangles, node.childA, transform);
-			DrawBVH(bvhNodes, bvhTriangles, node.childB, transform);
-		}
+	void LandscapeEditor::SetScene(const Ref<Scene>& scene) {
+		_scene = scene;
+		_selectedEntt = Entity();
 	}
 
 	void LandscapeEditor::OnRender() {
-		// TODO: check if landscape mode, no play mode
-
 		if (!_scene) {
 			return;
 		}
+
+		ImGui::Begin("Landscape");
+		Finalizer finalizer([]() { ImGui::End(); });
+
+		if (!_selectedEntt || !_selectedEntt.HasComponent<LandScaperComponent>()) {
+			return;
+		}
+
+		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
+
+		auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(landscapeComp.heightMap);
+		if (!tex2DAsset) {
+			static int32_t width = 1024;
+			static int32_t height = 1024;
+
+			ImGui::InputInt("Width", &width);
+			ImGui::InputInt("Height", &height);
+
+			if (ImGui::Button("Create Height Map")) {
+				// Create empty texture
+				TextureCreateSettings settings;
+				// TODO: how can we create proper name?
+				settings.destPath = _contentEditor.GetCurrentDir() + "/LandscapeHeightMap.asset";
+				settings.writeArchiveFunc = [](SerializationArchive& archive) {
+					Texture2DAsset::WriteToArchive(
+						PixelFormat::R32F,
+						width,
+						height,
+						0,
+						BindFlag::ShaderResource | BindFlag::UnorderedAccess,
+						std::vector<uint8_t>(width * height * GetSizePerPixel(PixelFormat::R32F)),
+						archive
+					);
+				};
+				settings.textureType = TextureType::Texture2D;
+
+				AssetDatabase::CreateAsset(&settings);
+			}
+		}
+		else if (tex2DAsset->GetTexture()->GetBindFlags() & BindFlag::UnorderedAccess) {
+			std::vector<std::string> brushTypes = { "Round", "Texture" };
+
+			int32_t brushType = (int32_t)_brushType;
+			if (EditorHelper::DrawCombo("Brush Type", brushType, brushTypes)) {
+				_brushType = (BrushType)brushType;
+			}
+
+			if (_brushType == BrushType::Texture) {
+				ImGui::Text("Brush Texture");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::Texture2D) {
+								_brushTextureAsset = AssetManager::GetAsset<Texture2DAsset>(metadata.handle);
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("-")) {
+					if (_brushTextureAsset) {
+						_brushTextureAsset->Unload();
+						_brushTextureAsset.reset();
+					}
+				}
+			}
+
+			if (GetBrushPos(_brushPos) && Input::GetMouseButton(MouseButton::Left)) {
+				UpdateLandscapeTexture(tex2DAsset->GetTexture());
+			}
+		}
+	}
+
+	bool LandscapeEditor::GetBrushPos(vec2& pos) {
+		auto& landscapeSys = _scene->GetLandscapeSystem();
+		auto& enttComp = _selectedEntt.GetComponent<EntityComponent>();
+		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
+		auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
 
 		vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
 
@@ -55,47 +126,63 @@ namespace flaw {
 		ray.direction = glm::normalize(ray.origin - _editorCamera.GetPosition());
 		ray.length = 1000.0f;
 
-		auto& landscapeSys = _scene->GetLandscapeSystem();
-		for (auto&& [entity, enttComp, landscapeComp, transformComp] : _scene->GetRegistry().view<EntityComponent, LandScaperComponent, TransformComponent>().each()) {
-			auto& landscape = landscapeSys.GetLandscape(enttComp.uuid);
-			DrawBVH(landscape.mesh->bvhNodes, landscape.mesh->bvhTriangles, 0, transformComp.worldTransform);
+		mat4 invTransform = glm::inverse(transComp.worldTransform);
 
-			mat4 invTransform = glm::inverse(transformComp.worldTransform);
+		ray.origin = invTransform * vec4(ray.origin, 1.0f);
+		ray.direction = invTransform * vec4(ray.direction, 0.0f);
 
-			Ray localRay = {};
-			localRay.origin = invTransform * vec4(ray.origin, 1.0f);
-			localRay.direction = invTransform * vec4(ray.direction, 0.0f);
-			localRay.length = ray.length;
+		auto& landscape = landscapeSys.GetLandscape(enttComp.uuid);
 
-			RayHit hit = {};
-			if (RaycastBVH(landscape.mesh->bvhNodes, landscape.mesh->bvhTriangles, localRay, hit)) {
-				hit.position = transformComp.worldTransform * vec4(hit.position, 1.0f);
-				hit.normal = transformComp.worldTransform * vec4(hit.normal, 0.0f);
+		RayHit hit = {};
+		if (Raycast::RaycastBVH(landscape.mesh->bvhNodes, landscape.mesh->bvhTriangles, ray, hit)) {
+			vec3 front = transComp.GetWorldFront();
+			vec3 left = -transComp.GetWorldRight();
 
-				DebugRender::DrawCube(ModelMatrix(hit.position, vec3(0), vec3(1.0f)), vec3(1.0f, 0.0f, 0.0f));
-			}
+			vec3 landscapWPos = transComp.GetWorldPosition();
+			vec3 landscapWScale = transComp.GetWorldScale();
+
+			vec3 lt = landscapWPos + (front * landscapWScale.z * 0.5f) + (left * landscapWScale.x * 0.5f);
+			vec3 worldHitPos = transComp.worldTransform * vec4(hit.position, 1.0f);
+
+			pos = (vec2(worldHitPos.x, worldHitPos.z) - vec2(lt.x, lt.z)) / vec2(landscapWScale.x, -landscapWScale.z);
+			return true;
 		}
+
+		return false;
 	}
 
-	void LandscapeEditor::UpdateLandscapeTexture() {
+	void LandscapeEditor::UpdateLandscapeTexture(const Ref<Texture2D>& texture) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
+		cmdQueue.Begin();
+
 		LandscapeUniform landscapeUniform = {};
-		landscapeUniform.width = _landscapeTexture->GetWidth();
-		landscapeUniform.height = _landscapeTexture->GetHeight();
+		landscapeUniform.deltaTime = Time::DeltaTime();
+		landscapeUniform.brushType = (uint32_t)_brushType;
+		landscapeUniform.brushPos = _brushPos;
+		landscapeUniform.width = texture->GetWidth();
+		landscapeUniform.height = texture->GetHeight();
+
 		_landscapeUniformCB->Update(&landscapeUniform, sizeof(LandscapeUniform));
 
-		cmdQueue.Begin();
-		cmdQueue.SetComputePipeline(_landscapePipeline);
 		cmdQueue.SetComputeConstantBuffer(_landscapeUniformCB, 0);
-		cmdQueue.SetComputeTexture(_landscapeTexture, BindFlag::UnorderedAccess, 0);
+		cmdQueue.SetComputePipeline(_landscapePipeline);
 
+		if (_brushType == BrushType::Texture) {
+			if (_brushTextureAsset) {
+				cmdQueue.SetComputeTexture(_brushTextureAsset->GetTexture(), BindFlag::ShaderResource, 0);
+			}
+		}
+		else {
+			cmdQueue.ResetTexture(0);
+		}
+
+		cmdQueue.SetComputeTexture(texture, BindFlag::UnorderedAccess, 0);
 		cmdQueue.Dispatch(
-			CalculateDispatchGroupCount(32, _landscapeTexture->GetWidth()), 
-			CalculateDispatchGroupCount(32, _landscapeTexture->GetHeight()), 
+			CalculateDispatchGroupCount(32, texture->GetWidth()), 
+			CalculateDispatchGroupCount(32, texture->GetHeight()), 
 			1
 		);
-
 		cmdQueue.End();
 
 		cmdQueue.Execute();
