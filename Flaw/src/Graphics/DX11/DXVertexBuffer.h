@@ -24,6 +24,8 @@ namespace flaw {
 		virtual void Update(const void* data, uint32_t elmSize, uint32_t count) override;
 		virtual void Bind() override;
 
+		virtual uint32_t Size() const override { return _size; }
+
 	private:
 		void CreateBuffer(const Descriptor& desc);
 

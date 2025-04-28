@@ -67,7 +67,7 @@ namespace flaw {
 		int32_t CreateSwapChain();
 		int32_t CreateMainRenderPass();
 
-		ID3D11SamplerState* CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v);
+		ID3D11SamplerState* CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v, D3D11_TEXTURE_ADDRESS_MODE w);
 
 		void SetVSync(bool enable);
 
@@ -89,7 +89,7 @@ namespace flaw {
 
 		Ref<Texture2D> _depthStencil;
 
-		std::array<ID3D11SamplerState*, 1> _samplerStates;
+		std::array<ID3D11SamplerState*, 2> _samplerStates;
 
 		Ref<GraphicsCommandQueue> _commandQueue;
 	};

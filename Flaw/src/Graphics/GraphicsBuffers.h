@@ -19,6 +19,8 @@ namespace flaw {
 		virtual void Update(const void* data, uint32_t elmSize, uint32_t count) = 0;
 
 		virtual void Bind() = 0;
+
+		virtual uint32_t Size() const = 0;
 	};
 
 	class IndexBuffer {

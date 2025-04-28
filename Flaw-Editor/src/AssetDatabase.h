@@ -56,12 +56,14 @@ namespace flaw {
 
 	struct TextureImportSettings : public AssetImportSettings {
 		TextureType textureType;
+		UsageFlag usageFlags;
 		BindFlag bindFlags;
 		uint32_t accessFlags;
 
 		TextureImportSettings() {
 			type = AssetSettingsType::Texture;
 			textureType = TextureType::Texture2D;
+			usageFlags = UsageFlag::Static;
 			bindFlags = BindFlag::ShaderResource;
 			accessFlags = 0;
 		}

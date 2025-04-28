@@ -59,19 +59,8 @@ namespace flaw {
 
 		_currentRenderPass = _mainRenderPass.get();
 
-		ID3D11SamplerState* samplerState = CreateSamplerState(
-			D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-			//D3D11_FILTER_ANISOTROPIC, 
-			//D3D11_FILTER_MIN_MAG_MIP_POINT,
-			D3D11_TEXTURE_ADDRESS_WRAP,
-			D3D11_TEXTURE_ADDRESS_WRAP
-		);
-
-		if (!samplerState) {
-			return;
-		}
-
-		_samplerStates[0] = samplerState;
+		_samplerStates[0] = CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+		_samplerStates[1] = CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		_deviceContext->PSSetSamplers(0, _samplerStates.size(), _samplerStates.data());
 		_deviceContext->VSSetSamplers(0, _samplerStates.size(), _samplerStates.data());
@@ -245,12 +234,12 @@ namespace flaw {
 		return 0;
 	}
 
-	ID3D11SamplerState* DXContext::CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v) {
+	ID3D11SamplerState* DXContext::CreateSamplerState(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE u, D3D11_TEXTURE_ADDRESS_MODE v, D3D11_TEXTURE_ADDRESS_MODE w) {
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = filter;
 		samplerDesc.AddressU = u;
 		samplerDesc.AddressV = v;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerDesc.AddressW = w;
 		samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 		samplerDesc.MinLOD = 0;
 		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;

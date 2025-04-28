@@ -57,7 +57,22 @@ namespace flaw {
 	void DXStructuredBuffer::Fetch(void* data, uint32_t size) {
 		assert(size <= _size || _readOnlyBuffer);
 
-		_context.DeviceContext()->CopyResource(_readOnlyBuffer.Get(), _buffer.Get());
+		D3D11_BOX box = {};
+		box.left = 0;
+		box.top = 0;
+		box.front = 0;
+		box.right = size;
+		box.bottom = 1;
+		box.back = 1;
+
+		_context.DeviceContext()->CopySubresourceRegion(
+			_readOnlyBuffer.Get(), 
+			0, 
+			0, 0, 0, 
+			_buffer.Get(), 
+			0, 
+			&box
+		);
 
 		D3D11_MAPPED_SUBRESOURCE mappedResource = {};
 		if (FAILED(_context.DeviceContext()->Map(_readOnlyBuffer.Get(), 0, D3D11_MAP_READ, 0, &mappedResource))) {

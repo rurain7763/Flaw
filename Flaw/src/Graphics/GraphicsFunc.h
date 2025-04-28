@@ -339,4 +339,20 @@ namespace flaw {
 	inline uint32_t CalculateDispatchGroupCount(uint32_t threadCount, uint32_t targetCount) {
 		return (targetCount + threadCount - 1) / threadCount;
 	}
+
+	inline uint32_t GetSamplePos(const std::vector<uint8_t>& src, uint32_t width, uint32_t height, uint32_t sizePerPixel, float u, float v) {
+		const uint32_t x = std::min(static_cast<uint32_t>(u * width), width - 1);
+		const uint32_t y = std::min(static_cast<uint32_t>(v * height), height - 1);
+
+		const uint32_t index = (y * width + x) * sizePerPixel;
+		if (index + sizePerPixel > src.size()) {
+			throw std::runtime_error("Sample index out of bounds");
+		}
+
+		return index;
+	}
+
+	inline const uint8_t* Sample(const std::vector<uint8_t>& src, uint32_t width, uint32_t height, uint32_t sizePerPixel, float u, float v) {
+		return src.data() + GetSamplePos(src, width, height, sizePerPixel, u, v);
+	}
 }

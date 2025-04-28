@@ -172,6 +172,8 @@ namespace flaw {
 
 		static Ref<ComputeShader> CreateComputeShader(const char* filePath);
 		static Ref<ComputePipeline> CreateComputePipeline();
+
+		static Ref<GraphicsPipeline> GetMainGraphicsPipeline();
 		static Ref<ComputePipeline> GetMainComputePipeline();
 
 		static int32_t Raycast(

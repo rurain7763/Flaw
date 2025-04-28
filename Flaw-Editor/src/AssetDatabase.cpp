@@ -224,6 +224,7 @@ namespace flaw {
 					PixelFormat::RGBA8,
 					img.Width(),
 					img.Height(),
+					textureSettings->usageFlags,
 					textureSettings->accessFlags,
 					textureSettings->bindFlags,
 					img.Data(),

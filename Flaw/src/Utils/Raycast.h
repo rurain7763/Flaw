@@ -16,7 +16,7 @@ namespace flaw {
 	struct RayHit {
 		vec3 position;
 		vec3 normal;
-		float t = std::numeric_limits<float>::max();
+		float distance = std::numeric_limits<float>::max();
 	};
 
 	struct BVHTriangle {

@@ -101,7 +101,6 @@ namespace flaw {
 	}
 
 	void LandscapeSystem::Render(const Camera& camera, RenderQueue& renderQueue) {
-		// submit landscape
 		for (auto&& [entity, enttComp, transComp, landscapeComp] : _scene.GetRegistry().view<EntityComponent, TransformComponent, LandScaperComponent>().each()) {
 			auto& landscape = _landscapes[enttComp.uuid];
 

@@ -9,6 +9,7 @@
 namespace flaw {
 	static Scope<GraphicsContext> g_graphicsContext;
 	
+	static Ref<GraphicsPipeline> g_graphicsPipeline;
 	static Ref<ComputePipeline> g_computePipeline;
 
 	struct RaycastUniform {
@@ -38,6 +39,7 @@ namespace flaw {
 	};
 
 	constexpr int32_t MaxRaycastTriangles = 10000;
+	constexpr int32_t MaxRayHits = MaxRaycastTriangles + 1;
 
 	static Ref<ComputeShader> g_raycastShader;
 	static Ref<ConstantBuffer> g_raycastUniformCB;
@@ -58,6 +60,7 @@ namespace flaw {
 			break;
 		}
 
+		g_graphicsPipeline = CreateGraphicsPipeline();
 		g_computePipeline = CreateComputePipeline();
 
 		// NOTE: for raycasting
@@ -73,7 +76,7 @@ namespace flaw {
 		g_raycastTriSB = CreateStructuredBuffer(sbDesc);
 
 		sbDesc.elmSize = sizeof(RaycastResult);
-		sbDesc.count = MaxRaycastTriangles;
+		sbDesc.count = MaxRayHits;
 		sbDesc.bindFlags = BindFlag::UnorderedAccess;
 		sbDesc.accessFlags = AccessFlag::Read | AccessFlag::Write;
 		g_raycastResultSB = CreateStructuredBuffer(sbDesc);
@@ -102,6 +105,7 @@ namespace flaw {
 		g_raycastUniformCB.reset();
 		g_raycastShader.reset();
 		g_computePipeline.reset();
+		g_graphicsPipeline.reset();
 		g_graphicsContext.reset();
 	}
 
@@ -181,6 +185,10 @@ namespace flaw {
 		return g_graphicsContext->CreateComputePipeline();
 	}
 
+	Ref<GraphicsPipeline> Graphics::GetMainGraphicsPipeline() {
+		return g_graphicsPipeline;
+	}
+
 	Ref<ComputePipeline> Graphics::GetMainComputePipeline() {
 		return g_computePipeline;
 	}
@@ -239,20 +247,16 @@ namespace flaw {
 		cmdQueue.SetComputeConstantBuffer(g_raycastUniformCB, 0);
 		cmdQueue.SetComputeStructuredBuffer(g_raycastTriSB, BindFlag::ShaderResource, 0);
 		cmdQueue.SetComputeStructuredBuffer(g_raycastResultSB, BindFlag::UnorderedAccess, 0);
-		cmdQueue.Dispatch(
-			CalculateDispatchGroupCount(1024, candidateTris.size()),
-			1,
-			1
-		);
+		cmdQueue.Dispatch(CalculateDispatchGroupCount(1024, candidateTris.size()), 1, 1);
 
 		cmdQueue.End();
 
 		cmdQueue.Execute();
 
-		std::vector<RaycastResult> results(candidateTris.size());
-		g_raycastResultSB->Fetch(results.data(), results.size() * sizeof(RaycastResult));
+		std::vector<RaycastResult> results(MaxRayHits);
+		g_raycastResultSB->Fetch(results.data(), MaxRayHits * sizeof(RaycastResult));
 		
-		int32_t resultCount = results[0].index;
+		int32_t resultCount = std::min(results[0].index, MaxRayHits - 1);
 
 		// 후보 중 가장 가까운 것만
 		int32_t closestIndex = -1;
@@ -263,7 +267,7 @@ namespace flaw {
 			if (result.distance < minDist) {
 				hit.position = result.position;
 				hit.normal = result.normal;
-				hit.t = result.distance;
+				hit.distance = result.distance;
 
 				closestIndex = result.index;
 				minDist = result.distance;

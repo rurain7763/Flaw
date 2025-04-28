@@ -177,18 +177,17 @@ namespace flaw {
 
 		bool result = false;
 
-		if (node.childA == -1 && node.childB == -1) {
-			// Leaf node
+		if (node.IsLeaf()) {
 			for (int32_t i = 0; i < node.triangleCount; ++i) {
-				const auto& tri = triangles[node.triangleStart + i];
+				auto& tri = triangles[node.triangleStart + i];
 
 				vec3 hitPoint;
 				float t;
 				if (BVHTriangleLineIntersect(tri, ray, hitPoint, t)) {
-					if (t < hit.t) {
+					if (t < hit.distance) {
 						hit.position = hitPoint;
 						hit.normal = tri.normal;
-						hit.t = t;
+						hit.distance = t;
 						result = true;
 					}
 				}
@@ -202,7 +201,7 @@ namespace flaw {
 			bool rightResult = node.childB != -1 && RayCastBVHImpl(nodes, triangles, node.childB, ray, rightHit);
 
 			if (leftResult && rightResult) {
-				hit = (leftHit.t < rightHit.t) ? leftHit : rightHit;
+				hit = (leftHit.distance < rightHit.distance) ? leftHit : rightHit;
 				result = true;
 			}
 			else if (leftResult) {

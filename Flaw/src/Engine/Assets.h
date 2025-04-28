@@ -23,6 +23,7 @@ namespace flaw {
 			PixelFormat format,
 			int32_t width,
 			int32_t height,
+			UsageFlag usage,
 			uint32_t access,
 			uint32_t bindFlags,
 			const std::vector<uint8_t>& data,

@@ -40,6 +40,7 @@ namespace flaw {
 		PixelFormat format,
 		int32_t width,
 		int32_t height,
+		UsageFlag usage,
 		uint32_t access,
 		uint32_t bindFlags,
 		const std::vector<uint8_t>& data,
@@ -52,7 +53,7 @@ namespace flaw {
 		archive << Texture2D::Wrap::ClampToEdge;
 		archive << Texture2D::Filter::Linear;
 		archive << Texture2D::Filter::Linear;
-		archive << UsageFlag::Static;
+		archive << usage;
 		archive << access,
 		archive << bindFlags;
 		archive << data;
