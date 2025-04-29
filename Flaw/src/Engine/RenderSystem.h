@@ -11,6 +11,7 @@ namespace flaw {
 	class Scene;
 
 	struct CameraRenderStage {
+		vec3 cameraPosition;
 		mat4 view;
 		mat4 projection;
 		RenderQueue renderQueue;
@@ -30,7 +31,6 @@ namespace flaw {
 		void CreateBatchedBuffers();
 		void CreateConstantBuffers();
 		void CreateStructuredBuffers();
-		void CreatePipeline();
 
 		void GatherLights();
 		void GatherDecals();
@@ -86,7 +86,6 @@ namespace flaw {
 		Ref<StructuredBuffer> _pointLightSB;
 		Ref<StructuredBuffer> _spotLightSB;
 		Ref<StructuredBuffer> _decalSB;
-		Ref<GraphicsPipeline> _pipeline;
 
 		LightConstants _lightConstants;
 		std::vector<DirectionalLight> _directionalLights;
@@ -97,7 +96,7 @@ namespace flaw {
 		std::map<Ref<Texture2D>, uint32_t> _decalTextureIndexMap;
 		std::vector<Ref<Texture2D>> _decalTextures;
 
-		VPMatrices _vpMatrices;
+		CameraConstants _cameraConstansCB;
 		GlobalConstants _globalConstants;
 		MaterialConstants _materialConstants;
 	};

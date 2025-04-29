@@ -23,7 +23,6 @@ namespace flaw {
 		CreateBatchedBuffers();
 		CreateConstantBuffers();
 		CreateStructuredBuffers();
-		CreatePipeline();
 	}
 
 	void RenderSystem::CreateRenderPasses() {
@@ -123,7 +122,7 @@ namespace flaw {
 	}
 
 	void RenderSystem::CreateConstantBuffers() {
-		_vpCB = Graphics::CreateConstantBuffer(sizeof(VPMatrices));
+		_vpCB = Graphics::CreateConstantBuffer(sizeof(CameraConstants));
 		_globalCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
 		_lightCB = Graphics::CreateConstantBuffer(sizeof(LightConstants));
 		_materialCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
@@ -167,16 +166,13 @@ namespace flaw {
 		_decalSB = Graphics::CreateStructuredBuffer(sbDesc);
 	}
 
-	void RenderSystem::CreatePipeline() {
-		_pipeline = Graphics::CreateGraphicsPipeline();
-	}
-
 	void RenderSystem::Update() {
 		std::map<uint32_t, Camera> cameras;
 
 		for (auto&& [entity, transformComp, cameraComp] : _scene.GetRegistry().view<TransformComponent, CameraComponent>().each()) {
 			Camera camera;
 			camera.isPerspective = cameraComp.perspective;
+			camera.position = transformComp.GetWorldPosition();
 			camera.view = ViewMatrix(transformComp.position, transformComp.rotation);
 			camera.projection = cameraComp.GetProjectionMatrix();
 
@@ -321,6 +317,7 @@ namespace flaw {
 		for (const auto& [depth, camera] : cameras) {
 			auto& stage = _renderStages[depth];
 
+			stage.cameraPosition = camera.position;
 			stage.view = camera.view;
 			stage.projection = camera.projection;		
 
@@ -397,12 +394,12 @@ namespace flaw {
 
 	void RenderSystem::Render() {
 		for (auto& stage : _renderStages) {
-			_vpMatrices.view = stage.view;
-			_vpMatrices.projection = stage.projection;
-			_vpCB->Update(&_vpMatrices, sizeof(VPMatrices));
+			_cameraConstansCB.position = stage.cameraPosition;
+			_cameraConstansCB.view = stage.view;
+			_cameraConstansCB.projection = stage.projection;
+			_vpCB->Update(&_cameraConstansCB, sizeof(CameraConstants));
 
 			_scene.GetSkyBoxSystem().Render(
-				_pipeline,
 				_vpCB,
 				_globalCB,
 				_lightCB,
@@ -424,6 +421,7 @@ namespace flaw {
 		_geometryPass->Bind();
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
 		while (!stage.renderQueue.Empty()) {
 			auto& entry = stage.renderQueue.Front();
@@ -434,11 +432,13 @@ namespace flaw {
 			cmdQueue.Begin();
 
 			// set pipeline
-			_pipeline->SetShader(entry.material->shader);
-			_pipeline->SetCullMode(entry.material->cullMode);
-			_pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
+			pipeline->SetShader(entry.material->shader);
+			pipeline->SetFillMode(FillMode::Solid);
+			pipeline->SetBlendMode(BlendMode::Default, false);
+			pipeline->SetCullMode(entry.material->cullMode);
+			pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
 
-			cmdQueue.SetPipeline(_pipeline);
+			cmdQueue.SetPipeline(pipeline);
 
 			cmdQueue.SetConstantBuffer(_vpCB, 0);
 			cmdQueue.SetConstantBuffer(_globalCB, 1);
@@ -477,7 +477,7 @@ namespace flaw {
 			std::memcpy(
 				_materialConstants.intConstants,
 				entry.material->intConstants,
-				sizeof(uint32_t) * 4 + sizeof(float) * 4
+				sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4
 			);
 
 			_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
@@ -540,6 +540,7 @@ namespace flaw {
 		_decalPass->Bind(false);
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
 		// TODO: Decal 시스템 추가하여 구현
 		static bool init = false;
@@ -580,11 +581,13 @@ namespace flaw {
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
-		_pipeline->SetShader(g_decalShader);
-		_pipeline->SetCullMode(CullMode::Front);
-		_pipeline->SetDepthTest(DepthTest::Disabled, false);
+		pipeline->SetShader(g_decalShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetBlendMode(BlendMode::Alpha, true);
+		pipeline->SetCullMode(CullMode::Front);
+		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
-		cmdQueue.SetPipeline(_pipeline);
+		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
@@ -605,6 +608,7 @@ namespace flaw {
 		_lightingPass->Bind();
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
 		//TODO: 라이팅 시스템 추가하여 구현할 것
 		static bool init = false;
@@ -675,11 +679,13 @@ namespace flaw {
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 	
-		_pipeline->SetShader(g_directionalLightShader);
-		_pipeline->SetCullMode(CullMode::Back);
-		_pipeline->SetDepthTest(DepthTest::Disabled, false);
+		pipeline->SetShader(g_directionalLightShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetBlendMode(BlendMode::Alpha, false);
+		pipeline->SetCullMode(CullMode::Back);
+		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
-		cmdQueue.SetPipeline(_pipeline);
+		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
@@ -696,11 +702,13 @@ namespace flaw {
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
-		_pipeline->SetShader(g_pointLightShader);
-		_pipeline->SetCullMode(CullMode::Front);
-		_pipeline->SetDepthTest(DepthTest::Disabled, false);
+		pipeline->SetShader(g_pointLightShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetBlendMode(BlendMode::Alpha, false);
+		pipeline->SetCullMode(CullMode::Front);
+		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
-		cmdQueue.SetPipeline(_pipeline);
+		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
@@ -734,6 +742,7 @@ namespace flaw {
 
 	void RenderSystem::FinalizeRender(CameraRenderStage& stage) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 	
 		// TODO: temp
 		static bool init = false;
@@ -778,11 +787,13 @@ namespace flaw {
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
-		_pipeline->SetShader(g_std3dFinalizeShader);
-		_pipeline->SetCullMode(CullMode::Back);
-		_pipeline->SetDepthTest(DepthTest::Always, false);
+		pipeline->SetShader(g_std3dFinalizeShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetBlendMode(BlendMode::Alpha, false);
+		pipeline->SetCullMode(CullMode::Back);
+		pipeline->SetDepthTest(DepthTest::Always, false);
 
-		cmdQueue.SetPipeline(_pipeline);
+		cmdQueue.SetPipeline(pipeline);
 
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);

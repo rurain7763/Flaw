@@ -73,7 +73,16 @@ namespace flaw {
 			uint32_t width;
 			uint32_t height;
 
-			uint32_t padding[3];
+			float tesselationFactor;
+
+			uint32_t tilingX;
+			uint32_t tilingY;
+
+			vec2 lodLvRange;
+			vec2 lodDistRange;
+
+			vec3 cameraPos;
+			float padding;
 		};
 
 		Application& _app;

@@ -283,10 +283,14 @@ namespace flaw {
 					landScaperComp.dirty = true;
 				}
 
-				if (ImGui::DragFloat("Tesselation Factor", &landScaperComp.tesselationFactor, 0.1f)) {
+				if (ImGui::DragInt("LOD Level Max", (int32_t*)&landScaperComp.lodLevelMax, 1, 1)) {
 					landScaperComp.dirty = true;
 				}
-				});
+
+				if (ImGui::DragFloat2("LOD Distance Range", glm::value_ptr(landScaperComp.lodDistanceRange), 0.1f)) {
+					landScaperComp.dirty = true;
+				}
+			});
 
 			ImGui::Separator();
 

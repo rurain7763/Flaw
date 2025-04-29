@@ -14,7 +14,6 @@ namespace flaw {
 
 		void Update();
 		void Render(
-			Ref<GraphicsPipeline> pipeline,
 			Ref<ConstantBuffer> vpCB,
 			Ref<ConstantBuffer> globalCB,
 			Ref<ConstantBuffer> lightCB,

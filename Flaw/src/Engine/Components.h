@@ -356,7 +356,8 @@ namespace flaw {
 	struct LandScaperComponent {
 		AssetHandle heightMap;
 		uint32_t tilingX = 1, tilingY = 1;
-		float tesselationFactor = 1.0f;
+		uint32_t lodLevelMax = 4;
+		vec2 lodDistanceRange = vec2(0.0f, 10.0f);
 
 		bool dirty;
 
@@ -366,14 +367,16 @@ namespace flaw {
 			heightMap = other.heightMap;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
-			tesselationFactor = other.tesselationFactor;
+			lodLevelMax = other.lodLevelMax;
+			lodDistanceRange = other.lodDistanceRange;
 		}
 
 		LandScaperComponent& operator=(const LandScaperComponent& other) {
 			heightMap = other.heightMap;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
-			tesselationFactor = other.tesselationFactor;
+			lodLevelMax = other.lodLevelMax;
+			lodDistanceRange = other.lodDistanceRange;
 			return *this;
 		}
 	};

@@ -34,7 +34,7 @@ namespace flaw {
 		_landscapeRaycastResultSB = Graphics::CreateStructuredBuffer(sbDesc);
 
 		// for draw brush
-		_landscapeBrushShader = Graphics::CreateGraphicsShader("Resources/Shaders/landscape_brush.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		_landscapeBrushShader = Graphics::CreateGraphicsShader("Resources/Shaders/landscape_brush.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Hull | ShaderCompileFlag::Domain | ShaderCompileFlag::Pixel);
 		_landscapeBrushShader->AddInputElement<float>("POSITION", 3);
 		_landscapeBrushShader->AddInputElement<float>("TEXCOORD", 2);
 		_landscapeBrushShader->CreateInputLayout();
@@ -183,12 +183,18 @@ namespace flaw {
 
 		LandscapeBrushUniform brushUniform = {};
 		brushUniform.modelMatrix = transComp.worldTransform;
+		brushUniform.modelMatrix[3][1] += 0.03f; // NOTE; z-fight
 		brushUniform.viewMatrix = _editorCamera.GetViewMatrix();
 		brushUniform.projMatrix = _editorCamera.GetProjectionMatrix();
 		brushUniform.brushType = (uint32_t)_brushType;
 		brushUniform.brushPos = _brushPos;
 		brushUniform.width = heightMapTex->GetWidth();
 		brushUniform.height = heightMapTex->GetHeight();
+		brushUniform.tilingX = landscapeComp.tilingX;
+		brushUniform.tilingY = landscapeComp.tilingY;
+		brushUniform.lodLvRange = vec2(0, landscapeComp.lodLevelMax);
+		brushUniform.lodDistRange = landscapeComp.lodDistanceRange;
+		brushUniform.cameraPos = _editorCamera.GetPosition();
 		_landscapeBrushUniformCB->Update(&brushUniform, sizeof(LandscapeBrushUniform));
 
 		UpdateBrushVBAndIB();
@@ -196,12 +202,15 @@ namespace flaw {
 		cmdQueue.Begin();
 
 		mainPipeline->SetShader(_landscapeBrushShader);
-		mainPipeline->SetBlendMode(BlendMode::Alpha, true);
+		mainPipeline->SetFillMode(FillMode::Solid);
+		mainPipeline->SetBlendMode(BlendMode::Alpha, false);
 		mainPipeline->SetCullMode(CullMode::Back);
 		mainPipeline->SetDepthTest(DepthTest::LessEqual, false);
 
 		cmdQueue.SetPipeline(mainPipeline);
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::ControlPoint3_PatchList);
 		cmdQueue.SetConstantBuffer(_landscapeBrushUniformCB, 0);
+		cmdQueue.SetTexture(heightMapTex, 0);
 		cmdQueue.SetVertexBuffer(_landscapeBrushVB);
 		cmdQueue.DrawIndexed(_landscapeBrushIB, _landscapeBrushIB->IndexCount());
 		cmdQueue.End();

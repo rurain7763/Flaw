@@ -42,7 +42,6 @@ namespace flaw {
 	}
 
 	void SkyBoxSystem::Render(
-		Ref<GraphicsPipeline> pipeline, 
 		Ref<ConstantBuffer> vpCB, 
 		Ref<ConstantBuffer> globalCB, 
 		Ref<ConstantBuffer> lightCB, 
@@ -68,11 +67,14 @@ namespace flaw {
 		}
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
 		cmdQueue.Begin();
 
 		// set pipeline
 		pipeline->SetShader(_skyBoxMaterial->shader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetBlendMode(BlendMode::Default, false);
 		pipeline->SetCullMode(_skyBoxMaterial->cullMode);
 		pipeline->SetDepthTest(_skyBoxMaterial->depthTest, _skyBoxMaterial->depthWrite);
 

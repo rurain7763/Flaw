@@ -393,6 +393,7 @@ namespace flaw {
 
 		// Rendering
         Camera camera;
+		camera.position = _camera.GetPosition();
         camera.view = _camera.GetViewMatrix();
 		camera.projection = _camera.GetProjectionMatrix();
         camera.isPerspective = _camera.IsPerspective();

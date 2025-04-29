@@ -336,8 +336,9 @@ namespace flaw {
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "TilingX" << YAML::Value << comp.tilingX;
 			out << YAML::Key << "TilingY" << YAML::Value << comp.tilingY;
-			out << YAML::Key << "TesselationFactor" << YAML::Value << comp.tesselationFactor;
 			out << YAML::Key << "HeightMap" << YAML::Value << comp.heightMap;
+			out << YAML::Key << "LODLevelMax" << YAML::Value << comp.lodLevelMax;
+			out << YAML::Key << "LODDistanceRange" << YAML::Value << comp.lodDistanceRange;
 			out << YAML::EndMap;
 		}
 
@@ -678,8 +679,9 @@ namespace flaw {
 					auto& comp = entity.GetComponent<LandScaperComponent>();
 					comp.tilingX = component.second["TilingX"].as<float>();
 					comp.tilingY = component.second["TilingY"].as<float>();
-					comp.tesselationFactor = component.second["TesselationFactor"].as<float>();
 					comp.heightMap = component.second["HeightMap"].as<uint64_t>();
+					comp.lodLevelMax = component.second["LODLevelMax"].as<uint32_t>();
+					comp.lodDistanceRange = component.second["LODDistanceRange"].as<vec2>();
 				}
 			}
 		}

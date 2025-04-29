@@ -78,7 +78,7 @@ namespace flaw {
 		ibDesc.initialData = indices.data();
 		g_ib = context.CreateIndexBuffer(ibDesc);
 
-		g_vpCB = context.CreateConstantBuffer(sizeof(VPMatrices));
+		g_vpCB = context.CreateConstantBuffer(sizeof(CameraConstants));
 		g_globalCB = context.CreateConstantBuffer(sizeof(GlobalConstants));
 
 		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -146,10 +146,10 @@ namespace flaw {
 	}
 
 	void Renderer2D::Begin(const mat4& view, const mat4& projection) {
-		VPMatrices vp;
+		CameraConstants vp;
 		vp.view = view;
 		vp.projection = projection;
-		g_vpCB->Update(&vp, sizeof(VPMatrices));
+		g_vpCB->Update(&vp, sizeof(CameraConstants));
 
 		GlobalConstants globalConstants;
 		int32_t width, height;

@@ -32,7 +32,6 @@ namespace flaw {
 	private:
 		constexpr static int32_t TilingXIndex = 0;
 		constexpr static int32_t TilingYIndex = 1;
-		constexpr static int32_t TesselationFactorIndex = 0;
 
 		Scene& _scene;
 

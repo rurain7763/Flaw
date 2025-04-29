@@ -33,9 +33,6 @@ namespace flaw {
 		landscape.material->cullMode = CullMode::Back;
 		landscape.material->depthTest = DepthTest::Less;
 		landscape.material->depthWrite = true;
-		landscape.material->intConstants[TilingXIndex] = landscapeComp.tilingX;
-		landscape.material->intConstants[TilingYIndex] = landscapeComp.tilingY;
-		landscape.material->floatConstants[TesselationFactorIndex] = landscapeComp.tesselationFactor;
 
 		_landscapes[enttComp.uuid] = landscape;
 
@@ -94,7 +91,8 @@ namespace flaw {
 
 			landscape.material->intConstants[TilingXIndex] = landscapeComp.tilingX;
 			landscape.material->intConstants[TilingYIndex] = landscapeComp.tilingY;
-			landscape.material->floatConstants[TesselationFactorIndex] = landscapeComp.tesselationFactor;
+			landscape.material->vec2Constants[0] = vec2(0, landscapeComp.lodLevelMax);
+			landscape.material->vec2Constants[1] = landscapeComp.lodDistanceRange;
 
 			landscapeComp.dirty = false;
 		}

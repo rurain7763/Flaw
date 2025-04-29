@@ -16,9 +16,12 @@ namespace flaw {
 		DX11
 	};
 
-	struct VPMatrices {
+	struct CameraConstants {
 		mat4 view = mat4(1.0f);
 		mat4 projection = mat4(1.0f);
+
+		vec3 position = vec3(0.0f);
+		float padding;
 	};
 
 	struct GlobalConstants {
@@ -47,14 +50,17 @@ namespace flaw {
 
 		uint32_t reservedTextureBitMask = 0;
 		uint32_t cubeTextureBitMask = 0;
-
-		int32_t intConstants[4] = { 0 };
-		float floatConstants[4] = { 0.0f };
 		uint32_t paddingMaterialConstants[2];
+
+		int32_t intConstants[4];
+		float floatConstants[4];
+		vec2 vec2Constants[4];
+		vec4 vec4Constants[4];
 	};
 
 	struct Camera {
 		bool isPerspective;
+		vec3 position;
 		mat4 view;
 		mat4 projection;
 		Frustum frustrum;
@@ -102,8 +108,10 @@ namespace flaw {
 
 		std::array<Ref<TextureCube>, 4> cubeTextures;
 
-		int32_t intConstants[4] = { 0 };
-		float floatConstants[4] = { 0.0f };
+		int32_t intConstants[4];
+		float floatConstants[4];
+		vec2 vec2Constants[4];
+		vec4 vec4Constants[4];
 	};
 
 	struct SkyLight {
