@@ -270,8 +270,29 @@ namespace flaw {
 
 				ImGui::SameLine();
 
-				if (ImGui::Button("-")) {
+				if (ImGui::Button("-##Height")) {
 					landScaperComp.heightMap.Invalidate();
+					landScaperComp.dirty = true;
+				}
+
+				ImGui::Text("Albedo Texture2D Array");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::Texture2DArray) {
+								landScaperComp.albedoTexture2DArray = metadata.handle;
+								landScaperComp.dirty = true;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("-##Albedo")) {
+					landScaperComp.albedoTexture2DArray.Invalidate();
 					landScaperComp.dirty = true;
 				}
 

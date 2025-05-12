@@ -20,6 +20,8 @@ namespace flaw {
 		Image(const char* filePath, uint32_t desiredChannels = 0);
 		Image(Type type, const char* memory, size_t size, uint32_t desiredChannels = 0);
 
+		void SaveToFile(const char* filePath) const;
+
 		Type ImageType() const { return _type; }
 		const std::vector<uint8_t>& Data() const { return _data; }
 		int32_t Width() const { return _width; }
@@ -27,6 +29,8 @@ namespace flaw {
 		int32_t Channels() const { return _channels; }
 
 		bool IsValid() const { return !_data.empty(); }
+
+		static void SaveToFile(const char* filePath, const void* data, int32_t width, int32_t height, Type type, int32_t channels = 4);
 
 	private:
 		Type GetImageTypeFromExtension(const char* filePath);

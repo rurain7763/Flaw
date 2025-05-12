@@ -81,7 +81,7 @@ namespace flaw {
 
 			if (ImGui::Button("Create Height Map")) {
 				// Create empty texture
-				TextureCreateSettings settings;
+				Texture2DCreateSettings settings;
 				// TODO: how can we create proper name?
 				settings.destPath = _contentEditor.GetCurrentDir() + "/LandscapeHeightMap.asset";
 				settings.writeArchiveFunc = [](SerializationArchive& archive) {
@@ -96,7 +96,6 @@ namespace flaw {
 						archive
 					);
 				};
-				settings.textureType = TextureType::Texture2D;
 
 				AssetDatabase::CreateAsset(&settings);
 			}

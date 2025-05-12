@@ -119,6 +119,10 @@ namespace flaw {
 		return CreateRef<DXTexture2D>(*this, descriptor);
 	}
 
+	Ref<Texture2DArray> DXContext::CreateTexture2DArray(const Texture2DArray::Descriptor& descriptor) {
+		return CreateRef<DXTexture2DArray>(*this, descriptor);
+	}
+
 	Ref<TextureCube> DXContext::CreateTextureCube(const TextureCube::Descriptor& descriptor) {
 		return CreateRef<DXTextureCube>(*this, descriptor);
 	}

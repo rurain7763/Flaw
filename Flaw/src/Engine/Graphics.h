@@ -11,6 +11,7 @@
 namespace flaw {
 	constexpr uint32_t ReservedTextureStartSlot = 50;
 	constexpr uint32_t CubeTextureStartSlot = 54;
+	constexpr uint32_t TextureArrayStartSlot = 58;
 
 	enum class GraphicsType {
 		DX11
@@ -50,7 +51,8 @@ namespace flaw {
 
 		uint32_t reservedTextureBitMask = 0;
 		uint32_t cubeTextureBitMask = 0;
-		uint32_t paddingMaterialConstants[2];
+		uint32_t textureArrayBitMask = 0;
+		uint32_t paddingMaterialConstants;
 
 		int32_t intConstants[4];
 		float floatConstants[4];
@@ -107,6 +109,7 @@ namespace flaw {
 		Ref<Texture2D> heightTexture;
 
 		std::array<Ref<TextureCube>, 4> cubeTextures;
+		std::array<Ref<Texture2DArray>, 4> textureArrays;
 
 		int32_t intConstants[4];
 		float floatConstants[4];
@@ -165,6 +168,7 @@ namespace flaw {
 		static Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc);
 
 		static Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor);
+		static Ref<Texture2DArray> CreateTexture2DArray(const Texture2DArray::Descriptor& descriptor);
 		static Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor);
 
 		static Ref<GraphicsRenderPass> GetMainRenderPass();
@@ -191,6 +195,9 @@ namespace flaw {
 			int32_t candidateCount,
 			RayHit& hit
 		);
+
+		static void CaptureTexture(const Ref<Texture2D>& srcTex, std::vector<uint8_t>& outData);
+		static void CaptureTextureArray(const Ref<Texture2DArray>& srcTex, std::vector<uint8_t>& outData);
 
 		static GraphicsContext& GetGraphicsContext();
 	};

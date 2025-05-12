@@ -17,6 +17,7 @@ namespace flaw {
 		CreateIcon(FileType::Directory, "Resources/Icons/Directory.png");
 		CreateIcon(FileType::Unknown, "Resources/Icons/UnknownFile.png");
 		CreateIcon(FileType::Texture2D, "Resources/Icons/Texture2DFile.png");
+		CreateIcon(FileType::Texture2DArray, "Resources/Icons/Texture2DArrayFile.png");
 		CreateIcon(FileType::TextureCube, "Resources/Icons/TextureCubeFile.png");
 		CreateIcon(FileType::Font, "Resources/Icons/FontFile.png");
 		CreateIcon(FileType::Scene, "Resources/Icons/SceneFile.png");
@@ -98,29 +99,12 @@ namespace flaw {
 	void ContentBrowserEditor::OnRender() {
 		ImGui::Begin("Content Browser");
 
-		if (ImGui::Button("Import")) {
-			std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "All Files (*.*)\0");
-			if (!filePath.empty()) {
-				auto extension = filePath.extension();
-
-				if (extension == ".png" || 
-					extension == ".jpg" || 
-					extension == ".jpeg" || 
-					extension == ".hdr" ||
-					extension == ".ttf" || 
-					extension == ".wav" || 
-					extension == ".ogg") 
-				{
-					_importFilePath = filePath;
-				}
-				else {
-					Log::Error("Unsupported file type: %s", filePath.extension().generic_u8string().c_str());
-					return;
-				}		
-			}
-		}
-
-		ShowImportPopup();
+		DrawImportButton();
+		DrawTexture2DImportPopup();
+		DrawTexture2DArrayImportPopup();
+		DrawTextureCubeImportPopup();
+		DrawFontImportPopup();
+		DrawSoundImportPopup();
 
 		std::filesystem::path dirHasToBeChanged;
 
@@ -195,6 +179,9 @@ namespace flaw {
 
 					if (metadata.type == AssetType::Texture2D) {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2D]);
+					}
+					else if (metadata.type == AssetType::Texture2DArray) {
+						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Texture2DArray]);
 					}
 					else if (metadata.type == AssetType::TextureCube) {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::TextureCube]);
@@ -295,49 +282,106 @@ namespace flaw {
 		}
 	}
 
-	void ContentBrowserEditor::ShowImportPopup() {
-		if (_importFilePath.empty()) {
-			return;
+	void ContentBrowserEditor::DrawImportButton() {
+		if (ImGui::Button("Import")) {
+			ImGui::OpenPopup("Select import type");
 		}
 
-		auto extension = _importFilePath.extension();
+		if (ImGui::BeginPopupModal("Select import type", nullptr)) {
+			if (ImGui::Button("Texture2D")) {
+				_openTexture2DImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
 
-		if (extension == ".png"  ||
-			extension == ".jpg"  ||
-			extension == ".jpeg" ||
-			extension == ".hdr")
-		{
-			ImGui::OpenPopup("Import Texture");
+			if (ImGui::Button("Texture2DArray")) {
+				_openTexture2DArrayImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("TextureCube")) {
+				_openTextureCubeImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("Font")) {
+				_openFontImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::Button("Sound")) {
+				_openSoundImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::Button("Cancel")) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 
-		if (extension == ".ttf") {
+		if (_openTexture2DImportPopup) {
+			ImGui::OpenPopup("Import Texture2D");
+			_openTexture2DImportPopup = false;
+		}
+
+		if (_openTexture2DArrayImportPopup) {
+			ImGui::OpenPopup("Import Texture2DArray");
+			_openTexture2DArrayImportPopup = false;
+		}
+
+		if (_openTextureCubeImportPopup) {
+			ImGui::OpenPopup("Import TextureCube");
+			_openTextureCubeImportPopup = false;
+		}
+
+		if (_openFontImportPopup) {
 			ImGui::OpenPopup("Import Font");
+			_openFontImportPopup = false;
 		}
 
-		if (extension == ".wav" || extension == ".ogg") {
+		if (_openSoundImportPopup) {
 			ImGui::OpenPopup("Import Sound");
-		}	
+			_openSoundImportPopup = false;
+		}
+	}
 
-		AssetImportSettings* settings = nullptr;
-
-		if (ImGui::BeginPopupModal("Import Texture", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			static TextureImportSettings textureSettings;
-
-			ImGui::Text("Importing %s", _importFilePath.filename().generic_u8string().c_str());
-
-			std::vector<std::string> textureTypes = { "Texture2D", "TextureCube" };
-
-			int32_t selectedTextureType = (int32_t)textureSettings.textureType;
-			if (EditorHelper::DrawCombo("Texture Type", selectedTextureType, textureTypes)) {
-				textureSettings.textureType = (TextureType)selectedTextureType;
+	void ContentBrowserEditor::DrawTexture2DImportPopup() {
+		if (ImGui::BeginPopupModal("Import Texture2D", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
 			}
-
-			if (ImGui::Button("OK")) {
-				settings = &textureSettings;
-				ImGui::CloseCurrentPopup();
+			else {
+				ImGui::Text("No file selected");
 			}
 
 			ImGui::SameLine();
+
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Image Files (*.png;*.jpg;*.jpeg;*.hdr)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					Texture2DImportSettings textureSettings;
+					textureSettings.srcPath = _importFilePath.generic_string();
+					textureSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					textureSettings.usageFlags = UsageFlag::Static;
+					textureSettings.bindFlags = BindFlag::ShaderResource;
+					textureSettings.accessFlags = 0;
+
+					AssetDatabase::ImportAsset(&textureSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+			}
 
 			if (ImGui::Button("Cancel")) {
 				_importFilePath.clear();
@@ -346,18 +390,135 @@ namespace flaw {
 
 			ImGui::EndPopup();
 		}
+	}
 
+	void ContentBrowserEditor::DrawTexture2DArrayImportPopup() {
+		if (ImGui::BeginPopupModal("Import Texture2DArray", nullptr)) {
+			static std::string fileName;
+			static std::vector<std::filesystem::path> imagePaths;
+
+			EditorHelper::DrawImputText("File Name", fileName);
+
+			for (int32_t i = 0; i < imagePaths.size(); ++i) {
+				ImGui::Text("%s", imagePaths[i].filename().generic_u8string().c_str());
+				
+				ImGui::SameLine();
+				if (ImGui::Button(("...##" + std::to_string(i)).c_str())) {
+					std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Image Files (*.png;*.jpg;*.jpeg;*.hdr)\0");
+					if (!filePath.empty()) {
+						imagePaths[i] = filePath;
+					}
+				}
+				
+				ImGui::SameLine();
+				if (ImGui::Button(("-##" + std::to_string(i)).c_str())) {
+					imagePaths.erase(imagePaths.begin() + i);
+					--i;
+				}
+			}
+
+			if (ImGui::Button("+")) {
+				imagePaths.resize(imagePaths.size() + 1);
+			}
+
+			if (!imagePaths.empty()) {
+				if (ImGui::Button("OK")) {
+					Texture2DArrayImportSettings textureSettings;	
+					std::transform(imagePaths.begin(), imagePaths.end(), std::back_inserter(textureSettings.srcPaths), [](const std::filesystem::path& path) { return path.generic_string(); });
+					textureSettings.destPath = _currentDirectory.generic_string() + "/" + fileName + ".asset";
+					textureSettings.usageFlags = UsageFlag::Static;
+					textureSettings.bindFlags = BindFlag::ShaderResource;
+					textureSettings.accessFlags = 0;
+
+					AssetDatabase::ImportAsset(&textureSettings);
+					imagePaths.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+			}
+
+			if (ImGui::Button("Cancel")) {
+				imagePaths.clear();
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserEditor::DrawTextureCubeImportPopup() {
+		if (ImGui::BeginPopupModal("Import TextureCube", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
+			}
+			else {
+				ImGui::Text("No file selected");
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Image Files (*.png;*.jpg;*.jpeg;*.hdr)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					TextureCubeImportSettings textureSettings;
+					textureSettings.srcPath = _importFilePath.generic_string();
+					textureSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					textureSettings.usageFlags = UsageFlag::Static;
+					textureSettings.bindFlags = BindFlag::ShaderResource;
+					textureSettings.accessFlags = 0;
+
+					AssetDatabase::ImportAsset(&textureSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+			}
+
+			if (ImGui::Button("Cancel")) {
+				_importFilePath.clear();
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserEditor::DrawFontImportPopup() {
 		if (ImGui::BeginPopupModal("Import Font", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			static FontImportSettings fontSettings;
-
-			ImGui::Text("Importing %s", _importFilePath.filename().generic_u8string().c_str());
-
-			if (ImGui::Button("OK")) {
-				settings = &fontSettings;
-				ImGui::CloseCurrentPopup();
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
+			}
+			else {
+				ImGui::Text("No file selected");
 			}
 
 			ImGui::SameLine();
+
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Font Files (*.ttf)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					FontImportSettings fontSettings;
+					fontSettings.srcPath = _importFilePath.generic_string();
+					fontSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					
+					AssetDatabase::ImportAsset(&fontSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+			}
 
 			if (ImGui::Button("Cancel")) {
 				_importFilePath.clear();
@@ -366,35 +527,44 @@ namespace flaw {
 
 			ImGui::EndPopup();
 		}
+	}
 
+	void ContentBrowserEditor::DrawSoundImportPopup() {
 		if (ImGui::BeginPopupModal("Import Sound", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			static SoundImportSettings soundSettings;
-
-			ImGui::Text("Importing %s", _importFilePath.filename().generic_u8string().c_str());
-
-			if (ImGui::Button("OK")) {
-				settings = &soundSettings;
-				ImGui::CloseCurrentPopup();
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
+			}
+			else {
+				ImGui::Text("No file selected");
 			}
 
 			ImGui::SameLine();
+
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Sound Files (*.wav;*.ogg)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					SoundImportSettings soundSettings;
+					soundSettings.srcPath = _importFilePath.generic_string();
+					soundSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					AssetDatabase::ImportAsset(&soundSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+			}
 
 			if (ImGui::Button("Cancel")) {
 				_importFilePath.clear();
 				ImGui::CloseCurrentPopup();
 			}
-
 			ImGui::EndPopup();
-		}
-
-		if (settings) {
-			std::filesystem::path destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
-
-			settings->srcPath = _importFilePath.generic_string();
-			settings->destPath = destPath.generic_string();
-
-			AssetDatabase::ImportAsset(settings);
-			_importFilePath.clear();
 		}
 	}
 }

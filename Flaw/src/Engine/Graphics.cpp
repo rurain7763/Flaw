@@ -145,6 +145,10 @@ namespace flaw {
 		return g_graphicsContext->CreateTexture2D(descriptor);
 	}
 
+	Ref<Texture2DArray> Graphics::CreateTexture2DArray(const Texture2DArray::Descriptor& descritor) {
+		return g_graphicsContext->CreateTexture2DArray(descritor);
+	}
+
 	Ref<TextureCube> Graphics::CreateTextureCube(const TextureCube::Descriptor& descriptor) {
 		return g_graphicsContext->CreateTextureCube(descriptor);
 	}
@@ -275,6 +279,38 @@ namespace flaw {
 		}
 
 		return closestIndex;
+	}
+
+	void Graphics::CaptureTexture(const Ref<Texture2D>& srcTex, std::vector<uint8_t>& outData) {
+		Texture2D::Descriptor desc = {};
+		desc.width = srcTex->GetWidth();
+		desc.height = srcTex->GetHeight();
+		desc.format = srcTex->GetPixelFormat();
+		desc.usage = UsageFlag::Staging;
+		desc.access = AccessFlag::Read;
+		
+		Ref<Texture2D> stagingTexture = g_graphicsContext->CreateTexture2D(desc);
+		srcTex->CopyTo(stagingTexture);
+
+		outData.resize(srcTex->GetWidth() * srcTex->GetHeight() * GetSizePerPixel(srcTex->GetPixelFormat()));
+		stagingTexture->Fetch(outData.data(), outData.size());
+	}
+
+	void Graphics::CaptureTextureArray(const Ref<Texture2DArray>& srcTex, std::vector<uint8_t>& outData) {
+		Texture2DArray::Descriptor desc = {};
+		desc.fromMemory = true;
+		desc.arraySize = srcTex->GetArraySize();
+		desc.width = srcTex->GetWidth();
+		desc.height = srcTex->GetHeight();
+		desc.format = srcTex->GetPixelFormat();
+		desc.usage = UsageFlag::Staging;
+		desc.access = AccessFlag::Read;
+
+		Ref<Texture2DArray> stagingTexture = g_graphicsContext->CreateTexture2DArray(desc);
+		srcTex->CopyTo(stagingTexture);
+
+		outData.resize(srcTex->GetWidth() * srcTex->GetHeight() * GetSizePerPixel(srcTex->GetPixelFormat()) * srcTex->GetArraySize());
+		stagingTexture->FetchAll(outData.data());
 	}
 
 	GraphicsContext& Graphics::GetGraphicsContext() {

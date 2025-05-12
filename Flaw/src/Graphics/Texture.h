@@ -16,6 +16,7 @@ namespace flaw {
 
 	class Texture2D : public Texture {
 	public:
+		// TODO: remove
 		enum class Wrap {
 			Repeat,
 			MirroredRepeat,
@@ -23,6 +24,7 @@ namespace flaw {
 			ClampToBorder
 		};
 
+		// TODO: remove
 		enum class Filter {
 			Nearest,
 			Linear
@@ -33,8 +35,8 @@ namespace flaw {
 			PixelFormat format;
 			uint32_t width, height;
 
-			Wrap wrapS, wrapT;
-			Filter minFilter, magFilter;
+			Wrap wrapS, wrapT; // TODO: remove
+			Filter minFilter, magFilter; // TODO: remove
 
 			UsageFlag usage;
 			uint32_t access;
@@ -55,6 +57,42 @@ namespace flaw {
 		virtual PixelFormat GetPixelFormat() const = 0;
 		virtual UsageFlag GetUsage() const = 0;
 		virtual uint32_t GetBindFlags() const = 0;
+		virtual uint32_t GetAccessFlags() const = 0;
+	};
+
+	class Texture2DArray : public Texture {
+	public:
+		struct Descriptor {
+			bool fromMemory = false;
+
+			std::vector<Ref<Texture2D>> textures;
+
+			const uint8_t* data;
+			PixelFormat format;
+			uint32_t width, height;
+
+			UsageFlag usage;
+			uint32_t access;
+
+			uint32_t bindFlags;
+
+			uint32_t arraySize;
+		};
+
+		Texture2DArray() = default;
+		virtual ~Texture2DArray() = default;
+
+		virtual void FetchAll(void* outData) const = 0;
+
+		virtual void CopyTo(Ref<Texture2DArray>& target) const = 0;
+
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
+		virtual PixelFormat GetPixelFormat() const = 0;
+		virtual UsageFlag GetUsage() const = 0;
+		virtual uint32_t GetBindFlags() const = 0;
+		virtual uint32_t GetAccessFlags() const = 0;
+		virtual uint32_t GetArraySize() const = 0;
 	};
 
 	class TextureCube : public Texture {

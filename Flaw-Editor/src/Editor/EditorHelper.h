@@ -17,6 +17,24 @@ namespace flaw {
 			ImGui::PopStyleColor(3);
 		}
 
+		static bool DrawImputText(const char* label, std::string& value) {
+			bool dirty = false;
+			ImGui::PushID(label);
+			ImGui::Text(label);
+			ImGui::SameLine();
+
+			char buffer[256];
+			strncpy(buffer, value.c_str(), sizeof(buffer));
+			if (ImGui::InputText("##InputText", buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
+				value = buffer;
+				dirty |= true;
+			}
+
+			ImGui::PopID();
+
+			return dirty;
+		}
+
 		static bool DrawCombo(const char* label, int32_t& value, const std::vector<std::string>& items) {
 			bool dirty = false;
 

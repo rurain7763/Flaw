@@ -419,5 +419,6 @@
     <ClCompile Include="src\Engine\Mesh.cpp" />
     <ClCompile Include="src\Utils\Raycast.cpp" />
     <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp" />
   </ItemGroup>
 </Project>

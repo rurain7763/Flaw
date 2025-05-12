@@ -474,6 +474,14 @@ namespace flaw {
 				}
 			}
 
+			_materialConstants.textureArrayBitMask = 0;
+			for (int32_t i = 0; i < entry.material->textureArrays.size(); ++i) {
+				if (entry.material->textureArrays[i]) {
+					_materialConstants.textureArrayBitMask |= (1 << i);
+					cmdQueue.SetTexture(entry.material->textureArrays[i], TextureArrayStartSlot + i);
+				}
+			}
+
 			std::memcpy(
 				_materialConstants.intConstants,
 				entry.material->intConstants,

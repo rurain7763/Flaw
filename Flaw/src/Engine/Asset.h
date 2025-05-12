@@ -28,6 +28,7 @@ namespace flaw {
 		Sound,
 		Mesh,
 		TextureCube,
+		Texture2DArray,
 	};
 
 	class Asset {

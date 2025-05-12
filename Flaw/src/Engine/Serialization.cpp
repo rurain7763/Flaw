@@ -339,6 +339,7 @@ namespace flaw {
 			out << YAML::Key << "HeightMap" << YAML::Value << comp.heightMap;
 			out << YAML::Key << "LODLevelMax" << YAML::Value << comp.lodLevelMax;
 			out << YAML::Key << "LODDistanceRange" << YAML::Value << comp.lodDistanceRange;
+			out << YAML::Key << "AlbedoTexture2DArray" << YAML::Value << comp.albedoTexture2DArray;
 			out << YAML::EndMap;
 		}
 
@@ -682,6 +683,7 @@ namespace flaw {
 					comp.heightMap = component.second["HeightMap"].as<uint64_t>();
 					comp.lodLevelMax = component.second["LODLevelMax"].as<uint32_t>();
 					comp.lodDistanceRange = component.second["LODDistanceRange"].as<vec2>();
+					comp.albedoTexture2DArray = component.second["AlbedoTexture2DArray"].as<uint64_t>();
 				}
 			}
 		}

@@ -207,6 +207,7 @@
     <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
     <ClCompile Include="src\Engine\RenderQueue.cpp" />
     <ClCompile Include="src\Engine\Mesh.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp" />
     <ClCompile Include="src\Utils\Raycast.cpp" />
     <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />

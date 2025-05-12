@@ -135,6 +135,7 @@ namespace flaw {
 			switch (metadata.type) {
 				case AssetType::Texture2D: asset = CreateRef<Texture2DAsset>(getMemoryFunc); break;
 				case AssetType::TextureCube: asset = CreateRef<TextureCubeAsset>(getMemoryFunc); break;
+				case AssetType::Texture2DArray: asset = CreateRef<Texture2DArrayAsset>(getMemoryFunc); break;
 				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
 				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
 			}
@@ -174,13 +175,9 @@ namespace flaw {
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetSettingsType::Texture) {
-			TextureCreateSettings* textureSettings = (TextureCreateSettings*)settings;
-
-			if (textureSettings->textureType == TextureType::Texture2D) {
-				meta.type = AssetType::Texture2D;
-				archive << meta;
-			}
+		if (settings->type == AssetType::Texture2D) {
+			meta.type = AssetType::Texture2D;
+			archive << meta;
 		}
 
 		settings->writeArchiveFunc(archive);
@@ -194,11 +191,6 @@ namespace flaw {
 	}
 
 	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {
-		if (!std::filesystem::exists(settings->srcPath)) {
-			Log::Error("File does not exist: %s", settings->srcPath);
-			return false;
-		}
-
 		std::filesystem::path assetPath(settings->destPath);
 
 		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
@@ -211,49 +203,76 @@ namespace flaw {
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetSettingsType::Texture) {
-			TextureImportSettings* textureSettings = (TextureImportSettings*)settings;
+		if (settings->type == AssetType::Texture2D) {
+			Texture2DImportSettings* textureSettings = (Texture2DImportSettings*)settings;
 
-			if (textureSettings->textureType == TextureType::Texture2D) {
-				meta.type = AssetType::Texture2D;
-				archive << meta;
+			meta.type = AssetType::Texture2D;
+			archive << meta;
 
-				Image img(settings->srcPath.c_str(), 4);
+			Image img(textureSettings->srcPath.c_str(), 4);
 
-				Texture2DAsset::WriteToArchive(
-					PixelFormat::RGBA8,
-					img.Width(),
-					img.Height(),
-					textureSettings->usageFlags,
-					textureSettings->accessFlags,
-					textureSettings->bindFlags,
-					img.Data(),
-					archive
-				);
-			}
-			else if (textureSettings->textureType == TextureType::TextureCube) {
-				meta.type = AssetType::TextureCube;
-				archive << meta;
-
-				Image img(settings->srcPath.c_str(), 4);
-
-				archive << PixelFormat::RGBA8;
-				archive << img.Width();
-				archive << img.Height();
-				archive << TextureCube::Layout::HorizontalCross; // TODO: 현재는 가로 크로스만 테스트	
-				archive << img.Data();
-			}
+			Texture2DAsset::WriteToArchive(
+				PixelFormat::RGBA8,
+				img.Width(),
+				img.Height(),
+				textureSettings->usageFlags,
+				textureSettings->accessFlags,
+				textureSettings->bindFlags,
+				img.Data(),
+				archive
+			);
 		}
-		else if (settings->type == AssetSettingsType::Font) {
+		else if (settings->type == AssetType::TextureCube) {
+			TextureCubeImportSettings* textureSettings = (TextureCubeImportSettings*)settings;
+
+			meta.type = AssetType::TextureCube;
+			archive << meta;
+
+			Image img(textureSettings->srcPath.c_str(), 4);
+
+			archive << PixelFormat::RGBA8;
+			archive << img.Width();
+			archive << img.Height();
+			archive << TextureCube::Layout::HorizontalCross; // TODO: 현재는 가로 크로스만 테스트	
+			archive << img.Data();
+		}
+		else if (settings->type == AssetType::Texture2DArray) {
+			Texture2DArrayImportSettings* textureSettings = (Texture2DArrayImportSettings*)settings;
+
+			meta.type = AssetType::Texture2DArray;
+			archive << meta;
+
+			std::vector<Ref<Texture2D>> textures;
+			for (const auto& imagePath : textureSettings->srcPaths) {
+				Image img(imagePath.c_str(), 4);
+
+				Texture2D::Descriptor desc = {};
+				desc.data = img.Data().data();
+				desc.format = PixelFormat::RGBA8;
+				desc.width = img.Width();
+				desc.height = img.Height();
+				desc.usage = textureSettings->usageFlags;
+				desc.access = textureSettings->accessFlags;
+				desc.bindFlags = textureSettings->bindFlags;
+
+				Ref<Texture2D> texture = Graphics::GetGraphicsContext().CreateTexture2D(desc);
+				textures.push_back(texture);
+			}
+
+			Texture2DArrayAsset::WriteToArchive(textures, archive);
+		}
+		else if (settings->type == AssetType::Font) {
+			FontImportSettings* fontSettings = (FontImportSettings*)settings;
+
 			meta.type = AssetType::Font;
 			archive << meta;
 
 			std::vector<int8_t> fontData;
-			FileSystem::ReadFile(settings->srcPath.c_str(), fontData);
+			FileSystem::ReadFile(fontSettings->srcPath.c_str(), fontData);
 
 			archive << fontData;
 
-			Ref<Font> font = Fonts::CreateFontFromFile(settings->srcPath.c_str());
+			Ref<Font> font = Fonts::CreateFontFromFile(fontSettings->srcPath.c_str());
 
 			FontAtlas fontAtlas;
 			font->GetAtlas(fontAtlas);
@@ -262,13 +281,20 @@ namespace flaw {
 			archive << fontAtlas.height;
 			archive << fontAtlas.data;
 		}
-		else if (settings->type == AssetSettingsType::Sound) {
+		else if (settings->type == AssetType::Sound) {
+			SoundImportSettings* soundSettings = (SoundImportSettings*)settings;
+
 			meta.type = AssetType::Sound;
 			archive << meta;
 
 			std::vector<int8_t> soundData;
-			FileSystem::ReadFile(settings->srcPath.c_str(), soundData);
+			FileSystem::ReadFile(soundSettings->srcPath.c_str(), soundData);
 			archive << soundData;
+		}
+		else {
+			FileSystem::DestroyFile(settings->destPath.c_str());
+			Log::Error("Unknown asset type: %d", settings->type);
+			return false;
 		}
 
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {

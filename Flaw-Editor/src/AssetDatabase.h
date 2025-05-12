@@ -25,44 +25,64 @@ namespace flaw {
 		}
 	};
 
-	enum class AssetSettingsType {
-		Texture,
-		Font,
-		Sound,
-	};
-
 	struct AssetCreateSettings {
-		AssetSettingsType type;
+		AssetType type;
 
 		std::function<void(SerializationArchive&)> writeArchiveFunc;
 		std::string destPath;
 	};
 
-	struct TextureCreateSettings : public AssetCreateSettings {
-		TextureType textureType;
-
-		TextureCreateSettings() {
-			type = AssetSettingsType::Texture;
-			textureType = TextureType::Texture2D;
+	struct Texture2DCreateSettings : public AssetCreateSettings {
+		Texture2DCreateSettings() {
+			type = AssetType::Texture2D;
 		}
 	};
 
 	struct AssetImportSettings {
-		AssetSettingsType type;
+		AssetType type;
 
-		std::string srcPath;
 		std::string destPath;
 	};
 
-	struct TextureImportSettings : public AssetImportSettings {
-		TextureType textureType;
+	struct Texture2DImportSettings : public AssetImportSettings {
+		std::string srcPath;
+
 		UsageFlag usageFlags;
 		BindFlag bindFlags;
 		uint32_t accessFlags;
 
-		TextureImportSettings() {
-			type = AssetSettingsType::Texture;
-			textureType = TextureType::Texture2D;
+		Texture2DImportSettings() {
+			type = AssetType::Texture2D;
+			usageFlags = UsageFlag::Static;
+			bindFlags = BindFlag::ShaderResource;
+			accessFlags = 0;
+		}
+	};
+
+	struct TextureCubeImportSettings : public AssetImportSettings {
+		std::string srcPath;
+
+		UsageFlag usageFlags;
+		BindFlag bindFlags;
+		uint32_t accessFlags;
+
+		TextureCubeImportSettings() {
+			type = AssetType::TextureCube;
+			usageFlags = UsageFlag::Static;
+			bindFlags = BindFlag::ShaderResource;
+			accessFlags = 0;
+		}
+	};
+
+	struct Texture2DArrayImportSettings : public AssetImportSettings {
+		std::vector<std::string> srcPaths;
+
+		UsageFlag usageFlags;
+		BindFlag bindFlags;
+		uint32_t accessFlags;
+
+		Texture2DArrayImportSettings() {
+			type = AssetType::Texture2DArray;
 			usageFlags = UsageFlag::Static;
 			bindFlags = BindFlag::ShaderResource;
 			accessFlags = 0;
@@ -70,14 +90,18 @@ namespace flaw {
 	};
 
 	struct FontImportSettings : public AssetImportSettings {
+		std::string srcPath;
+
 		FontImportSettings() {
-			type = AssetSettingsType::Font;
+			type = AssetType::Font;
 		}
 	};	
 
 	struct SoundImportSettings : public AssetImportSettings {
+		std::string srcPath;
+
 		SoundImportSettings() {
-			type = AssetSettingsType::Sound;
+			type = AssetType::Sound;
 		}
 	};
 

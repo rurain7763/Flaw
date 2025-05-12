@@ -355,6 +355,7 @@ namespace flaw {
 	// Terrain
 	struct LandScaperComponent {
 		AssetHandle heightMap;
+		AssetHandle albedoTexture2DArray;
 		uint32_t tilingX = 1, tilingY = 1;
 		uint32_t lodLevelMax = 4;
 		vec2 lodDistanceRange = vec2(0.0f, 10.0f);
@@ -365,6 +366,7 @@ namespace flaw {
 
 		LandScaperComponent(const LandScaperComponent& other) {
 			heightMap = other.heightMap;
+			albedoTexture2DArray = other.albedoTexture2DArray;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
 			lodLevelMax = other.lodLevelMax;
@@ -373,6 +375,7 @@ namespace flaw {
 
 		LandScaperComponent& operator=(const LandScaperComponent& other) {
 			heightMap = other.heightMap;
+			albedoTexture2DArray = other.albedoTexture2DArray;
 			tilingX = other.tilingX;
 			tilingY = other.tilingY;
 			lodLevelMax = other.lodLevelMax;

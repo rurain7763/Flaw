@@ -89,6 +89,14 @@ namespace flaw {
 				landscape.material->heightTexture = nullptr;
 			}
 
+			auto tex2DArrayAsset = AssetManager::GetAsset<Texture2DArrayAsset>(landscapeComp.albedoTexture2DArray);
+			if (tex2DArrayAsset) {
+				landscape.material->textureArrays[0] = tex2DArrayAsset->GetTexture();
+			}
+			else {
+				landscape.material->textureArrays[0] = nullptr;
+			}
+
 			landscape.material->intConstants[TilingXIndex] = landscapeComp.tilingX;
 			landscape.material->intConstants[TilingYIndex] = landscapeComp.tilingY;
 			landscape.material->vec2Constants[0] = vec2(0, landscapeComp.lodLevelMax);

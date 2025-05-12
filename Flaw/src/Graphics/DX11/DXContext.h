@@ -36,6 +36,7 @@ namespace flaw {
 		Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc) override;
 
 		Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) override;
+		Ref<Texture2DArray> CreateTexture2DArray(const Texture2DArray::Descriptor& descriptor) override;
 		Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor) override;
 
 		Ref<GraphicsRenderPass> GetMainRenderPass() override;

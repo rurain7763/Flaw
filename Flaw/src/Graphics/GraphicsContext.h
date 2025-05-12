@@ -29,6 +29,7 @@ namespace flaw {
 		virtual Ref<StructuredBuffer> CreateStructuredBuffer(const StructuredBuffer::Descriptor& desc) = 0;
 
 		virtual Ref<Texture2D> CreateTexture2D(const Texture2D::Descriptor& descriptor) = 0;
+		virtual Ref<Texture2DArray> CreateTexture2DArray(const Texture2DArray::Descriptor& descriptor) = 0;
 		virtual Ref<TextureCube> CreateTextureCube(const TextureCube::Descriptor& descriptor) = 0;
 
 		virtual Ref<GraphicsRenderPass> GetMainRenderPass() = 0;

@@ -20,6 +20,12 @@ namespace flaw {
 		return true;
 	}
 
+	void FileSystem::DestroyFile(const char* path) {
+		if (std::filesystem::exists(path)) {
+			std::filesystem::remove(path);
+		}
+	}
+
 	bool FileSystem::WriteFile(const char* path, const int8_t* data, uint64_t size) {
 		std::ofstream file(path, std::ios::binary);
 		if (!file.is_open()) {

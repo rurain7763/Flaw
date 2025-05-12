@@ -59,6 +59,57 @@ namespace flaw {
 		archive << data;
 	}
 
+	void Texture2DArrayAsset::Load() {
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+
+		Texture2DArray::Descriptor desc = {};
+		desc.fromMemory = true;
+		archive >> desc.arraySize;
+		archive >> desc.format;
+		archive >> desc.width;
+		archive >> desc.height;
+		archive >> desc.usage;
+		archive >> desc.access;
+		archive >> desc.bindFlags;
+		
+		std::vector<uint8_t> textureData;
+		archive >> textureData;
+		desc.data = textureData.data();
+
+		_texture = Graphics::CreateTexture2DArray(desc);
+	}
+
+	void Texture2DArrayAsset::Unload() {
+		_texture.reset();
+	}
+
+	void Texture2DArrayAsset::WriteToArchive(const Ref<Texture2DArray>& textureArray, SerializationArchive& archive) {
+		std::vector<uint8_t> textureData;
+		Graphics::CaptureTextureArray(textureArray, textureData);
+
+		archive << textureArray->GetArraySize();
+		archive << textureArray->GetPixelFormat();
+		archive << textureArray->GetWidth();
+		archive << textureArray->GetHeight();
+		archive << textureArray->GetUsage();
+		archive << textureArray->GetAccessFlags();
+		archive << textureArray->GetBindFlags();
+		archive << textureData;
+	}
+
+	void Texture2DArrayAsset::WriteToArchive(const std::vector<Ref<Texture2D>>& textures, SerializationArchive& archive) {
+		Texture2DArray::Descriptor desc = {};
+		desc.fromMemory = false;
+		desc.textures = textures;
+
+		Ref<Texture2DArray> textureArray = Graphics::CreateTexture2DArray(desc);
+
+		WriteToArchive(textureArray, archive);
+	}
+
 	void TextureCubeAsset::Load() {
 		std::vector<int8_t> data;
 		_getMemoryFunc(data);

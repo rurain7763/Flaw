@@ -37,6 +37,7 @@ namespace flaw {
 		PixelFormat GetPixelFormat() const override { return _format; }
 		UsageFlag GetUsage() const override { return _usage; }
 		uint32_t GetBindFlags() const override { return _bindFlags; }
+		uint32_t GetAccessFlags() const override { return _acessFlags; }
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
 		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
@@ -70,6 +71,60 @@ namespace flaw {
 
 		uint32_t _width;
 		uint32_t _height;
+	};
+
+	class DXTexture2DArray : public Texture2DArray {
+	public:
+		DXTexture2DArray(DXContext& context, const Descriptor& descriptor);
+
+		void BindToGraphicsShader(const uint32_t slot) override;
+		void BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) override;
+
+		void Unbind() override;
+
+		void FetchAll(void* outData) const override;
+
+		void CopyTo(Ref<Texture2DArray>& target) const override;
+
+		uint32_t GetWidth() const override { return _width; }
+		uint32_t GetHeight() const override { return _height; }
+		PixelFormat GetPixelFormat() const override { return _format; }
+		UsageFlag GetUsage() const override { return _usage; }
+		uint32_t GetBindFlags() const override { return _bindFlags; }
+		uint32_t GetAccessFlags() const override { return _acessFlags; }
+		uint32_t GetArraySize() const override { return _arraySize; }
+
+		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
+
+	private:
+		bool SetTexturesUniformAndValidCheck(const std::vector<Ref<Texture2D>>& textures);
+		bool CreateTexture(const std::vector<Ref<Texture2D>>& textures);
+		
+		bool SetTexturesUniformAndValidCheck(const Descriptor& descriptor);
+		bool CreateTexture(const Descriptor& descriptor);
+		
+		bool CreateShaderResourceView(const PixelFormat format);
+		bool CreateUnorderedAccessView(const PixelFormat format);
+
+	private:
+		DXContext& _context;
+
+		ComPtr<ID3D11Texture2D> _texture;
+
+		ComPtr<ID3D11ShaderResourceView> _srv;
+		ComPtr<ID3D11UnorderedAccessView> _uav;
+
+		std::function<void()> _unbindFunc;
+
+		PixelFormat _format;
+		UsageFlag _usage;
+		uint32_t _acessFlags;
+		uint32_t _bindFlags;
+
+		uint32_t _width;
+		uint32_t _height;
+
+		uint32_t _arraySize;
 	};
 
 	class DXTextureCube : public TextureCube {
