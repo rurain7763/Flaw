@@ -40,6 +40,10 @@ namespace flaw {
 			return ExtractScale(worldTransform);
 		}
 
+		inline vec3 GetWorldRotation() const {
+			return ExtractRotation(worldTransform);
+		}
+
 		inline vec3 GetWorldFront() {
 			return normalize(mat3(worldTransform) * Forward);
 		}
@@ -295,6 +299,7 @@ namespace flaw {
 
 	struct MeshRendererComponent {
 		AssetHandle material;
+		bool castShadow = true;
 
 		MeshRendererComponent() = default;
 		MeshRendererComponent(const MeshRendererComponent& other) = default;

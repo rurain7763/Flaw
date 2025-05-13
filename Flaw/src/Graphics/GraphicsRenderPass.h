@@ -14,13 +14,13 @@ namespace flaw {
 
 		Ref<Texture2D> texture;
 		std::array<float, 4> clearValue;
-		std::function<Ref<Texture2D>(int32_t width, int32_t height)> resizeFunc;
+		std::function<Ref<Texture2D>(Ref<Texture2D>& current, int32_t width, int32_t height)> resizeFunc;
 		std::function<void(float& x, float& y, float& width, float& height)> viewportFunc;
 	};
 
 	struct GraphicsDepthStencil {
 		Ref<Texture2D> texture;
-		std::function<Ref<Texture2D>(int32_t width, int32_t height)> resizeFunc;
+		std::function<Ref<Texture2D>(Ref<Texture2D>& current, int32_t width, int32_t height)> resizeFunc;
 	};
 
 	class GraphicsRenderPass {

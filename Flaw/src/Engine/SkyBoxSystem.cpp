@@ -66,15 +66,18 @@ namespace flaw {
 			mesh = PrimitiveManager::GetCubeMesh();
 		}
 
+		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+
+		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
+		mainPass->Bind(false, false);
 
 		cmdQueue.Begin();
 
 		// set pipeline
 		pipeline->SetShader(_skyBoxMaterial->shader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetBlendMode(BlendMode::Default, false);
 		pipeline->SetCullMode(_skyBoxMaterial->cullMode);
 		pipeline->SetDepthTest(_skyBoxMaterial->depthTest, _skyBoxMaterial->depthWrite);
 

@@ -23,7 +23,6 @@ namespace flaw {
 		void SetDepthTest(DepthTest depthTest, bool depthWrite = true) override;
 		void SetCullMode(CullMode cullMode) override;
 		void SetFillMode(FillMode fillMode) override;
-		void SetBlendMode(BlendMode blendMode, bool alphaToCoverage = false) override;
 
 		void Bind() override;
 

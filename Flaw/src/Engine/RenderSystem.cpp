@@ -7,6 +7,7 @@
 #include "Time/Time.h"
 #include "Graphics/GraphicsFunc.h"
 #include "LandscapeSystem.h"
+#include "ShadowSystem.h"
 #include "PrimitiveManager.h"
 
 // TODO: remove this
@@ -63,7 +64,7 @@ namespace flaw {
 		objMRTDesc.renderTargets[GeometryEmissive].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		objMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		objMRTDesc.depthStencil.resizeFunc = [](int32_t width, int32_t height) {
+		objMRTDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
 			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		};
 
@@ -79,7 +80,7 @@ namespace flaw {
 		decalPassDesc.renderTargets[DecalAlbedo].alphaToCoverage = true;
 		decalPassDesc.renderTargets[DecalAlbedo].texture = _geometryPass->GetRenderTargetTex(GeometryAlbedo);
 		decalPassDesc.renderTargets[DecalAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
-		decalPassDesc.renderTargets[DecalAlbedo].resizeFunc = [this](int32_t width, int32_t height) {
+		decalPassDesc.renderTargets[DecalAlbedo].resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
 			return _geometryPass->GetRenderTargetTex(GeometryAlbedo);
 		};
 
@@ -100,6 +101,12 @@ namespace flaw {
 		lightMRTDesc.renderTargets[LightingSpecular].blendMode = BlendMode::Additive;
 		lightMRTDesc.renderTargets[LightingSpecular].texture = Graphics::CreateTexture2D(texDesc);
 		lightMRTDesc.renderTargets[LightingSpecular].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::RGBA32F;
+		lightMRTDesc.renderTargets[LightingShadow].blendMode = BlendMode::Additive;
+		lightMRTDesc.renderTargets[LightingShadow].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingShadow].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
@@ -126,6 +133,8 @@ namespace flaw {
 		_globalCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
 		_lightCB = Graphics::CreateConstantBuffer(sizeof(LightConstants));
 		_materialCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
+
+		_directionalLightUniformCB = Graphics::CreateConstantBuffer(sizeof(DirectionalLightUniforms));
 	}
 
 	void RenderSystem::CreateStructuredBuffers() {
@@ -136,13 +145,6 @@ namespace flaw {
 		sbDesc.bindFlags = BindFlag::ShaderResource;
 		sbDesc.accessFlags = AccessFlag::Write;
 		_batchedTransformSB = Graphics::CreateStructuredBuffer(sbDesc);
-
-		// Create a structured buffer for directional lights
-		sbDesc.elmSize = sizeof(DirectionalLight);
-		sbDesc.count = MaxDirectionalLights;
-		sbDesc.accessFlags = AccessFlag::Write;
-		sbDesc.bindFlags = BindFlag::ShaderResource;
-		_directionalLightSB = Graphics::CreateStructuredBuffer(sbDesc);
 
 		// Create a structured buffer for point lights
 		sbDesc.elmSize = sizeof(PointLight);
@@ -218,6 +220,7 @@ namespace flaw {
 		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
 		_scene.GetSkyBoxSystem().Update();
+		_scene.GetShadowSystem().Update();
 
 		GatherLights();
 		GatherDecals();
@@ -226,9 +229,9 @@ namespace flaw {
 
 	void RenderSystem::GatherLights() {
 		auto& enttRegistry = _scene.GetRegistry();
+		auto& shadowSystem = _scene.GetShadowSystem();
 
 		_lightConstants = {};
-		_directionalLights.clear();
 		_pointLights.clear();
 		_spotLights.clear();
 
@@ -237,14 +240,6 @@ namespace flaw {
 			_lightConstants.ambientColor = skyLightComp.color;
 			_lightConstants.ambientIntensity = skyLightComp.intensity;
 			break;
-		}
-
-		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
-			DirectionalLight light;
-			light.color = directionalLightComp.color;
-			light.intensity = directionalLightComp.intensity;
-			light.direction = transform.GetWorldFront();
-			_directionalLights.push_back(std::move(light));
 		}
 
 		for (auto&& [entity, transform, pointLight] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
@@ -268,12 +263,10 @@ namespace flaw {
 			_spotLights.push_back(std::move(light));
 		}
 
-		_lightConstants.numDirectionalLights = std::min((uint32_t)_directionalLights.size(), MaxDirectionalLights);
 		_lightConstants.numPointLights = std::min((uint32_t)_pointLights.size(), MaxPointLights);
 		_lightConstants.numSpotLights = std::min((uint32_t)_spotLights.size(), MaxSpotLights);
 		_lightCB->Update(&_lightConstants, sizeof(LightConstants));
 
-		_directionalLightSB->Update(_directionalLights.data(), sizeof(DirectionalLight) * _lightConstants.numDirectionalLights);
 		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
 		_spotLightSB->Update(_spotLights.data(), sizeof(SpotLight) * _lightConstants.numSpotLights);
 	}
@@ -408,6 +401,8 @@ namespace flaw {
 				_batchedIndexBuffer
 			);
 
+			_scene.GetShadowSystem().Render(_batchedVertexBuffer, _batchedIndexBuffer, _batchedTransformSB);
+
 			RenderGeometry(stage);
 			RenderDecal(stage);
 			RenderDefferdLighting(stage);
@@ -434,7 +429,6 @@ namespace flaw {
 			// set pipeline
 			pipeline->SetShader(entry.material->shader);
 			pipeline->SetFillMode(FillMode::Solid);
-			pipeline->SetBlendMode(BlendMode::Default, false);
 			pipeline->SetCullMode(entry.material->cullMode);
 			pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
 
@@ -591,7 +585,6 @@ namespace flaw {
 
 		pipeline->SetShader(g_decalShader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetBlendMode(BlendMode::Alpha, true);
 		pipeline->SetCullMode(CullMode::Front);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
@@ -615,6 +608,8 @@ namespace flaw {
 	void RenderSystem::RenderDefferdLighting(CameraRenderStage& stage) {
 		_lightingPass->Bind();
 
+		auto& enttRegistry = _scene.GetRegistry();
+		auto& shadowSys = _scene.GetShadowSystem();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
@@ -684,35 +679,50 @@ namespace flaw {
 		}
 
 		// render directional light
-		cmdQueue.Begin();
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-	
 		pipeline->SetShader(g_directionalLightShader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetBlendMode(BlendMode::Alpha, false);
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
+		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
-		cmdQueue.SetStructuredBuffer(_directionalLightSB, 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
+		cmdQueue.SetConstantBuffer(_directionalLightUniformCB, 3);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
-		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.End();
-
 		cmdQueue.Execute();
+
+		for (auto&& [entity, enttComp, transform, directionalLightComp] : enttRegistry.view<EntityComponent, TransformComponent, DirectionalLightComponent>().each()) {
+			auto& shadowMap = shadowSys.GetShadowMap(enttComp.uuid);
+			
+			DirectionalLightUniforms uniforms = {};
+			uniforms.view = shadowMap.uniforms.view;
+			uniforms.projection = shadowMap.uniforms.projection;
+			uniforms.lightColor = vec4(directionalLightComp.color, 1.0);
+			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
+			uniforms.lightIntensity = directionalLightComp.intensity;
+
+			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
+			cmdQueue.Begin();
+			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 2);
+			cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
+			cmdQueue.End();
+
+			cmdQueue.Execute();
+		}
+
 		// render point light
 		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 		pipeline->SetShader(g_pointLightShader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetBlendMode(BlendMode::Alpha, false);
 		pipeline->SetCullMode(CullMode::Front);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
@@ -749,8 +759,12 @@ namespace flaw {
 	}
 
 	void RenderSystem::FinalizeRender(CameraRenderStage& stage) {
+		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+
+		mainPass->SetBlendMode(0, BlendMode::Alpha, false);
+		mainPass->Bind(false, false);
 	
 		// TODO: temp
 		static bool init = false;
@@ -797,7 +811,6 @@ namespace flaw {
 
 		pipeline->SetShader(g_std3dFinalizeShader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetBlendMode(BlendMode::Alpha, false);
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Always, false);
 
@@ -809,6 +822,7 @@ namespace flaw {
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 1);
 		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingDiffuse), 2);
 		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingSpecular), 3);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingShadow), 4);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 		cmdQueue.ResetAllTextures();

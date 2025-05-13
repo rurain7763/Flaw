@@ -91,7 +91,6 @@ namespace flaw {
 		g_quadPipeline = context.CreateGraphicsPipeline();
 
 		g_quadPipeline->SetShader(shader);
-		g_quadPipeline->SetBlendMode(BlendMode::Alpha, true);
 		g_quadPipeline->SetCullMode(CullMode::None);
 
 		Ref<GraphicsShader> circleShader = context.CreateGraphicsShader("Resources/Shaders/circle2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -104,7 +103,6 @@ namespace flaw {
 
 		g_circlePipeline = context.CreateGraphicsPipeline();
 		g_circlePipeline->SetShader(circleShader);
-		g_circlePipeline->SetBlendMode(BlendMode::Alpha, true);
 		g_circlePipeline->SetCullMode(CullMode::None);
 
 		Ref<GraphicsShader> lineShader = context.CreateGraphicsShader("Resources/Shaders/line2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
@@ -115,7 +113,6 @@ namespace flaw {
 
 		g_linePipeline = context.CreateGraphicsPipeline();
 		g_linePipeline->SetShader(lineShader);
-		g_linePipeline->SetBlendMode(BlendMode::Alpha, true);
 		g_linePipeline->SetCullMode(CullMode::None);
 
 		Ref<GraphicsShader> textShader = context.CreateGraphicsShader("Resources/Shaders/text2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -128,7 +125,6 @@ namespace flaw {
 
 		g_textPipeline = context.CreateGraphicsPipeline();
 		g_textPipeline->SetShader(textShader);
-		g_textPipeline->SetBlendMode(BlendMode::Alpha, true);
 		g_textPipeline->SetCullMode(CullMode::None);
 	}
 
@@ -175,7 +171,11 @@ namespace flaw {
 	}
 
 	void Renderer2D::End() {
+		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& commandQueue = Graphics::GetCommandQueue();
+
+		mainPass->SetBlendMode(0, BlendMode::Alpha, true);
+		mainPass->Bind(false, false);
 
 		g_quadVB->Update(g_quadVertices.data(), sizeof(QuadVertex), g_quadVertices.size());
 		g_circleVB->Update(g_circleVertices.data(), sizeof(CircleVertex), g_circleVertices.size());

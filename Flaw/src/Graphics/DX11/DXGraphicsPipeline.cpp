@@ -54,11 +54,6 @@ namespace flaw {
 		_rasterizerState = CreateRasterizerState(GetFillMode(_fillMode), GetCullMode(_cullMode));
 	}
 
-	void DXGraphicsPipeline::SetBlendMode(BlendMode blendMode, bool alphaToCoverage) {
-		auto& mainMRT = _context.GetMainRenderPass();
-		mainMRT->SetBlendMode(0, blendMode, alphaToCoverage);
-	}
-
 	void DXGraphicsPipeline::Bind() {
 		_shader->Bind();
 		_context.DeviceContext()->RSSetState(_rasterizerState.Get());

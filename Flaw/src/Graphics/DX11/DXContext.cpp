@@ -201,7 +201,9 @@ namespace flaw {
 		mrtDesc.renderTargets.resize(1);
 		mrtDesc.renderTargets[0].texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
 		mrtDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-		mrtDesc.renderTargets[0].resizeFunc = [this](int32_t width, int32_t height) {
+		mrtDesc.renderTargets[0].resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
+			current.reset();
+
 			if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))) {
 				throw std::runtime_error("ResizeBuffers failed");
 			}
@@ -222,7 +224,7 @@ namespace flaw {
 		descDepth.bindFlags = BindFlag::DepthStencil;
 
 		mrtDesc.depthStencil.texture = CreateRef<DXTexture2D>(*this, descDepth);
-		mrtDesc.depthStencil.resizeFunc = [this](int32_t width, int32_t height) {
+		mrtDesc.depthStencil.resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
 			Texture2D::Descriptor desc = {};
 			desc.format = PixelFormat::D24S8_UINT;
 			desc.width = width;

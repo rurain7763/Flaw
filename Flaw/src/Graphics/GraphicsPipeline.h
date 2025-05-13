@@ -13,7 +13,6 @@ namespace flaw {
 		virtual void SetDepthTest(DepthTest depthTest, bool depthWrite = true) = 0;
 		virtual void SetCullMode(CullMode cullMode) = 0;
 		virtual void SetFillMode(FillMode fillMode) = 0;
-		virtual void SetBlendMode(BlendMode blendMode, bool alphaToCoverage = false) = 0;
 
 		virtual void Bind() = 0;
 

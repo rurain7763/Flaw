@@ -35,10 +35,9 @@ namespace flaw {
 		vec3 ambientColor;
 		float ambientIntensity;
 
-		uint32_t numDirectionalLights;
 		uint32_t numPointLights;
 		uint32_t numSpotLights;
-		uint32_t padding;
+		uint32_t padding[2];
 	};
 
 	struct MaterialConstants {
@@ -99,7 +98,6 @@ namespace flaw {
 		CullMode cullMode = CullMode::Back;
 		DepthTest depthTest = DepthTest::Less;
 		bool depthWrite = true;
-		BlendMode blendMode = BlendMode::Default;
 
 		Ref<GraphicsShader> shader;
 
@@ -120,12 +118,6 @@ namespace flaw {
 	struct SkyLight {
 		vec3 color = vec3(0.0f);
 		float intensity = 0.0f;
-	};
-
-	struct DirectionalLight {
-		vec3 color = vec3(1.0f);
-		vec3 direction = Forward;
-		float intensity = 1.0f;
 	};
 
 	struct PointLight {

@@ -27,7 +27,6 @@ namespace flaw {
         
         _outlineGraphicsPipeline = _graphicsContext.CreateGraphicsPipeline();
 		_outlineGraphicsPipeline->SetShader(shader);
-		_outlineGraphicsPipeline->SetBlendMode(BlendMode::Default);
         _outlineGraphicsPipeline->SetDepthTest(DepthTest::Less, false);
 		_outlineGraphicsPipeline->SetCullMode(CullMode::Front);
 
@@ -290,7 +289,11 @@ namespace flaw {
 		auto vertexBuffer = meshAsset->GetVertexBuffer();
 		auto indexBuffer = meshAsset->GetIndexBuffer();
 		
-		auto& cmdQueue = _graphicsContext.GetCommandQueue();
+		auto& mainPass = Graphics::GetMainRenderPass();
+        auto& cmdQueue = _graphicsContext.GetCommandQueue();
+
+		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
+		mainPass->Bind(false, false);
 
 		MVPMatrices mvp;
 		mvp.world = _selectedEntt.GetComponent<TransformComponent>().worldTransform;

@@ -10,6 +10,7 @@
 #include "RenderSystem.h"
 #include "SkyBoxSystem.h"
 #include "LandscapeSystem.h"
+#include "ShadowSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -30,6 +31,14 @@ namespace flaw {
 		_landscapeSystem = CreateScope<LandscapeSystem>(*this);
 		_registry.on_construct<LandScaperComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
 		_registry.on_destroy<LandScaperComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
+
+		_shadowSystem = CreateScope<ShadowSystem>(*this);
+		_registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
+		_registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
+		_registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
+		_registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
+		_registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
+		_registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
 
 		_renderSystem = CreateScope<RenderSystem>(*this);
 

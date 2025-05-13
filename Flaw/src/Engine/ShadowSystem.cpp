@@ -1,0 +1,167 @@
+#include "pch.h"
+#include "ShadowSystem.h"
+#include "Scene.h"
+#include "Components.h"
+#include "PrimitiveManager.h"
+
+namespace flaw {
+	ShadowSystem::ShadowSystem(Scene& scene)
+		: _scene(scene)
+	{
+		Ref<GraphicsShader> shadowMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/shadowmap.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		shadowMapShader->AddInputElement<float>("POSITION", 3);
+		shadowMapShader->AddInputElement<float>("TEXCOORD", 2);
+		shadowMapShader->AddInputElement<float>("TANGENT", 3);
+		shadowMapShader->AddInputElement<float>("NORMAL", 3);
+		shadowMapShader->AddInputElement<float>("BINORMAL", 3);
+		shadowMapShader->CreateInputLayout();
+
+		_shadowMapMaterial = CreateRef<Material>();
+		_shadowMapMaterial->shader = shadowMapShader;
+		_shadowMapMaterial->renderMode = RenderMode::Opaque;
+		_shadowMapMaterial->cullMode = CullMode::Back;
+		_shadowMapMaterial->depthTest = DepthTest::Less;
+		_shadowMapMaterial->depthWrite = true;
+
+		_shadowUniformsCB = Graphics::CreateConstantBuffer(sizeof(ShadowUniforms));
+	}
+
+	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
+		//if (registry.any_of<DirectionalLightComponent>(entity) || registry.any_of<PointLightComponent>(entity) || registry.any_of<SpotLightComponent>(entity)) {
+		if (registry.any_of<DirectionalLightComponent>(entity)) {
+			auto& enttComp = registry.get<EntityComponent>(entity);
+
+			Texture2D::Descriptor texDesc = {};
+			texDesc.width = ShadowMapSize;
+			texDesc.height = ShadowMapSize;
+			texDesc.usage = UsageFlag::Static;
+			texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			texDesc.format = PixelFormat::R32F;
+
+			GraphicsRenderPass::Descriptor shadowMapDesc = {};
+			shadowMapDesc.renderTargets.resize(1);
+			shadowMapDesc.renderTargets[0].blendMode = BlendMode::Disabled;
+			shadowMapDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
+			shadowMapDesc.renderTargets[0].clearValue = { 1.0f, 1.0f, 1.0f, 0.0f };
+			shadowMapDesc.renderTargets[0].resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> {
+				return current;
+			};
+
+			texDesc.bindFlags = BindFlag::DepthStencil;
+			texDesc.format = PixelFormat::D24S8_UINT;
+			shadowMapDesc.depthStencil.texture = Graphics::CreateTexture2D(texDesc);
+			shadowMapDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> {
+				return current;
+			};
+
+			ShadowMap shadowMap;
+			shadowMap.renderPass = Graphics::CreateRenderPass(shadowMapDesc);
+			
+			_shadowMaps[enttComp.uuid] = shadowMap;
+		}
+	}
+
+	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
+		auto& enttComp = registry.get<EntityComponent>(entity);
+		if (_shadowMaps.find(enttComp.uuid) != _shadowMaps.end()) {
+			_shadowMaps.erase(enttComp.uuid);
+		}
+	}
+
+	void ShadowSystem::Update() {
+		auto& registry = _scene.GetRegistry();
+
+		for (auto&& [entity, enttComp, transComp, lightComp] : registry.view<EntityComponent, TransformComponent, DirectionalLightComponent>().each()) {
+			auto& shadowMap = _shadowMaps[enttComp.uuid];
+
+			// TODO: 현재는 하드코딩된 값으로 테스트
+			const float orthoHalfSize = (ShadowMapSize / 100.f) / 2.0f;
+
+			shadowMap.uniforms.view = LookAt(transComp.GetWorldPosition(), transComp.GetWorldPosition() + transComp.GetWorldFront(), Up);
+			shadowMap.uniforms.projection = Orthographic(-orthoHalfSize, orthoHalfSize, -orthoHalfSize, orthoHalfSize, 0.1f, 10000.0f);
+
+			shadowMap.renderPass->ClearAllRenderTargets();
+			shadowMap.renderPass->ClearDepthStencil();
+		}
+
+		_shadowMapRenderQueue.Open();
+
+		for (auto&& [entity, transform, meshFilter, meshRenderer] : registry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
+			if (meshRenderer.castShadow) {
+				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려서 테스트
+				Ref<Mesh> sphereMesh = PrimitiveManager::GetSphereMesh();
+				_shadowMapRenderQueue.Push(sphereMesh, transform.worldTransform, _shadowMapMaterial);
+			}
+		}
+
+		_shadowMapRenderQueue.Close();
+	}
+
+	void ShadowSystem::Render(Ref<VertexBuffer>& batchedVertexBuffer, Ref<IndexBuffer>& batchedIndexBuffer, Ref<StructuredBuffer>& batchedTransformSB) {
+		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+
+		ShadowUniforms shadowUniforms;
+
+		while (!_shadowMapRenderQueue.Empty()) {
+			auto& entry = _shadowMapRenderQueue.Front();
+			_shadowMapRenderQueue.Pop();
+
+			for (const auto& [uuid, shadowMap] : _shadowMaps) {
+				shadowMap.renderPass->Bind(false, false);
+
+				cmdQueue.Begin();
+
+				pipeline->SetShader(entry.material->shader);
+				pipeline->SetFillMode(FillMode::Solid);
+				pipeline->SetCullMode(entry.material->cullMode);
+				pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
+
+				cmdQueue.SetPipeline(pipeline);
+
+				_shadowUniformsCB->Update(&shadowMap.uniforms, sizeof(ShadowUniforms));
+				cmdQueue.SetConstantBuffer(_shadowUniformsCB, 0);
+
+				cmdQueue.SetStructuredBuffer(batchedTransformSB, 0);
+				cmdQueue.End();
+				cmdQueue.Execute();
+
+				// instancing draw
+				for (auto& instancingObj : entry.instancingObjects) {
+					auto& mesh = instancingObj.first;
+					auto& instance = instancingObj.second;
+
+					batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
+					batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
+					batchedTransformSB->Update(instance.modelMatrices.data(), instance.modelMatrices.size() * sizeof(mat4));
+
+					cmdQueue.Begin();
+					cmdQueue.SetPrimitiveTopology(mesh->topology);
+					cmdQueue.SetVertexBuffer(batchedVertexBuffer);
+					cmdQueue.DrawIndexedInstanced(batchedIndexBuffer, mesh->indices.size(), instance.instanceCount);
+					cmdQueue.End();
+					cmdQueue.Execute();
+				}
+
+				// non-instancing draw
+				for (auto& noBatchObj : entry.noBatchedObjects) {
+					auto& mesh = noBatchObj.first;
+					auto& modelMatrix = noBatchObj.second;
+
+					batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
+					batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
+					batchedTransformSB->Update(&modelMatrix, sizeof(mat4));
+
+					cmdQueue.Begin();
+					cmdQueue.SetPrimitiveTopology(mesh->topology);
+					cmdQueue.SetVertexBuffer(batchedVertexBuffer);
+					cmdQueue.DrawIndexedInstanced(batchedIndexBuffer, mesh->indices.size(), 1);
+					cmdQueue.End();
+					cmdQueue.Execute();
+				}
+
+				shadowMap.renderPass->Unbind();
+			}
+		}
+	}
+}

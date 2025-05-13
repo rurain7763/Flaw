@@ -172,6 +172,7 @@ namespace flaw {
 	}
 
 	void LandscapeEditor::DrawBrush(const Ref<Texture2D>& heightMapTex) {
+		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& mainPipeline = Graphics::GetMainGraphicsPipeline();
 		auto& landscapeSys = _scene->GetLandscapeSystem();
@@ -198,11 +199,13 @@ namespace flaw {
 
 		UpdateBrushVBAndIB();
 
+		mainPass->SetBlendMode(0, BlendMode::Alpha, false);
+		mainPass->Bind(false, false);
+
 		cmdQueue.Begin();
 
 		mainPipeline->SetShader(_landscapeBrushShader);
 		mainPipeline->SetFillMode(FillMode::Solid);
-		mainPipeline->SetBlendMode(BlendMode::Alpha, false);
 		mainPipeline->SetCullMode(CullMode::Back);
 		mainPipeline->SetDepthTest(DepthTest::LessEqual, false);
 

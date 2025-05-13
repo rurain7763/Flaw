@@ -54,8 +54,8 @@ namespace flaw {
 			else {
 				viewPort.TopLeftX = 0;
 				viewPort.TopLeftY = 0;
-				viewPort.Width = static_cast<float>(width);
-				viewPort.Height = static_cast<float>(height);
+				viewPort.Width = static_cast<float>(renderTarget.texture->GetWidth());
+				viewPort.Height = static_cast<float>(renderTarget.texture->GetHeight());
 			}
 
 			viewPort.MinDepth = 0.0f;
@@ -93,8 +93,7 @@ namespace flaw {
 			}
 
 			if (renderTarget.resizeFunc) {
-				renderTarget.texture.reset();
-				renderTarget.texture = renderTarget.resizeFunc(width, height);
+				renderTarget.texture = renderTarget.resizeFunc(renderTarget.texture, width, height);
 			}
 			else {
 				Texture2D::Descriptor texDesc = {};
@@ -118,8 +117,7 @@ namespace flaw {
 		}
 
 		if (_depthStencil.resizeFunc) {
-			_depthStencil.texture.reset();
-			_depthStencil.texture = _depthStencil.resizeFunc(width, height);
+			_depthStencil.texture = _depthStencil.resizeFunc(_depthStencil.texture, width, height);
 		}
 		else {
 			Texture2D::Descriptor depthTexDesc = {};
@@ -140,6 +138,7 @@ namespace flaw {
 			return;
 		}
 		_renderTargets.push_back(renderTarget);
+
 		CreateBlendState();
 	}
 
@@ -149,6 +148,7 @@ namespace flaw {
 			return;
 		}
 		_renderTargets.pop_back();
+
 		CreateBlendState();
 	}
 
@@ -193,6 +193,7 @@ namespace flaw {
 	void DXRenderPass::CreateBlendState() {
 		D3D11_BLEND_DESC blendDesc = {};
 		blendDesc.IndependentBlendEnable = TRUE;
+		blendDesc.AlphaToCoverageEnable = FALSE;
 
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
 			auto& renderTarget = _renderTargets[i];
