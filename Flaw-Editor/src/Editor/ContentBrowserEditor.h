@@ -36,6 +36,7 @@ namespace flaw{
 		void DrawTextureCubeImportPopup();
 		void DrawFontImportPopup();
 		void DrawSoundImportPopup();
+		void DrawModelImportPopup();
 
 	private:
 		Application& _app;
@@ -53,5 +54,6 @@ namespace flaw{
 		bool _openTextureCubeImportPopup = false;
 		bool _openFontImportPopup = false;
 		bool _openSoundImportPopup = false;
+		bool _openModelImportPopup = false;
 	};
 }

@@ -37,6 +37,9 @@
     <Filter Include="Math">
       <UniqueIdentifier>{AFF4887C-9B2B-8A0D-4418-7010302E060F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Model">
+      <UniqueIdentifier>{D6F3AE0D-4208-D7BE-0B8A-7A1E775DD3EF}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Physics">
       <UniqueIdentifier>{888B590D-F46A-D8A8-FD82-637F69E13E0A}</UniqueIdentifier>
     </Filter>
@@ -94,7 +97,13 @@
     <ClInclude Include="src\Engine\Graphics.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\LandscapeSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\LayerRegistry.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Mesh.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\ParticleSystem.h">
@@ -103,7 +112,16 @@
     <ClInclude Include="src\Engine\Platform.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\PrimitiveManager.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Project.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\RenderQueue.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\RenderSystem.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Renderer2D.h">
@@ -119,6 +137,12 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Serialization.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\ShadowSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\SkyBoxSystem.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Sounds.h">
@@ -170,10 +194,16 @@
     <ClInclude Include="src\Graphics\DX11\DXIndexBuffer.h">
       <Filter>Graphics\DX11</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\DX11\DXRenderPass.h">
+      <Filter>Graphics\DX11</Filter>
+    </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXStructuredBuffer.h">
       <Filter>Graphics\DX11</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXTextures.h">
+      <Filter>Graphics\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\DX11\DXType.h">
       <Filter>Graphics\DX11</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\DX11\DXVertexBuffer.h">
@@ -192,6 +222,9 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\GraphicsPipeline.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\GraphicsRenderPass.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\GraphicsShader.h">
@@ -217,6 +250,9 @@
     </ClInclude>
     <ClInclude Include="src\Math\Math.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model\Model.h">
+      <Filter>Model</Filter>
     </ClInclude>
     <ClInclude Include="src\Physics\Physics2D.h">
       <Filter>Physics</Filter>
@@ -263,7 +299,13 @@
     <ClInclude Include="src\Time\Time.h">
       <Filter>Time</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\Easing.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
     <ClInclude Include="src\Utils\Finalizer.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\Raycast.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\SerializationArchive.h">
@@ -273,18 +315,6 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Utils\Easing.h" />
-    <ClInclude Include="src\Engine\SkyBoxSystem.h" />
-    <ClInclude Include="src\Graphics\DX11\DXType.h" />
-    <ClInclude Include="src\Graphics\DX11\DXRenderPass.h" />
-    <ClInclude Include="src\Graphics\GraphicsRenderPass.h" />
-    <ClInclude Include="src\Engine\RenderSystem.h" />
-    <ClInclude Include="src\Engine\LandscapeSystem.h" />
-    <ClInclude Include="src\Engine\RenderQueue.h" />
-    <ClInclude Include="src\Engine\Mesh.h" />
-    <ClInclude Include="src\Utils\Raycast.h" />
-    <ClInclude Include="src\Engine\PrimitiveManager.h" />
-    <ClInclude Include="src\Engine\ShadowSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -305,6 +335,9 @@
     <ClCompile Include="src\Engine\Graphics.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\LandscapeSystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\LayerRegistry.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
@@ -314,7 +347,16 @@
     <ClCompile Include="src\Engine\Platform.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\PrimitiveManager.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Project.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\RenderQueue.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\RenderSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Renderer2D.cpp">
@@ -327,6 +369,12 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Serialization.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\ShadowSystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\SkyBoxSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Sounds.cpp">
@@ -365,10 +413,19 @@
     <ClCompile Include="src\Graphics\DX11\DXIndexBuffer.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
+    <ClCompile Include="src\Graphics\DX11\DXRenderPass.cpp">
+      <Filter>Graphics\DX11</Filter>
+    </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXStructedBuffer.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXTexture2D.cpp">
+      <Filter>Graphics\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp">
+      <Filter>Graphics\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp">
       <Filter>Graphics\DX11</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp">
@@ -382,6 +439,9 @@
     </ClCompile>
     <ClCompile Include="src\Log\Log.cpp">
       <Filter>Log</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model\Model.cpp">
+      <Filter>Model</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp">
       <Filter>Platform\Windows</Filter>
@@ -407,20 +467,12 @@
     <ClCompile Include="src\Time\Time.cpp">
       <Filter>Time</Filter>
     </ClCompile>
+    <ClCompile Include="src\Utils\Raycast.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
     <ClCompile Include="src\Utils\UUID.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXRenderPass.cpp" />
-    <ClCompile Include="src\Engine\RenderSystem.cpp" />
-    <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
-    <ClCompile Include="src\Engine\RenderQueue.cpp" />
-    <ClCompile Include="src\Engine\Mesh.cpp" />
-    <ClCompile Include="src\Utils\Raycast.cpp" />
-    <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp" />
-    <ClCompile Include="src\Engine\ShadowSystem.cpp" />
   </ItemGroup>
 </Project>

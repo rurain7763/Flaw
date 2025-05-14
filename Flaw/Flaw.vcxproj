@@ -57,7 +57,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>FL_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -70,7 +70,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16d.lib;freetyped.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;fmodL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16d.lib;freetyped.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;fmodL_vc.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\debug\lib;Vendor\lib\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -80,7 +80,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>FL_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -97,7 +97,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16.lib;freetype.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16.lib;freetype.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;fmod_vc.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\lib;Vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -113,23 +113,22 @@
     <ClInclude Include="src\Engine\Entity.h" />
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
-    <ClInclude Include="src\Engine\ShadowSystem.h" />
-    <ClInclude Include="src\Engine\PrimitiveManager.h" />
-    <ClInclude Include="src\Utils\Raycast.h" />
-    <ClInclude Include="src\Engine\Mesh.h" />
-    <ClInclude Include="src\Engine\RenderQueue.h" />
     <ClInclude Include="src\Engine\LandscapeSystem.h" />
-    <ClInclude Include="src\Engine\RenderSystem.h" />
-    <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\LayerRegistry.h" />
+    <ClInclude Include="src\Engine\Mesh.h" />
     <ClInclude Include="src\Engine\ParticleSystem.h" />
     <ClInclude Include="src\Engine\Platform.h" />
+    <ClInclude Include="src\Engine\PrimitiveManager.h" />
     <ClInclude Include="src\Engine\Project.h" />
+    <ClInclude Include="src\Engine\RenderQueue.h" />
+    <ClInclude Include="src\Engine\RenderSystem.h" />
     <ClInclude Include="src\Engine\Renderer2D.h" />
     <ClInclude Include="src\Engine\Scene.h" />
     <ClInclude Include="src\Engine\Scriptable.h" />
     <ClInclude Include="src\Engine\Scripting.h" />
     <ClInclude Include="src\Engine\Serialization.h" />
+    <ClInclude Include="src\Engine\ShadowSystem.h" />
+    <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Sounds.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
     <ClInclude Include="src\Flaw.h" />
@@ -147,25 +146,26 @@
     <ClInclude Include="src\Graphics\DX11\DXGraphicsPipeline.h" />
     <ClInclude Include="src\Graphics\DX11\DXGraphicsShader.h" />
     <ClInclude Include="src\Graphics\DX11\DXIndexBuffer.h" />
+    <ClInclude Include="src\Graphics\DX11\DXRenderPass.h" />
     <ClInclude Include="src\Graphics\DX11\DXStructuredBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXTextures.h" />
-    <ClInclude Include="src\Graphics\DX11\DXVertexBuffer.h" />
     <ClInclude Include="src\Graphics\DX11\DXType.h" />
-    <ClInclude Include="src\Graphics\DX11\DXRenderPass.h" />
+    <ClInclude Include="src\Graphics\DX11\DXVertexBuffer.h" />
     <ClInclude Include="src\Graphics\GraphicsBuffers.h" />
     <ClInclude Include="src\Graphics\GraphicsCommandQueue.h" />
     <ClInclude Include="src\Graphics\GraphicsContext.h" />
     <ClInclude Include="src\Graphics\GraphicsFunc.h" />
     <ClInclude Include="src\Graphics\GraphicsPipeline.h" />
+    <ClInclude Include="src\Graphics\GraphicsRenderPass.h" />
     <ClInclude Include="src\Graphics\GraphicsShader.h" />
     <ClInclude Include="src\Graphics\GraphicsType.h" />
-    <ClInclude Include="src\Graphics\GraphicsRenderPass.h" />
     <ClInclude Include="src\Graphics\Texture.h" />
     <ClInclude Include="src\Image\Image.h" />
     <ClInclude Include="src\Input\Input.h" />
     <ClInclude Include="src\Input\InputCodes.h" />
     <ClInclude Include="src\Log\Log.h" />
     <ClInclude Include="src\Math\Math.h" />
+    <ClInclude Include="src\Model\Model.h" />
     <ClInclude Include="src\Physics\Physics2D.h" />
     <ClInclude Include="src\Platform\FileDialogs.h" />
     <ClInclude Include="src\Platform\FileSystem.h" />
@@ -181,8 +181,9 @@
     <ClInclude Include="src\Sound\SoundSource.h" />
     <ClInclude Include="src\Sound\SoundsContext.h" />
     <ClInclude Include="src\Time\Time.h" />
-    <ClInclude Include="src\Utils\Finalizer.h" />
     <ClInclude Include="src\Utils\Easing.h" />
+    <ClInclude Include="src\Utils\Finalizer.h" />
+    <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
     <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\pch.h" />
@@ -194,24 +195,21 @@
     <ClCompile Include="src\Engine\Entity.cpp" />
     <ClCompile Include="src\Engine\Fonts.cpp" />
     <ClCompile Include="src\Engine\Graphics.cpp" />
+    <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
     <ClCompile Include="src\Engine\LayerRegistry.cpp" />
     <ClCompile Include="src\Engine\ParticleSystem.cpp" />
     <ClCompile Include="src\Engine\Platform.cpp" />
+    <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
     <ClCompile Include="src\Engine\Project.cpp" />
+    <ClCompile Include="src\Engine\RenderQueue.cpp" />
+    <ClCompile Include="src\Engine\RenderSystem.cpp" />
     <ClCompile Include="src\Engine\Renderer2D.cpp" />
     <ClCompile Include="src\Engine\Scene.cpp" />
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
-    <ClCompile Include="src\Engine\Sounds.cpp" />
-    <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
-    <ClCompile Include="src\Engine\RenderSystem.cpp" />
-    <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
-    <ClCompile Include="src\Engine\RenderQueue.cpp" />
-    <ClCompile Include="src\Engine\Mesh.cpp" />
     <ClCompile Include="src\Engine\ShadowSystem.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp" />
-    <ClCompile Include="src\Utils\Raycast.cpp" />
-    <ClCompile Include="src\Engine\PrimitiveManager.cpp" />
+    <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
+    <ClCompile Include="src\Engine\Sounds.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
@@ -226,11 +224,13 @@
     <ClCompile Include="src\Graphics\DX11\DXRenderPass.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXStructedBuffer.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXTexture2D.cpp" />
-    <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXTexture2DArray.cpp" />
     <ClCompile Include="src\Graphics\DX11\DXTextureCube.cpp" />
+    <ClCompile Include="src\Graphics\DX11\DXVertexBuffer.cpp" />
     <ClCompile Include="src\Image\Image.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />
+    <ClCompile Include="src\Model\Model.cpp" />
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp" />
@@ -239,6 +239,7 @@
     <ClCompile Include="src\Sound\FMod\FModSoundSource.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundsContext.cpp" />
     <ClCompile Include="src\Time\Time.cpp" />
+    <ClCompile Include="src\Utils\Raycast.cpp" />
     <ClCompile Include="src\Utils\UUID.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

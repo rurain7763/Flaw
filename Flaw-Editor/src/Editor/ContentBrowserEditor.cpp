@@ -105,6 +105,7 @@ namespace flaw {
 		DrawTextureCubeImportPopup();
 		DrawFontImportPopup();
 		DrawSoundImportPopup();
+		DrawModelImportPopup();
 
 		std::filesystem::path dirHasToBeChanged;
 
@@ -313,6 +314,11 @@ namespace flaw {
 				ImGui::CloseCurrentPopup();
 			}
 
+			if (ImGui::Button("Model")) {
+				_openModelImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
 			ImGui::Separator();
 
 			if (ImGui::Button("Cancel")) {
@@ -345,6 +351,11 @@ namespace flaw {
 		if (_openSoundImportPopup) {
 			ImGui::OpenPopup("Import Sound");
 			_openSoundImportPopup = false;
+		}
+
+		if (_openModelImportPopup) {
+			ImGui::OpenPopup("Import Model");
+			_openModelImportPopup = false;
 		}
 	}
 
@@ -557,6 +568,44 @@ namespace flaw {
 					ImGui::CloseCurrentPopup();
 				}
 
+				ImGui::SameLine();
+			}
+
+			if (ImGui::Button("Cancel")) {
+				_importFilePath.clear();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserEditor::DrawModelImportPopup() {
+		if (ImGui::BeginPopupModal("Import Model", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
+			}
+			else {
+				ImGui::Text("No file selected");
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Model Files (*.fbx;*.obj)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					ModelImportSettings modelSettings;
+					modelSettings.srcPath = _importFilePath.generic_string();
+					modelSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					AssetDatabase::ImportAsset(&modelSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
 				ImGui::SameLine();
 			}
 

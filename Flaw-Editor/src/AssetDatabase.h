@@ -26,7 +26,11 @@ namespace flaw {
 	};
 
 	struct AssetCreateSettings {
-		AssetType type;
+		enum class Type {
+			Texture2D,
+		};
+
+		Type type;
 
 		std::function<void(SerializationArchive&)> writeArchiveFunc;
 		std::string destPath;
@@ -34,13 +38,21 @@ namespace flaw {
 
 	struct Texture2DCreateSettings : public AssetCreateSettings {
 		Texture2DCreateSettings() {
-			type = AssetType::Texture2D;
+			type = Type::Texture2D;
 		}
 	};
 
 	struct AssetImportSettings {
-		AssetType type;
+		enum class Type {
+			Texture2D,
+			TextureCube,
+			Texture2DArray,
+			Font,
+			Sound,
+			Model,
+		};
 
+		Type type;
 		std::string destPath;
 	};
 
@@ -52,7 +64,7 @@ namespace flaw {
 		uint32_t accessFlags;
 
 		Texture2DImportSettings() {
-			type = AssetType::Texture2D;
+			type = Type::Texture2D;
 			usageFlags = UsageFlag::Static;
 			bindFlags = BindFlag::ShaderResource;
 			accessFlags = 0;
@@ -67,7 +79,7 @@ namespace flaw {
 		uint32_t accessFlags;
 
 		TextureCubeImportSettings() {
-			type = AssetType::TextureCube;
+			type = Type::TextureCube;
 			usageFlags = UsageFlag::Static;
 			bindFlags = BindFlag::ShaderResource;
 			accessFlags = 0;
@@ -82,7 +94,7 @@ namespace flaw {
 		uint32_t accessFlags;
 
 		Texture2DArrayImportSettings() {
-			type = AssetType::Texture2DArray;
+			type = Type::Texture2DArray;
 			usageFlags = UsageFlag::Static;
 			bindFlags = BindFlag::ShaderResource;
 			accessFlags = 0;
@@ -93,7 +105,7 @@ namespace flaw {
 		std::string srcPath;
 
 		FontImportSettings() {
-			type = AssetType::Font;
+			type = Type::Font;
 		}
 	};	
 
@@ -101,7 +113,15 @@ namespace flaw {
 		std::string srcPath;
 
 		SoundImportSettings() {
-			type = AssetType::Sound;
+			type = Type::Sound;
+		}
+	};
+
+	struct ModelImportSettings : public AssetImportSettings {
+		std::string srcPath;
+
+		ModelImportSettings() {
+			type = Type::Model;
 		}
 	};
 
@@ -122,5 +142,12 @@ namespace flaw {
 
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
+
+		static bool ImportTexture2D(Texture2DImportSettings* settings);
+		static bool ImportTextureCube(TextureCubeImportSettings* settings);
+		static bool ImportTexture2DArray(Texture2DArrayImportSettings* settings);
+		static bool ImportFont(FontImportSettings* settings);
+		static bool ImportSound(SoundImportSettings* settings);
+		static bool ImportModel(ModelImportSettings* settings);
 	};
 }

@@ -132,4 +132,24 @@ namespace flaw {
 		Ref<VertexBuffer> _vertexBuffer;
 		Ref<IndexBuffer> _indexBuffer;
 	};
+
+	struct SkeletalMeshAssetMeshInfo {
+		uint32_t vertexStart = 0;
+		uint32_t vertexCount = 0;
+		uint32_t indexStart = 0;
+		uint32_t indexCount = 0;
+	};
+
+	class SkeletalMeshAsset : public Asset {
+	public:
+		SkeletalMeshAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::SkeletalMesh; }
+
+	private:
+		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+	};
 }

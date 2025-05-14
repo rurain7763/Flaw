@@ -43,16 +43,12 @@ namespace flaw {
 			shadowMapDesc.renderTargets[0].blendMode = BlendMode::Disabled;
 			shadowMapDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
 			shadowMapDesc.renderTargets[0].clearValue = { 1.0f, 1.0f, 1.0f, 0.0f };
-			shadowMapDesc.renderTargets[0].resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> {
-				return current;
-			};
+			shadowMapDesc.renderTargets[0].resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> { return current; };
 
 			texDesc.bindFlags = BindFlag::DepthStencil;
 			texDesc.format = PixelFormat::D24S8_UINT;
 			shadowMapDesc.depthStencil.texture = Graphics::CreateTexture2D(texDesc);
-			shadowMapDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> {
-				return current;
-			};
+			shadowMapDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) -> Ref<Texture2D> { return current; };
 
 			ShadowMap shadowMap;
 			shadowMap.renderPass = Graphics::CreateRenderPass(shadowMapDesc);

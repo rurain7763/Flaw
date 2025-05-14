@@ -2,6 +2,7 @@
 #include "Utils/SerializationArchive.h"
 #include "Platform/FileSystem.h"
 #include "Platform/FileWatch.h"
+#include "Model/Model.h"
 
 #include <fstream>
 
@@ -175,7 +176,7 @@ namespace flaw {
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetType::Texture2D) {
+		if (settings->type == AssetCreateSettings::Type::Texture2D) {
 			meta.type = AssetType::Texture2D;
 			archive << meta;
 		}
@@ -191,8 +192,30 @@ namespace flaw {
 	}
 
 	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {
-		std::filesystem::path assetPath(settings->destPath);
+		if (settings->type == AssetImportSettings::Type::Texture2D) {
+			return ImportTexture2D((Texture2DImportSettings*)settings);
+		}
+		else if (settings->type == AssetImportSettings::Type::TextureCube) {
+			return ImportTextureCube((TextureCubeImportSettings*)settings);
+		}
+		else if (settings->type == AssetImportSettings::Type::Texture2DArray) {
+			return ImportTexture2DArray((Texture2DArrayImportSettings*)settings);
+		}
+		else if (settings->type == AssetImportSettings::Type::Font) {
+			return ImportFont((FontImportSettings*)settings);
+		}
+		else if (settings->type == AssetImportSettings::Type::Sound) {
+			return ImportSound((SoundImportSettings*)settings);
+		}
+		else if (settings->type == AssetImportSettings::Type::Model) {
+			return ImportModel((ModelImportSettings*)settings);
+		}
 
+		Log::Error("Unknown asset type: %d", settings->type);
+		return false;
+	}
+
+	bool AssetDatabase::ImportTexture2D(Texture2DImportSettings* settings) {
 		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
 			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
 			return false;
@@ -203,102 +226,197 @@ namespace flaw {
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetType::Texture2D) {
-			Texture2DImportSettings* textureSettings = (Texture2DImportSettings*)settings;
+		meta.type = AssetType::Texture2D;
+		archive << meta;
 
-			meta.type = AssetType::Texture2D;
-			archive << meta;
-
-			Image img(textureSettings->srcPath.c_str(), 4);
-
-			Texture2DAsset::WriteToArchive(
-				PixelFormat::RGBA8,
-				img.Width(),
-				img.Height(),
-				textureSettings->usageFlags,
-				textureSettings->accessFlags,
-				textureSettings->bindFlags,
-				img.Data(),
-				archive
-			);
-		}
-		else if (settings->type == AssetType::TextureCube) {
-			TextureCubeImportSettings* textureSettings = (TextureCubeImportSettings*)settings;
-
-			meta.type = AssetType::TextureCube;
-			archive << meta;
-
-			Image img(textureSettings->srcPath.c_str(), 4);
-
-			archive << PixelFormat::RGBA8;
-			archive << img.Width();
-			archive << img.Height();
-			archive << TextureCube::Layout::HorizontalCross; // TODO: 현재는 가로 크로스만 테스트	
-			archive << img.Data();
-		}
-		else if (settings->type == AssetType::Texture2DArray) {
-			Texture2DArrayImportSettings* textureSettings = (Texture2DArrayImportSettings*)settings;
-
-			meta.type = AssetType::Texture2DArray;
-			archive << meta;
-
-			std::vector<Ref<Texture2D>> textures;
-			for (const auto& imagePath : textureSettings->srcPaths) {
-				Image img(imagePath.c_str(), 4);
-
-				Texture2D::Descriptor desc = {};
-				desc.data = img.Data().data();
-				desc.format = PixelFormat::RGBA8;
-				desc.width = img.Width();
-				desc.height = img.Height();
-				desc.usage = textureSettings->usageFlags;
-				desc.access = textureSettings->accessFlags;
-				desc.bindFlags = textureSettings->bindFlags;
-
-				Ref<Texture2D> texture = Graphics::GetGraphicsContext().CreateTexture2D(desc);
-				textures.push_back(texture);
-			}
-
-			Texture2DArrayAsset::WriteToArchive(textures, archive);
-		}
-		else if (settings->type == AssetType::Font) {
-			FontImportSettings* fontSettings = (FontImportSettings*)settings;
-
-			meta.type = AssetType::Font;
-			archive << meta;
-
-			std::vector<int8_t> fontData;
-			FileSystem::ReadFile(fontSettings->srcPath.c_str(), fontData);
-
-			archive << fontData;
-
-			Ref<Font> font = Fonts::CreateFontFromFile(fontSettings->srcPath.c_str());
-
-			FontAtlas fontAtlas;
-			font->GetAtlas(fontAtlas);
-
-			archive << fontAtlas.width;
-			archive << fontAtlas.height;
-			archive << fontAtlas.data;
-		}
-		else if (settings->type == AssetType::Sound) {
-			SoundImportSettings* soundSettings = (SoundImportSettings*)settings;
-
-			meta.type = AssetType::Sound;
-			archive << meta;
-
-			std::vector<int8_t> soundData;
-			FileSystem::ReadFile(soundSettings->srcPath.c_str(), soundData);
-			archive << soundData;
-		}
-		else {
-			FileSystem::DestroyFile(settings->destPath.c_str());
-			Log::Error("Unknown asset type: %d", settings->type);
-			return false;
-		}
+		Image img(settings->srcPath.c_str(), 4);
+		Texture2DAsset::WriteToArchive(
+			PixelFormat::RGBA8,
+			img.Width(),
+			img.Height(),
+			settings->usageFlags,
+			settings->accessFlags,
+			settings->bindFlags,
+			img.Data(),
+			archive
+		);
 
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportTextureCube(TextureCubeImportSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		meta.type = AssetType::TextureCube;
+		archive << meta;
+
+		Image img(settings->srcPath.c_str(), 4);
+		archive << PixelFormat::RGBA8;
+		archive << img.Width();
+		archive << img.Height();
+		archive << TextureCube::Layout::HorizontalCross; // TODO: 현재는 가로 크로스만 테스트	
+		archive << img.Data();
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportTexture2DArray(Texture2DArrayImportSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		meta.type = AssetType::Texture2DArray;
+		archive << meta;
+
+		std::vector<Ref<Texture2D>> textures;
+		for (const auto& imagePath : settings->srcPaths) {
+			Image img(imagePath.c_str(), 4);
+
+			Texture2D::Descriptor desc = {};
+			desc.data = img.Data().data();
+			desc.format = PixelFormat::RGBA8;
+			desc.width = img.Width();
+			desc.height = img.Height();
+			desc.usage = settings->usageFlags;
+			desc.access = settings->accessFlags;
+			desc.bindFlags = settings->bindFlags;
+
+			textures.push_back(Graphics::GetGraphicsContext().CreateTexture2D(desc));
+		}
+
+		Texture2DArrayAsset::WriteToArchive(textures, archive);
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportFont(FontImportSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		meta.type = AssetType::Font;
+		archive << meta;
+
+		std::vector<int8_t> fontData;
+		FileSystem::ReadFile(settings->srcPath.c_str(), fontData);
+
+		archive << fontData;
+
+		Ref<Font> font = Fonts::CreateFontFromFile(settings->srcPath.c_str());
+
+		FontAtlas fontAtlas;
+		font->GetAtlas(fontAtlas);
+
+		archive << fontAtlas.width;
+		archive << fontAtlas.height;
+		archive << fontAtlas.data;
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportSound(SoundImportSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle.Generate();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		meta.type = AssetType::Sound;
+		archive << meta;
+
+		std::vector<int8_t> soundData;
+		FileSystem::ReadFile(settings->srcPath.c_str(), soundData);
+		archive << soundData;
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportModel(ModelImportSettings* settings) {
+		Model model(settings->srcPath.c_str());
+		if (!model.IsValid()) {
+			Log::Error("Failed to import model: %s", settings->srcPath.c_str());
+			return false;
+		}
+
+		return true;
+
+		if (model.HasSkeleton()) {
+			// skeleton mesh
+			std::filesystem::path destPath = settings->destPath;
+			destPath.replace_filename(destPath.filename().generic_string() + "_SkeletalMesh");
+
+			std::string destPathStr = destPath.generic_string();
+
+			if (!FileSystem::MakeFile(destPathStr.c_str())) {
+				Log::Error("Failed to create asset file: %s", destPathStr.c_str());
+				return false;
+			}
+
+			AssetMetadata meta;
+			meta.handle.Generate();
+			meta.fileIndex = FileSystem::FileIndex(destPathStr.c_str());
+
+			SerializationArchive archive;
+			meta.type = AssetType::SkeletalMesh;
+			archive << meta;
+
+			// TODO: 스켈레톤 메쉬 아카이브 작성
+
+			if (!FileSystem::WriteFile(destPathStr.c_str(), archive.Data(), archive.RemainingSize())) {
+				Log::Error("Failed to write asset file: %s", destPathStr.c_str());
+				return false;
+			}
+		}
+		else {
+			// static mesh
 			return false;
 		}
 

@@ -7,6 +7,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AssetDatabase.h" />
+    <ClInclude Include="src\DebugRender.h" />
     <ClInclude Include="src\Editor\ContentBrowserEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
@@ -34,6 +35,9 @@
     <ClInclude Include="src\Editor\ImZoomSlider.h">
       <Filter>Editor</Filter>
     </ClInclude>
+    <ClInclude Include="src\Editor\LandscapeEditor.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
     <ClInclude Include="src\Editor\LogEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
@@ -51,11 +55,10 @@
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\EditorTypes.h" />
     <ClInclude Include="src\FlawEditor.h" />
-    <ClInclude Include="src\DebugRender.h" />
-    <ClInclude Include="src\Editor\LandscapeEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetDatabase.cpp" />
+    <ClCompile Include="src\DebugRender.cpp" />
     <ClCompile Include="src\Editor\ContentBrowserEditor.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
@@ -77,6 +80,9 @@
     <ClCompile Include="src\Editor\ImSequencer.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="src\Editor\LandscapeEditor.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
     <ClCompile Include="src\Editor\LogEditor.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
@@ -93,7 +99,5 @@
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\DebugRender.cpp" />
-    <ClCompile Include="src\Editor\LandscapeEditor.cpp" />
   </ItemGroup>
 </Project>

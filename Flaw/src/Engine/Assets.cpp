@@ -215,4 +215,16 @@ namespace flaw {
 		_vertexBuffer.reset();
 		_indexBuffer.reset();
 	}
+
+
+	void SkeletalMeshAsset::Load() {
+		std::vector<int8_t> data;
+		_getMemoryFunc(data);
+
+		SerializationArchive archive(data.data(), data.size());
+	}
+
+	void SkeletalMeshAsset::Unload() {
+		
+	}
 }

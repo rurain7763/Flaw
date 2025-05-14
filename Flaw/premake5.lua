@@ -21,7 +21,7 @@ project "Flaw"
     includedirs {
         "./src",
         "./Vendor/include",
-        vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}-static/include",
+        vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include",
     }
     
     links {
@@ -60,12 +60,13 @@ project "Flaw"
             "fmtd.lib",
             "spdlogd.lib",
             "yaml-cppd.lib",
-            "fmodL_vc.lib"
+            "fmodL_vc.lib",
+            "assimp-vc143-mtd.lib"
         }
 
     filter "configurations:Release"
         runtime "Release"
-        optimize "On"    
+        optimize "on"    
 
         libdirs {
             vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/lib",
@@ -78,6 +79,7 @@ project "Flaw"
             "fmt.lib",
             "spdlog.lib",
             "yaml-cpp.lib",
-            "fmod_vc.lib"
+            "fmod_vc.lib",
+            "assimp-vc143-mt.lib"
         }
 
