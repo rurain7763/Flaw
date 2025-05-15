@@ -31,14 +31,27 @@ namespace flaw {
 		};
 
 		Type type;
-
-		std::function<void(SerializationArchive&)> writeArchiveFunc;
 		std::string destPath;
 	};
 
 	struct Texture2DCreateSettings : public AssetCreateSettings {
+		PixelFormat format;
+		uint32_t width;
+		uint32_t height;
+		UsageFlag usageFlags;
+		uint32_t bindFlags;
+		uint32_t accessFlags;
+		std::vector<uint8_t> data;
+		
 		Texture2DCreateSettings() {
 			type = Type::Texture2D;
+			format = PixelFormat::RGBA8;
+			width = 0;
+			height = 0;
+			usageFlags = UsageFlag::Static;
+			bindFlags = BindFlag::ShaderResource;
+			accessFlags = 0;
+			data.clear();
 		}
 	};
 
@@ -142,6 +155,8 @@ namespace flaw {
 
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
+
+		static bool CreateTexture2D(Texture2DCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);

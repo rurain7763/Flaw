@@ -3,6 +3,8 @@
 #include "Scene.h"
 #include "Components.h"
 #include "PrimitiveManager.h"
+#include "AssetManager.h"
+#include "Assets.h"
 
 namespace flaw {
 	ShadowSystem::ShadowSystem(Scene& scene)
@@ -82,18 +84,22 @@ namespace flaw {
 
 		_shadowMapRenderQueue.Open();
 
-		for (auto&& [entity, transform, meshFilter, meshRenderer] : registry.view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
-			if (meshRenderer.castShadow) {
-				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려서 테스트
-				Ref<Mesh> sphereMesh = PrimitiveManager::GetSphereMesh();
-				_shadowMapRenderQueue.Push(sphereMesh, transform.worldTransform, _shadowMapMaterial);
+		for (auto&& [entity, transform, skeletaMeshComp] : registry.view<TransformComponent, SkeletalMeshComponent>().each()) {
+			if (skeletaMeshComp.castShadow) {
+				auto& skeletalMeshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletaMeshComp.mesh);
+				if (skeletalMeshAsset == nullptr) {
+					continue;
+				}
+
+				// TODO: may be need frustum culling
+				_shadowMapRenderQueue.Push(skeletalMeshAsset->GetMesh(), transform.worldTransform, _shadowMapMaterial);
 			}
 		}
 
 		_shadowMapRenderQueue.Close();
 	}
 
-	void ShadowSystem::Render(Ref<VertexBuffer>& batchedVertexBuffer, Ref<IndexBuffer>& batchedIndexBuffer, Ref<StructuredBuffer>& batchedTransformSB) {
+	void ShadowSystem::Render(Ref<StructuredBuffer>& batchedTransformSB) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
@@ -123,35 +129,16 @@ namespace flaw {
 				cmdQueue.Execute();
 
 				// instancing draw
-				for (auto& instancingObj : entry.instancingObjects) {
-					auto& mesh = instancingObj.first;
-					auto& instance = instancingObj.second;
+				for (auto& [key, obj] : entry.instancingObjects) {
+					auto& mesh = obj.mesh;
+					auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-					batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
-					batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
-					batchedTransformSB->Update(instance.modelMatrices.data(), instance.modelMatrices.size() * sizeof(mat4));
+					batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
 					cmdQueue.Begin();
-					cmdQueue.SetPrimitiveTopology(mesh->topology);
-					cmdQueue.SetVertexBuffer(batchedVertexBuffer);
-					cmdQueue.DrawIndexedInstanced(batchedIndexBuffer, mesh->indices.size(), instance.instanceCount);
-					cmdQueue.End();
-					cmdQueue.Execute();
-				}
-
-				// non-instancing draw
-				for (auto& noBatchObj : entry.noBatchedObjects) {
-					auto& mesh = noBatchObj.first;
-					auto& modelMatrix = noBatchObj.second;
-
-					batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
-					batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
-					batchedTransformSB->Update(&modelMatrix, sizeof(mat4));
-
-					cmdQueue.Begin();
-					cmdQueue.SetPrimitiveTopology(mesh->topology);
-					cmdQueue.SetVertexBuffer(batchedVertexBuffer);
-					cmdQueue.DrawIndexedInstanced(batchedIndexBuffer, mesh->indices.size(), 1);
+					cmdQueue.SetPrimitiveTopology(meshSegment.topology);
+					cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
+					cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
 					cmdQueue.End();
 					cmdQueue.Execute();
 				}

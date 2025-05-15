@@ -191,13 +191,35 @@ namespace flaw {
 				ParticleComponentDrawer::Draw(_selectedEntt);
 				});
 
-			DrawComponent<MeshFilterComponent>(_selectedEntt, [](MeshFilterComponent& meshFilterComp) {
-				// TODO: mesh filter
-				});
+			DrawComponent<StaticMeshComponent>(_selectedEntt, [](StaticMeshComponent& meshFilterComp) {
+				ImGui::Text("Mesh");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::SkeletalMesh) {
+								meshFilterComp.mesh = metadata.handle;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+			});
 
-			DrawComponent<MeshRendererComponent>(_selectedEntt, [](MeshRendererComponent& meshRendererComp) {
-				// TODO: mesh renderer
-				});
+			DrawComponent<SkeletalMeshComponent>(_selectedEntt, [](SkeletalMeshComponent& meshRendererComp) {
+				ImGui::Text("Mesh");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::SkeletalMesh) {
+								meshRendererComp.mesh = metadata.handle;
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+			});
 
 			DrawComponent<SkyLightComponent>(_selectedEntt, [](SkyLightComponent& skyLightComp) {
 				ImGui::ColorEdit3("Color", &skyLightComp.color.x);
@@ -332,8 +354,8 @@ namespace flaw {
 				DrawAddComponentItem<SoundListenerComponent>(_selectedEntt);
 				DrawAddComponentItem<SoundSourceComponent>(_selectedEntt);
 				DrawAddComponentItem<ParticleComponent>(_selectedEntt);
-				DrawAddComponentItem<MeshFilterComponent>(_selectedEntt);
-				DrawAddComponentItem<MeshRendererComponent>(_selectedEntt);
+				DrawAddComponentItem<StaticMeshComponent>(_selectedEntt);
+				DrawAddComponentItem<SkeletalMeshComponent>(_selectedEntt);
 				DrawAddComponentItem<SkyLightComponent>(_selectedEntt);
 				DrawAddComponentItem<DirectionalLightComponent>(_selectedEntt);
 				DrawAddComponentItem<PointLightComponent>(_selectedEntt);

@@ -1,10 +1,14 @@
 #pragma once
 
 #include "Asset.h"
+#include "Graphics.h"
+#include "Math/Math.h"
+#include "Utils/Raycast.h"
 #include "Graphics/Texture.h"
 #include "Font/Font.h"
 #include "Sound/SoundSource.h"
 #include "Graphics/GraphicsBuffers.h"
+#include "Mesh.h"
 
 namespace flaw {
 	class Texture2DAsset : public Asset {
@@ -18,17 +22,6 @@ namespace flaw {
 
 		const Ref<Texture2D>& GetTexture() const { return _texture; }
 		bool IsLoaded() const override { return _texture != nullptr; }
-
-		static void WriteToArchive(
-			PixelFormat format,
-			int32_t width,
-			int32_t height,
-			UsageFlag usage,
-			uint32_t access,
-			uint32_t bindFlags,
-			const std::vector<uint8_t>& data,
-			SerializationArchive& archive
-		);
 
 	private:
 		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
@@ -47,9 +40,6 @@ namespace flaw {
 
 		const Ref<Texture2DArray>& GetTexture() const { return _texture; }
 		bool IsLoaded() const override { return _texture != nullptr; }
-
-		static void WriteToArchive(const Ref<Texture2DArray>& textureArray, SerializationArchive& archive);
-		static void WriteToArchive(const std::vector<Ref<Texture2D>>& textures, SerializationArchive& archive);
 
 	private:
 		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
@@ -133,13 +123,6 @@ namespace flaw {
 		Ref<IndexBuffer> _indexBuffer;
 	};
 
-	struct SkeletalMeshAssetMeshInfo {
-		uint32_t vertexStart = 0;
-		uint32_t vertexCount = 0;
-		uint32_t indexStart = 0;
-		uint32_t indexCount = 0;
-	};
-
 	class SkeletalMeshAsset : public Asset {
 	public:
 		SkeletalMeshAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
@@ -148,8 +131,13 @@ namespace flaw {
 		void Unload() override;
 
 		AssetType GetAssetType() const override { return AssetType::SkeletalMesh; }
+		bool IsLoaded() const override { return _mesh != nullptr; }
+
+		const Ref<Mesh>& GetMesh() const { return _mesh; }
 
 	private:
 		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+
+		Ref<Mesh> _mesh;
 	};
 }

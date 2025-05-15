@@ -3,7 +3,8 @@
 #include "Core.h"
 #include "Math/Math.h"
 #include "Graphics/GraphicsContext.h"
-#include "Mesh.h"
+#include "Utils/Raycast.h"
+#include "Utils/SerializationArchive.h"
 
 #include <map>
 #include <vector>
@@ -15,6 +16,59 @@ namespace flaw {
 
 	enum class GraphicsType {
 		DX11
+	};
+
+	struct QuadVertex {
+		vec3 position;
+		vec2 texcoord;
+		vec4 color;
+		uint32_t textureID;
+		uint32_t id;
+	};
+
+	struct CircleVertex {
+		vec3 localPosition;
+		vec3 worldPosition;
+		float thickness;
+		vec4 color;
+		uint32_t id;
+	};
+
+	struct LineVertex {
+		vec3 position;
+		vec4 color;
+		uint32_t id;
+	};
+
+	struct PointVertex {
+		vec3 position;
+	};
+
+	struct Vertex3D {
+		vec3 position;
+		vec2 texcoord;
+		vec3 tangent;
+		vec3 normal;
+		vec3 binormal;
+	};
+
+	template<>
+	struct Serializer<Vertex3D> {
+		static void Serialize(SerializationArchive& archive, const Vertex3D& value) {
+			archive << value.position.x << value.position.y << value.position.z;
+			archive << value.texcoord.x << value.texcoord.y;
+			archive << value.tangent.x << value.tangent.y << value.tangent.z;
+			archive << value.normal.x << value.normal.y << value.normal.z;
+			archive << value.binormal.x << value.binormal.y << value.binormal.z;
+		}
+
+		static void Deserialize(SerializationArchive& archive, Vertex3D& value) {
+			archive >> value.position.x >> value.position.y >> value.position.z;
+			archive >> value.texcoord.x >> value.texcoord.y;
+			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
+			archive >> value.normal.x >> value.normal.y >> value.normal.z;
+			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
+		}
 	};
 
 	struct CameraConstants {
@@ -66,14 +120,47 @@ namespace flaw {
 		mat4 projection;
 		Frustum frustrum;
 
+		bool TestInFrustum(const vec3& boundingBoxMin, const vec3& boundingBoxMax, const mat4& modelMatrix) const {
+			// 8 corners of the AABB
+			vec3 corners[8] = {
+				{boundingBoxMin.x, boundingBoxMin.y, boundingBoxMin.z},
+				{boundingBoxMax.x, boundingBoxMin.y, boundingBoxMin.z},
+				{boundingBoxMax.x, boundingBoxMax.y, boundingBoxMin.z},
+				{boundingBoxMin.x, boundingBoxMax.y, boundingBoxMin.z},
+				{boundingBoxMin.x, boundingBoxMin.y, boundingBoxMax.z},
+				{boundingBoxMax.x, boundingBoxMin.y, boundingBoxMax.z},
+				{boundingBoxMax.x, boundingBoxMax.y, boundingBoxMax.z},
+				{boundingBoxMin.x, boundingBoxMax.y, boundingBoxMax.z}
+			};
+
+			// Transform all corners
+			std::vector<vec3> transformedCorners(8);
+			for (int i = 0; i < 8; ++i) {
+				transformedCorners[i] = modelMatrix * vec4(corners[i], 1.0f);
+			}
+
+			// Frustum test: if all 8 points are outside any one plane, it's outside
+			for (const auto& plane : frustrum.planes) {
+				int outsideCount = 0;
+				for (const auto& corner : transformedCorners) {
+					if (plane.Distance(corner) > 0.0f) {
+						++outsideCount;
+					}
+				}
+				if (outsideCount == 8) {
+					return false; // Culled
+				}
+			}
+
+			return true; // At least one point is inside all planes
+		}
+
 		bool TestInFrustum(const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) const {
-			const mat4 mvMatrix = view * modelMatrix;
-			
-			float maxScale = glm::compMax(vec3(length2(mvMatrix[0]), length2(mvMatrix[1]), length2(mvMatrix[2])));
+			float maxScale = glm::compMax(vec3(length2(modelMatrix[0]), length2(modelMatrix[1]), length2(modelMatrix[2])));
 			maxScale = sqrt(maxScale);
 
 			const float scaledRadius = boundingSphereRadius * maxScale;
-			const vec4 transformedBoundingSphereCenter = mvMatrix * vec4(boundingSphereCenter, 1.0);
+			const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
 
 			for (const auto& plane : frustrum.planes) {
 				if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {

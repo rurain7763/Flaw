@@ -24,7 +24,6 @@ namespace flaw {
 	private:
 		bool GetBrushPos(Ref<Texture2D> heightMapTex, vec2& pos);
 
-		void UpdateBrushVBAndIB();
 		void DrawBrush(const Ref<Texture2D>& heightMapTex);
 		
 		void UpdateLandscapeTexture(const Ref<Texture2D>& texture);
@@ -108,7 +107,5 @@ namespace flaw {
 
 		Ref<ComputeShader> _landscapeShader;
 		Ref<ConstantBuffer> _landscapeUniformCB;
-		Ref<VertexBuffer> _landscapeBrushVB;
-		Ref<IndexBuffer> _landscapeBrushIB;
 	};
 }

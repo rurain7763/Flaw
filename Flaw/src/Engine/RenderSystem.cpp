@@ -21,7 +21,6 @@ namespace flaw {
 		: _scene(scene)
 	{
 		CreateRenderPasses();
-		CreateBatchedBuffers();
 		CreateConstantBuffers();
 		CreateStructuredBuffers();
 	}
@@ -111,23 +110,6 @@ namespace flaw {
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
 
-	void RenderSystem::CreateBatchedBuffers() {
-		// Create a vertex buffer for batched geometry
-		VertexBuffer::Descriptor vbDesc = {};
-		vbDesc.elmSize = sizeof(Vertex3D);
-		vbDesc.bufferSize = sizeof(Vertex3D) * MaxBatchVertexCount;
-		vbDesc.usage = UsageFlag::Dynamic;
-
-		_batchedVertexBuffer = Graphics::CreateVertexBuffer(vbDesc);
-
-		// Create an index buffer for batched geometry
-		IndexBuffer::Descriptor ibDesc = {};
-		ibDesc.bufferSize = sizeof(uint32_t) * MaxBatchIndexCount;
-		ibDesc.usage = UsageFlag::Dynamic;
-
-		_batchedIndexBuffer = Graphics::CreateIndexBuffer(ibDesc);
-	}
-
 	void RenderSystem::CreateConstantBuffers() {
 		_vpCB = Graphics::CreateConstantBuffer(sizeof(CameraConstants));
 		_globalCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
@@ -179,7 +161,14 @@ namespace flaw {
 			camera.projection = cameraComp.GetProjectionMatrix();
 
 			if (cameraComp.perspective) {
-				CreateFrustrum(GetFovX(cameraComp.fov, cameraComp.aspectRatio), cameraComp.fov, cameraComp.nearClip, cameraComp.farClip, transformComp.worldTransform, camera.frustrum);
+				CreateFrustrum(
+					GetFovX(cameraComp.fov, cameraComp.aspectRatio), 
+					cameraComp.fov, 
+					cameraComp.nearClip, 
+					cameraComp.farClip, 
+					transformComp.worldTransform, 
+					camera.frustrum
+				);
 			}
 			else {
 				// Orthographic
@@ -317,17 +306,16 @@ namespace flaw {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, transform, meshFilter, meshRenderer] : _scene.GetRegistry().view<TransformComponent, MeshFilterComponent, MeshRendererComponent>().each()) {
-#if false
-#else
-				// TODO: 메쉬 그리기 현재는 하드코딩된 메쉬만 그려서 테스트
-				static Ref<Mesh> g_sphereMesh;
+			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
 				static Ref<GraphicsShader> g_std3dShader;
 				static Ref<Material> g_material;
-				
-				if (g_sphereMesh == nullptr) {
-					g_sphereMesh = PrimitiveManager::GetSphereMesh();
+
+				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
+				if (meshAsset == nullptr) {
+					continue;
 				}
+
+				Ref<Mesh> mesh = meshAsset->GetMesh();
 
 				if (g_std3dShader == nullptr) {
 					g_std3dShader = Graphics::CreateGraphicsShader("Resources/Shaders/std3d_geometry.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -346,37 +334,14 @@ namespace flaw {
 					g_material->cullMode = CullMode::Back;
 					g_material->depthTest = DepthTest::Less;
 					g_material->depthWrite = true;
-
-					Image albedo("Resources/PavingStone_albedo.jpg", 4);
-
-					Texture2D::Descriptor desc = {};
-					desc.width = albedo.Width();
-					desc.height = albedo.Height();
-					desc.format = PixelFormat::RGBA8;
-					desc.data = albedo.Data().data();
-					desc.usage = UsageFlag::Static;
-					desc.bindFlags = BindFlag::ShaderResource;
-
-					g_material->albedoTexture = Graphics::CreateTexture2D(desc);
-
-					Image normal("Resources/PavingStone_normal.jpg", 4);
-
-					desc = {};
-					desc.width = normal.Width();
-					desc.height = normal.Height();
-					desc.format = PixelFormat::RGBA8;
-					desc.data = normal.Data().data();
-					desc.usage = UsageFlag::Static;
-					desc.bindFlags = BindFlag::ShaderResource;
-
-					g_material->normalTexture = Graphics::CreateTexture2D(desc);
 				}
 
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
-				if (camera.isPerspective && camera.TestInFrustum(g_sphereMesh->boundingSphereCenter, g_sphereMesh->boundingSphereRadius, transform.worldTransform)) {
-					stage.renderQueue.Push(g_sphereMesh, transform.worldTransform, g_material);
+				auto& boundingSphere = mesh->GetBoundingSphere();
+
+				if (camera.isPerspective && camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
+					stage.renderQueue.Push(mesh, transform.worldTransform, g_material);
 				}
-#endif
 			}
 
 			_scene.GetLandscapeSystem().Render(camera, stage.renderQueue);
@@ -392,16 +357,8 @@ namespace flaw {
 			_cameraConstansCB.projection = stage.projection;
 			_vpCB->Update(&_cameraConstansCB, sizeof(CameraConstants));
 
-			_scene.GetSkyBoxSystem().Render(
-				_vpCB,
-				_globalCB,
-				_lightCB,
-				_materialCB,
-				_batchedVertexBuffer,
-				_batchedIndexBuffer
-			);
-
-			_scene.GetShadowSystem().Render(_batchedVertexBuffer, _batchedIndexBuffer, _batchedTransformSB);
+			_scene.GetSkyBoxSystem().Render(_vpCB, _globalCB, _lightCB, _materialCB);
+			_scene.GetShadowSystem().Render(_batchedTransformSB);
 
 			RenderGeometry(stage);
 			RenderDecal(stage);
@@ -492,36 +449,16 @@ namespace flaw {
 			cmdQueue.Execute();
 
 			// instancing draw
-			for (auto& instancingObj : entry.instancingObjects) {
-				auto& mesh = instancingObj.first;
-				auto& instance = instancingObj.second;
+			for (auto& [key, obj] : entry.instancingObjects) {
+				auto& mesh = obj.mesh;
+				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				_batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
-				_batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
-				_batchedTransformSB->Update(instance.modelMatrices.data(), instance.modelMatrices.size() * sizeof(mat4));
+				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
 				cmdQueue.Begin();
-				cmdQueue.SetPrimitiveTopology(mesh->topology);
-				cmdQueue.SetVertexBuffer(_batchedVertexBuffer);
-				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, mesh->indices.size(), instance.instanceCount);
-				cmdQueue.End();
-
-				cmdQueue.Execute();
-			}
-
-			// non-instancing draw
-			for (auto& noBatchObj : entry.noBatchedObjects) {
-				auto& mesh = noBatchObj.first;
-				auto& modelMatrix = noBatchObj.second;
-
-				_batchedVertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
-				_batchedIndexBuffer->Update(mesh->indices.data(), mesh->indices.size());
-				_batchedTransformSB->Update(&modelMatrix, sizeof(mat4));
-
-				cmdQueue.Begin();
-				cmdQueue.SetPrimitiveTopology(mesh->topology);
-				cmdQueue.SetVertexBuffer(_batchedVertexBuffer);
-				cmdQueue.DrawIndexedInstanced(_batchedIndexBuffer, mesh->indices.size(), 1);
+				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
+				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
+				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
 				cmdQueue.End();
 
 				cmdQueue.Execute();
@@ -655,19 +592,8 @@ namespace flaw {
 
 			// sphere
 			Ref<Mesh> sphereMesh = PrimitiveManager::GetSphereMesh();
-			
-			vbDesc = {};
-			vbDesc.usage = UsageFlag::Static;
-			vbDesc.elmSize = sizeof(Vertex3D);
-			vbDesc.bufferSize = sizeof(Vertex3D) * sphereMesh->vertices.size();
-			vbDesc.initialData = sphereMesh->vertices.data();
-			g_sphereVB = Graphics::CreateVertexBuffer(vbDesc);
-
-			ibDesc = {};
-			ibDesc.usage = UsageFlag::Static;
-			ibDesc.bufferSize = sizeof(uint32_t) * sphereMesh->indices.size();
-			ibDesc.initialData = sphereMesh->indices.data();
-			g_sphereIB = Graphics::CreateIndexBuffer(ibDesc);
+			g_sphereVB = sphereMesh->GetGPUVertexBuffer();
+			g_sphereIB = sphereMesh->GetGPUIndexBuffer();
 
 			g_pointLightShader = Graphics::CreateGraphicsShader("Resources/Shaders/lighting3d_point.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 			g_pointLightShader->AddInputElement<float>("POSITION", 3);

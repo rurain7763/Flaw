@@ -400,10 +400,11 @@ namespace flaw {
 
         if (camera.isPerspective) {
             CreateFrustrum(
-				GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
-				_camera.GetFov(),
-				_camera.GetNearClip(),
-				_camera.GetFarClip(),
+                GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
+                _camera.GetFov(),
+                _camera.GetNearClip(),
+                _camera.GetFarClip(),
+                _camera.GetWorldMatrix(),
 				camera.frustrum
             );
         }

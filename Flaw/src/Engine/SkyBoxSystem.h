@@ -17,9 +17,7 @@ namespace flaw {
 			Ref<ConstantBuffer> vpCB,
 			Ref<ConstantBuffer> globalCB,
 			Ref<ConstantBuffer> lightCB,
-			Ref<ConstantBuffer> materialCB,
-			Ref<VertexBuffer> vertexBuffer,
-			Ref<IndexBuffer> indexBuffer
+			Ref<ConstantBuffer> materialCB
 		);
 
 	private:

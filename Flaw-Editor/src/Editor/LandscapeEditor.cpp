@@ -81,21 +81,17 @@ namespace flaw {
 
 			if (ImGui::Button("Create Height Map")) {
 				// Create empty texture
-				Texture2DCreateSettings settings;
+				Texture2DCreateSettings settings = {};
+
 				// TODO: how can we create proper name?
 				settings.destPath = _contentEditor.GetCurrentDir() + "/LandscapeHeightMap.asset";
-				settings.writeArchiveFunc = [](SerializationArchive& archive) {
-					Texture2DAsset::WriteToArchive(
-						PixelFormat::R32F,
-						width,
-						height,
-						UsageFlag::Static,
-						0,
-						BindFlag::ShaderResource | BindFlag::UnorderedAccess,
-						std::vector<uint8_t>(width * height * GetSizePerPixel(PixelFormat::R32F)),
-						archive
-					);
-				};
+				settings.format = PixelFormat::R32F;
+				settings.width = width;
+				settings.height = height;
+				settings.usageFlags = UsageFlag::Static;
+				settings.bindFlags = BindFlag::ShaderResource | BindFlag::UnorderedAccess;
+				settings.accessFlags = 0;
+				settings.data.resize(width * height * GetSizePerPixel(PixelFormat::R32F));
 
 				AssetDatabase::CreateAsset(&settings);
 			}
@@ -142,35 +138,6 @@ namespace flaw {
 		}
 	}
 
-	void LandscapeEditor::UpdateBrushVBAndIB() {
-		// TODO: may be not necessary static
-		static Entity currentEntt;
-
-		if (!_selectedEntt || !_selectedEntt.HasComponent<LandScaperComponent>() || currentEntt == _selectedEntt) {
-			return;
-		}
-
-		auto& landscapeSys = _scene->GetLandscapeSystem();
-		auto& landscape = landscapeSys.GetLandscape(_selectedEntt.GetUUID());
-
-		VertexBuffer::Descriptor vbDesc = {};
-		vbDesc.usage = UsageFlag::Static;
-		vbDesc.elmSize = sizeof(Vertex3D);
-		vbDesc.bufferSize = landscape.mesh->vertices.size() * sizeof(Vertex3D);
-		vbDesc.initialData = landscape.mesh->vertices.data();
-
-		_landscapeBrushVB = Graphics::CreateVertexBuffer(vbDesc);
-
-		IndexBuffer::Descriptor ibDesc = {};
-		ibDesc.usage = UsageFlag::Static;
-		ibDesc.bufferSize = landscape.mesh->indices.size() * sizeof(uint32_t);
-		ibDesc.initialData = landscape.mesh->indices.data();
-
-		_landscapeBrushIB = Graphics::CreateIndexBuffer(ibDesc);
-
-		currentEntt = _selectedEntt;
-	}
-
 	void LandscapeEditor::DrawBrush(const Ref<Texture2D>& heightMapTex) {
 		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& cmdQueue = Graphics::GetCommandQueue();
@@ -197,8 +164,6 @@ namespace flaw {
 		brushUniform.cameraPos = _editorCamera.GetPosition();
 		_landscapeBrushUniformCB->Update(&brushUniform, sizeof(LandscapeBrushUniform));
 
-		UpdateBrushVBAndIB();
-
 		mainPass->SetBlendMode(0, BlendMode::Alpha, false);
 		mainPass->Bind(false, false);
 
@@ -213,8 +178,8 @@ namespace flaw {
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::ControlPoint3_PatchList);
 		cmdQueue.SetConstantBuffer(_landscapeBrushUniformCB, 0);
 		cmdQueue.SetTexture(heightMapTex, 0);
-		cmdQueue.SetVertexBuffer(_landscapeBrushVB);
-		cmdQueue.DrawIndexed(_landscapeBrushIB, _landscapeBrushIB->IndexCount());
+		cmdQueue.SetVertexBuffer(landscape.mesh->GetGPUVertexBuffer());
+		cmdQueue.DrawIndexed(landscape.mesh->GetGPUIndexBuffer(), landscape.mesh->GetGPUIndexBuffer()->IndexCount());
 		cmdQueue.End();
 
 		cmdQueue.Execute();
@@ -244,10 +209,10 @@ namespace flaw {
 		landscapeRaycastUniform.rayOrigin = invTransform * vec4(ray.origin, 1.0f);
 		landscapeRaycastUniform.rayDirection = invTransform * vec4(ray.direction, 0.0f);
 		landscapeRaycastUniform.rayLength = ray.length;
-		landscapeRaycastUniform.triangleCount = landscape.mesh->bvhTriangles.size();
+		landscapeRaycastUniform.triangleCount = landscape.mesh->GetBVHTriangles().size();
 		_landscapeRaycastUniformCB->Update(&landscapeRaycastUniform, sizeof(LandscapeRaycastUniform));
 
-		_landscapeRaycastTriSB->Update(landscape.mesh->bvhTriangles.data(), landscape.mesh->bvhTriangles.size() * sizeof(BVHTriangle));
+		_landscapeRaycastTriSB->Update(landscape.mesh->GetBVHTriangles().data(), landscape.mesh->GetBVHTriangles().size() * sizeof(BVHTriangle));
 
 		LandscapeRayHit defaultResult = {};
 		defaultResult.success = 0;
@@ -260,7 +225,7 @@ namespace flaw {
 		cmdQueue.SetComputeStructuredBuffer(_landscapeRaycastTriSB, BindFlag::ShaderResource, 0);
 		cmdQueue.SetComputeTexture(heightMapTex, BindFlag::ShaderResource, 1);
 		cmdQueue.SetComputeStructuredBuffer(_landscapeRaycastResultSB, BindFlag::UnorderedAccess, 0);
-		cmdQueue.Dispatch(CalculateDispatchGroupCount(1024, landscape.mesh->bvhTriangles.size()), 1, 1);
+		cmdQueue.Dispatch(CalculateDispatchGroupCount(1024, landscape.mesh->GetBVHTriangles().size()), 1, 1);
 
 		cmdQueue.End();
 

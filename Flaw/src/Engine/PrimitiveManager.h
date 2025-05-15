@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Graphics.h"
+#include "Mesh.h"
 
 namespace flaw {
 	class PrimitiveManager {
@@ -11,5 +12,9 @@ namespace flaw {
 
 		static Ref<Mesh> GetCubeMesh();
 		static Ref<Mesh> GetSphereMesh();
+
+	private:
+		static void CreateCubeMesh();
+		static void CreateSphereMesh();
 	};
 }

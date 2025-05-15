@@ -290,19 +290,24 @@ namespace flaw {
 	};
 
 	// Mesh
-	struct MeshFilterComponent {
+	struct StaticMeshComponent {
 		AssetHandle mesh;
+		std::vector<AssetHandle> materials;
 
-		MeshFilterComponent() = default;
-		MeshFilterComponent(const MeshFilterComponent& other) = default;
-	};
-
-	struct MeshRendererComponent {
-		AssetHandle material;
 		bool castShadow = true;
 
-		MeshRendererComponent() = default;
-		MeshRendererComponent(const MeshRendererComponent& other) = default;
+		StaticMeshComponent() = default;
+		StaticMeshComponent(const StaticMeshComponent& other) = default;
+	};
+
+	struct SkeletalMeshComponent {
+		AssetHandle mesh;
+		std::vector<AssetHandle> materials;
+
+		bool castShadow = true;
+
+		SkeletalMeshComponent() = default;
+		SkeletalMeshComponent(const SkeletalMeshComponent& other) = default;
 	};
 
 	// Light

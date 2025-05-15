@@ -27,34 +27,34 @@ namespace flaw {
 		}
 	}
 
-	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& model, const Ref<Material>& material) {
+	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material) {
 		auto& entry = _renderEntries[uint32_t(material->renderMode)][material];
 		entry.material = material;
 
-		// 이미 Instancing 중이면 그냥 추가
-		auto& instancingMap = entry.instancingObjects;
-		auto itInst = instancingMap.find(mesh);
-		if (itInst != instancingMap.end()) {
-			itInst->second.modelMatrices.push_back(model);
-			itInst->second.instanceCount++;
-			return;
-		}
+		MeshKey meshKey(mesh, segmentIndex);
 
-		// 기존에 일반 드로우에 있으면 -> Instancing으로 승격
-		auto itNoBatch = entry.noBatchedObjects.find(mesh);
-		if (itNoBatch != entry.noBatchedObjects.end()) {
+		auto it = entry.instancingObjects.find(meshKey);
+		if (it != entry.instancingObjects.end()) {
+			it->second.modelMatrices.push_back(worldMat);
+			it->second.instanceCount++;
+		}
+		else {
 			InstancingObject instance;
 			instance.mesh = mesh;
-			instance.modelMatrices.push_back(itNoBatch->second); // 기존 것
-			instance.modelMatrices.push_back(model);             // 새 것
-			instance.instanceCount = 2;
-			instancingMap[mesh] = std::move(instance);
-			entry.noBatchedObjects.erase(itNoBatch); // 일반 드로우에서 제거
-			return;
-		}
+			instance.segmentIndex = segmentIndex;
+			instance.modelMatrices.push_back(worldMat);
+			instance.instanceCount = 1;
 
-		// 처음 본 메시면 일단 일반 드로우로 등록
-		entry.noBatchedObjects[mesh] = model;
+			entry.instancingObjects[meshKey] = instance;
+		}
+	}
+
+	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material) {
+		int32_t segmentIdx = 0;
+		for (auto& segment : mesh->GetMeshSegments()) {
+			Push(mesh, segmentIdx, worldMat, material);
+			segmentIdx++;
+		}
 	}
 
 	void RenderQueue::Pop() {

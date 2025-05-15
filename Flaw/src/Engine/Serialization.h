@@ -2,9 +2,11 @@
 
 #include "Core.h"
 #include "Math/Math.h"
-#include "Mesh.h"
+#include "Graphics.h"
+#include "Assets.h"
 #include "Utils/SerializationArchive.h"
 #include "Utils/Raycast.h"
+#include "Mesh.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -20,72 +22,6 @@ namespace flaw {
 	void Deserialize(const YAML::Node& node, ProjectConfig& config);
 	void Deserialize(const YAML::Node& node, Entity& entity);
 	void Deserialize(const YAML::Node& node, Scene& scene);
-
-	template<>
-	struct Serializer<vec2> {
-		static void Serialize(SerializationArchive& archive, const vec2& value) {
-			archive << value.x;
-			archive << value.y;
-		}
-
-		static void Deserialize(SerializationArchive& archive, vec2& value) {
-			archive >> value.x;
-			archive >> value.y;
-		}
-	};
-
-	template<>
-	struct Serializer<vec3> {
-		static void Serialize(SerializationArchive& archive, const vec3& value) {
-			archive << value.x;
-			archive << value.y;
-			archive << value.z;
-		}
-
-		static void Deserialize(SerializationArchive& archive, vec3& value) {
-			archive >> value.x;
-			archive >> value.y;
-			archive >> value.z;
-		}
-	};
-
-	template<>
-	struct Serializer<Vertex3D> {
-		static void Serialize(SerializationArchive& archive, const Vertex3D& value) {
-			archive << value.position;
-			archive << value.texcoord;
-			archive << value.tangent;
-			archive << value.normal;
-			archive << value.binormal;
-		}
-
-		static void Deserialize(SerializationArchive& archive, Vertex3D& value) {
-			archive >> value.position;
-			archive >> value.texcoord;
-			archive >> value.tangent;
-			archive >> value.normal;
-			archive >> value.binormal;
-		}
-	};
-
-	template<>
-	struct Serializer<Mesh> {
-		static void Serialize(SerializationArchive& archive, const Mesh& value) {
-			archive << value.topology;
-			archive << value.vertices;
-			archive << value.indices;
-			archive << value.boundingSphereCenter;
-			archive << value.boundingSphereRadius;
-		}
-
-		static void Deserialize(SerializationArchive& archive, Mesh& value) {
-			archive >> value.topology;
-			archive >> value.vertices;
-			archive >> value.indices;
-			archive >> value.boundingSphereCenter;
-			archive >> value.boundingSphereRadius;
-		}
-	};
 }
 
 namespace YAML {

@@ -276,11 +276,11 @@ namespace flaw {
     }
 
     void ViewportEditor::DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj) {
-        if (!_selectedEntt.HasComponent<MeshFilterComponent>() || !_selectedEntt.HasComponent<MeshRendererComponent>()) {
+        if (!_selectedEntt.HasComponent<StaticMeshComponent>() || !_selectedEntt.HasComponent<SkeletalMeshComponent>()) {
             return;
         }
 
-		AssetHandle meshHandle = _selectedEntt.GetComponent<MeshFilterComponent>().mesh;
+		AssetHandle meshHandle = _selectedEntt.GetComponent<SkeletalMeshComponent>().mesh;
 		auto meshAsset = AssetManager::GetAsset<MeshAsset>(meshHandle);
 		if (!meshAsset) {
 			return;

@@ -7,13 +7,12 @@
 #include <assimp/postprocess.h>
 
 namespace flaw {
-	constexpr uint32_t LoadOptFlags = 
-		aiProcess_Triangulate | 
-		aiProcess_FlipUVs | 
-		aiProcess_MakeLeftHanded |
+	constexpr uint32_t LoadOptFlags =
+		aiProcess_Triangulate |
 		aiProcess_CalcTangentSpace |
 		aiProcess_GenSmoothNormals |
-		aiProcess_JoinIdenticalVertices;
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_ConvertToLeftHanded;
 
 	Model::Model(const char* filePath) {
 		std::string extension = std::filesystem::path(filePath).extension().generic_string();
@@ -90,7 +89,7 @@ namespace flaw {
 		for (int32_t i = 0; i < mesh->mNumFaces; ++i) {
 			const aiFace& face = mesh->mFaces[i];
 			for (int32_t j = 0; j < face.mNumIndices; ++j) {
-				_indices.push_back(meshInfo.vertexStart + face.mIndices[j]);
+				_indices.push_back(face.mIndices[j]);
 			}
 		}
 

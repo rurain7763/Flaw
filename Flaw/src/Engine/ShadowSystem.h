@@ -27,7 +27,7 @@ namespace flaw {
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
 		void Update();
-		void Render(Ref<VertexBuffer>& batchedVertexBuffer, Ref<IndexBuffer>& batchedIndexBuffer, Ref<StructuredBuffer>& batchedTransformSB);
+		void Render(Ref<StructuredBuffer>& batchedTransformSB);
 
 		ShadowMap& GetShadowMap(const UUID& uuid) { return _shadowMaps[uuid]; }
 

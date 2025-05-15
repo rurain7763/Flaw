@@ -140,19 +140,31 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<flaw::MeshFilterComponent>()) {
-			auto& comp = entity.GetComponent<flaw::MeshFilterComponent>();
-			out << YAML::Key << "MeshFilterComponent";
+		if (entity.HasComponent<flaw::StaticMeshComponent>()) {
+			auto& comp = entity.GetComponent<flaw::StaticMeshComponent>();
+			out << YAML::Key << TypeName<flaw::StaticMeshComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
+			out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+			for (const auto& mat : comp.materials) {
+				out << mat;
+			}
+			out << YAML::EndSeq;
+			out << YAML::Key << "CastShadow" << YAML::Value << comp.castShadow;
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<flaw::MeshRendererComponent>()) {
-			auto& comp = entity.GetComponent<flaw::MeshRendererComponent>();
-			out << YAML::Key << "MeshRendererComponent";
+		if (entity.HasComponent<flaw::SkeletalMeshComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SkeletalMeshComponent>();
+			out << YAML::Key << TypeName<flaw::SkeletalMeshComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "Material" << YAML::Value << comp.material;
+			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
+			out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+			for (const auto& mat : comp.materials) {
+				out << mat;
+			}
+			out << YAML::EndSeq;
+			out << YAML::Key << "CastShadow" << YAML::Value << comp.castShadow;
 			out << YAML::EndMap;
 		}
 
@@ -500,21 +512,31 @@ namespace flaw {
 					comp.autoPlay = component.second["AutoPlay"].as<bool>();
 					comp.volume = component.second["Volume"].as<float>();
 				}
-				else if (name == "MeshFilterComponent") {
-					if (!entity.HasComponent<MeshFilterComponent>()) {
-						entity.AddComponent<MeshFilterComponent>();
+				else if (name == TypeName<StaticMeshComponent>()) {
+					if (!entity.HasComponent<StaticMeshComponent>()) {
+						entity.AddComponent<StaticMeshComponent>();
 					}
 
-					auto& comp = entity.GetComponent<MeshFilterComponent>();
+					auto& comp = entity.GetComponent<StaticMeshComponent>();
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
+					comp.materials.clear();
+					for (const auto& mat : component.second["Materials"]) {
+						comp.materials.push_back(mat.as<uint64_t>());
+					}
+					comp.castShadow = component.second["CastShadow"].as<bool>();
 				}
-				else if (name == "MeshRendererComponent") {
-					if (!entity.HasComponent<MeshRendererComponent>()) {
-						entity.AddComponent<MeshRendererComponent>();
+				else if (name == TypeName<SkeletalMeshComponent>()) {
+					if (!entity.HasComponent<SkeletalMeshComponent>()) {
+						entity.AddComponent<SkeletalMeshComponent>();
 					}
 
-					auto& comp = entity.GetComponent<MeshRendererComponent>();
-					comp.material = component.second["Material"].as<uint64_t>();
+					auto& comp = entity.GetComponent<SkeletalMeshComponent>();
+					comp.mesh = component.second["Mesh"].as<uint64_t>();
+					comp.materials.clear();
+					for (const auto& mat : component.second["Materials"]) {
+						comp.materials.push_back(mat.as<uint64_t>());
+					}
+					comp.castShadow = component.second["CastShadow"].as<bool>();
 				}
 				else if (name == "ParticleComponent") {
 					if (!entity.HasComponent<ParticleComponent>()) {

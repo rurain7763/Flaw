@@ -148,8 +148,8 @@ namespace flaw {
 		CopyComponentIfExists<SoundListenerComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SoundSourceComponent>(srcEntt, cloned);
 		CopyComponentIfExists<ParticleComponent>(srcEntt, cloned);
-		CopyComponentIfExists<MeshFilterComponent>(srcEntt, cloned);
-		CopyComponentIfExists<MeshRendererComponent>(srcEntt, cloned);
+		CopyComponentIfExists<StaticMeshComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SkeletalMeshComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SkyLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<DirectionalLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Assets.h"
 #include "Log/Log.h"
-#include "Graphics.h"
 #include "Graphics/GraphicsFunc.h"
 #include "Fonts.h"
 #include "Sounds.h"
@@ -36,29 +35,6 @@ namespace flaw {
 		_texture.reset();
 	}
 
-	void Texture2DAsset::WriteToArchive(
-		PixelFormat format,
-		int32_t width,
-		int32_t height,
-		UsageFlag usage,
-		uint32_t access,
-		uint32_t bindFlags,
-		const std::vector<uint8_t>& data,
-		SerializationArchive& archive)
-	{
-		archive << format;
-		archive << width;
-		archive << height;
-		archive << Texture2D::Wrap::ClampToEdge;
-		archive << Texture2D::Wrap::ClampToEdge;
-		archive << Texture2D::Filter::Linear;
-		archive << Texture2D::Filter::Linear;
-		archive << usage;
-		archive << access,
-		archive << bindFlags;
-		archive << data;
-	}
-
 	void Texture2DArrayAsset::Load() {
 		std::vector<int8_t> data;
 		_getMemoryFunc(data);
@@ -84,30 +60,6 @@ namespace flaw {
 
 	void Texture2DArrayAsset::Unload() {
 		_texture.reset();
-	}
-
-	void Texture2DArrayAsset::WriteToArchive(const Ref<Texture2DArray>& textureArray, SerializationArchive& archive) {
-		std::vector<uint8_t> textureData;
-		Graphics::CaptureTextureArray(textureArray, textureData);
-
-		archive << textureArray->GetArraySize();
-		archive << textureArray->GetPixelFormat();
-		archive << textureArray->GetWidth();
-		archive << textureArray->GetHeight();
-		archive << textureArray->GetUsage();
-		archive << textureArray->GetAccessFlags();
-		archive << textureArray->GetBindFlags();
-		archive << textureData;
-	}
-
-	void Texture2DArrayAsset::WriteToArchive(const std::vector<Ref<Texture2D>>& textures, SerializationArchive& archive) {
-		Texture2DArray::Descriptor desc = {};
-		desc.fromMemory = false;
-		desc.textures = textures;
-
-		Ref<Texture2DArray> textureArray = Graphics::CreateTexture2DArray(desc);
-
-		WriteToArchive(textureArray, archive);
 	}
 
 	void TextureCubeAsset::Load() {
@@ -216,15 +168,25 @@ namespace flaw {
 		_indexBuffer.reset();
 	}
 
-
 	void SkeletalMeshAsset::Load() {
 		std::vector<int8_t> data;
 		_getMemoryFunc(data);
 
 		SerializationArchive archive(data.data(), data.size());
+
+		std::vector<MeshSegment> segments;
+		archive >> segments;
+
+		std::vector<Vertex3D> verticees;
+		archive >> verticees;
+
+		std::vector<uint32_t> indices;
+		archive >> indices;
+		
+		_mesh = CreateRef<Mesh>(verticees, indices, segments);
 	}
 
 	void SkeletalMeshAsset::Unload() {
-		
+		_mesh.reset();
 	}
 }

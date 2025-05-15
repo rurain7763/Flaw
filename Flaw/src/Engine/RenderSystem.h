@@ -28,7 +28,6 @@ namespace flaw {
 
 	private:
 		void CreateRenderPasses();
-		void CreateBatchedBuffers();
 		void CreateConstantBuffers();
 		void CreateStructuredBuffers();
 
@@ -73,9 +72,6 @@ namespace flaw {
 		Ref<GraphicsRenderPass> _lightingPass;
 
 		std::vector<CameraRenderStage> _renderStages;
-
-		Ref<VertexBuffer> _batchedVertexBuffer;
-		Ref<IndexBuffer> _batchedIndexBuffer;
 
 		Ref<ConstantBuffer> _vpCB;
 		Ref<ConstantBuffer> _globalCB;

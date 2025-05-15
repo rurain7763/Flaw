@@ -139,6 +139,7 @@ namespace flaw {
 				case AssetType::Texture2DArray: asset = CreateRef<Texture2DArrayAsset>(getMemoryFunc); break;
 				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
 				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
+				case AssetType::SkeletalMesh: asset = CreateRef<SkeletalMeshAsset>(getMemoryFunc); break;
 			}
 
 			if (!asset) {
@@ -166,22 +167,38 @@ namespace flaw {
 	}
 
 	bool AssetDatabase::CreateAsset(const AssetCreateSettings* settings) {
+		if (settings->type == AssetCreateSettings::Type::Texture2D) {
+			return CreateTexture2D((Texture2DCreateSettings*)settings);
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::CreateTexture2D(Texture2DCreateSettings* settings) {
 		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
 			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
 			return false;
 		}
 
 		AssetMetadata meta;
+		meta.type = AssetType::Texture2D;
 		meta.handle.Generate();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
-		if (settings->type == AssetCreateSettings::Type::Texture2D) {
-			meta.type = AssetType::Texture2D;
-			archive << meta;
-		}
 
-		settings->writeArchiveFunc(archive);
+		archive << meta;
+		archive << settings->format;
+		archive << settings->width;
+		archive << settings->height;
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Filter::Linear;
+		archive << Texture2D::Filter::Linear;
+		archive << settings->usageFlags;
+		archive << settings->accessFlags;
+		archive << settings->bindFlags;
+		archive << settings->data;
 
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
@@ -230,16 +247,18 @@ namespace flaw {
 		archive << meta;
 
 		Image img(settings->srcPath.c_str(), 4);
-		Texture2DAsset::WriteToArchive(
-			PixelFormat::RGBA8,
-			img.Width(),
-			img.Height(),
-			settings->usageFlags,
-			settings->accessFlags,
-			settings->bindFlags,
-			img.Data(),
-			archive
-		);
+
+		archive << PixelFormat::RGBA8;
+		archive << img.Width();
+		archive << img.Height();
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Wrap::ClampToEdge;
+		archive << Texture2D::Filter::Linear;
+		archive << Texture2D::Filter::Linear;
+		archive << settings->usageFlags;
+		archive << settings->accessFlags,
+		archive << settings->bindFlags;
+		archive << img.Data();
 
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
@@ -308,7 +327,24 @@ namespace flaw {
 			textures.push_back(Graphics::GetGraphicsContext().CreateTexture2D(desc));
 		}
 
-		Texture2DArrayAsset::WriteToArchive(textures, archive);
+		Texture2DArray::Descriptor desc = {};
+		desc.fromMemory = false;
+		desc.textures = textures;
+
+		Ref<Texture2DArray> textureArray = Graphics::CreateTexture2DArray(desc);
+
+		std::vector<uint8_t> textureData;
+		Graphics::CaptureTextureArray(textureArray, textureData);
+
+		archive << textureArray->GetArraySize();
+		archive << textureArray->GetPixelFormat();
+		archive << textureArray->GetWidth();
+		archive << textureArray->GetHeight();
+		archive << textureArray->GetUsage();
+		archive << textureArray->GetAccessFlags();
+		archive << textureArray->GetBindFlags();
+		archive << textureData;
+
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
 			return false;
@@ -386,12 +422,10 @@ namespace flaw {
 			return false;
 		}
 
-		return true;
-
 		if (model.HasSkeleton()) {
 			// skeleton mesh
 			std::filesystem::path destPath = settings->destPath;
-			destPath.replace_filename(destPath.filename().generic_string() + "_SkeletalMesh");
+			destPath.replace_filename(destPath.filename().generic_string() + "_SkeletalMesh.asset");
 
 			std::string destPathStr = destPath.generic_string();
 
@@ -401,14 +435,48 @@ namespace flaw {
 			}
 
 			AssetMetadata meta;
+			meta.type = AssetType::SkeletalMesh;
 			meta.handle.Generate();
 			meta.fileIndex = FileSystem::FileIndex(destPathStr.c_str());
 
 			SerializationArchive archive;
-			meta.type = AssetType::SkeletalMesh;
-			archive << meta;
 
-			// TODO: 스켈레톤 메쉬 아카이브 작성
+			std::vector<MeshSegment> segments;
+			std::transform(
+				model.GetMeshInfos().begin(),
+				model.GetMeshInfos().end(),
+				std::back_inserter(segments),
+				[](const ModelMeshInfo& meshInfo) {
+					return MeshSegment {
+						PrimitiveTopology::TriangleList,
+						meshInfo.vertexStart,
+						meshInfo.vertexCount,
+						meshInfo.indexStart,
+						meshInfo.indexCount
+					};
+				}
+			);
+
+			std::vector<Vertex3D> vertices;
+			std::transform(
+				model.GetVertices().begin(),
+				model.GetVertices().end(),
+				std::back_inserter(vertices),
+				[](const ModelVertex& vertex) {
+					return Vertex3D{
+						vertex.position,
+						vertex.texCoord,
+						vertex.tangent,
+						vertex.normal,
+						vertex.bitangent
+					};
+				}
+			);
+
+			archive << meta;
+			archive << segments;
+			archive << vertices;
+			archive << model.GetIndices();
 
 			if (!FileSystem::WriteFile(destPathStr.c_str(), archive.Data(), archive.RemainingSize())) {
 				Log::Error("Failed to write asset file: %s", destPathStr.c_str());

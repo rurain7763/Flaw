@@ -11,6 +11,7 @@ namespace flaw {
 	static std::unordered_map<AssetHandle, Ref<Asset>> g_registeredAssets;
 
 	void AssetManager::Init() {
+		// TODO: register initial assets
 	}
 
 	void AssetManager::Cleanup() {

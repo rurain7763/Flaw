@@ -5,6 +5,7 @@
 #include "RenderQueue.h"
 #include "ECS/ECS.h"
 #include "Utils/UUID.h"
+#include "Mesh.h"
 
 namespace flaw {
 	class Scene;

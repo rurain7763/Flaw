@@ -41,14 +41,7 @@ namespace flaw {
 		}
 	}
 
-	void SkyBoxSystem::Render(
-		Ref<ConstantBuffer> vpCB, 
-		Ref<ConstantBuffer> globalCB, 
-		Ref<ConstantBuffer> lightCB, 
-		Ref<ConstantBuffer> materialCB,
-		Ref<VertexBuffer> vertexBuffer,
-		Ref<IndexBuffer> indexBuffer) 
-	{
+	void SkyBoxSystem::Render(Ref<ConstantBuffer> vpCB, Ref<ConstantBuffer> globalCB, Ref<ConstantBuffer> lightCB, Ref<ConstantBuffer> materialCB) {
 		if (!_skyBoxTexture2D && !_skyBoxTextureCube) {
 			return;
 		}
@@ -74,6 +67,7 @@ namespace flaw {
 		mainPass->Bind(false, false);
 
 		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 		// set pipeline
 		pipeline->SetShader(_skyBoxMaterial->shader);
@@ -128,14 +122,8 @@ namespace flaw {
 		materialCB->Update(&materialConstants, sizeof(MaterialConstants));
 
 		cmdQueue.SetConstantBuffer(materialCB, 3);
-
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-
-		vertexBuffer->Update(mesh->vertices.data(), sizeof(Vertex3D), mesh->vertices.size());
-		indexBuffer->Update(mesh->indices.data(), mesh->indices.size());
-
-		cmdQueue.SetVertexBuffer(vertexBuffer);
-		cmdQueue.DrawIndexed(indexBuffer, mesh->indices.size());
+		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
+		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
 
 		cmdQueue.End();
 

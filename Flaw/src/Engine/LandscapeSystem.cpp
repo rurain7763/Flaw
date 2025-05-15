@@ -40,28 +40,25 @@ namespace flaw {
 	}
 
 	Ref<Mesh> LandscapeSystem::CreateLandscapeMesh(uint32_t tilingX, uint32_t tilingY) {
-		Ref<Mesh> mesh = CreateRef<Mesh>();
+		std::vector<Vertex3D> vertices;
+		std::vector<uint32_t> indices;
 
-		mesh->topology = PrimitiveTopology::ControlPoint3_PatchList;
-
-		GenerateQuad([&mesh](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
+		GenerateQuad(
+			[&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
 				Vertex3D vertex;
 				vertex.position = vec3(pos.x, pos.z, pos.y);
 				vertex.texcoord = uv;
 				vertex.normal = vec3(normal.x, -normal.z, normal.y);
 				vertex.tangent = vec3(tangent.x, -tangent.z, tangent.y);
 				vertex.binormal = vec3(binormal.x, binormal.z, binormal.y);
-				mesh->vertices.push_back(vertex);
+				vertices.push_back(vertex);
 			},
-			mesh->indices,
+			indices,
 			tilingX,
 			tilingY
 		);
 
-		mesh->GenerateBVH();
-		mesh->GenerateBoundingSphere();
-
-		return mesh;
+		return CreateRef<Mesh>(PrimitiveTopology::ControlPoint3_PatchList, vertices, indices);
 	}
 
 	void LandscapeSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
@@ -110,7 +107,9 @@ namespace flaw {
 		for (auto&& [entity, enttComp, transComp, landscapeComp] : _scene.GetRegistry().view<EntityComponent, TransformComponent, LandScaperComponent>().each()) {
 			auto& landscape = _landscapes[enttComp.uuid];
 
-			if (camera.isPerspective && camera.TestInFrustum(landscape.mesh->boundingSphereCenter, landscape.mesh->boundingSphereRadius, transComp.worldTransform)) {
+			const MeshBoundingSphere& boundingSphere = landscape.mesh->GetBoundingSphere();
+
+			if (camera.isPerspective && camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transComp.worldTransform)) {
 				renderQueue.Push(landscape.mesh, transComp.worldTransform, landscape.material);
 			}
 		}
