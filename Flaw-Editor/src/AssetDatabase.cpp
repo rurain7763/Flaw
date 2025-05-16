@@ -111,7 +111,7 @@ namespace flaw {
 			uint64_t fileIndex = FileSystem::FileIndex(assetFile.generic_string().c_str());
 			if (metadata.fileIndex != fileIndex) {
 				// 파일이 강제적으로 복사된 경우임. 메타 데이터를 갱신해야 함.
-				metadata.handle.Generate();
+				metadata.handle = AssetManager::GenerateNewAssetHandle();
 				metadata.fileIndex = fileIndex;
 
 				SerializationArchive newArchive;
@@ -139,7 +139,46 @@ namespace flaw {
 				case AssetType::Texture2DArray: asset = CreateRef<Texture2DArrayAsset>(getMemoryFunc); break;
 				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
 				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
-				case AssetType::SkeletalMesh: asset = CreateRef<SkeletalMeshAsset>(getMemoryFunc); break;
+				case AssetType::Mesh: asset = CreateRef<MeshAsset>(getMemoryFunc); break;
+				case AssetType::SkeletalMesh:
+					asset = CreateRef<SkeletalMeshAsset>(
+						[assetFile, assetDataOffset](SkeletalMeshAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							
+							archive >> desc.segments;
+							archive >> desc.materials;
+							archive >> desc.vertices;
+							archive >> desc.indices;
+						}
+					);
+					break;
+				case AssetType::GraphicsShader:
+					asset = CreateRef<GraphicsShaderAsset>(
+						[assetFile, assetDataOffset](GraphicsShaderAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+
+							archive >> desc.shaderCompileFlags;
+							archive >> desc.shaderPath;
+						}
+					);
+					break;
+				case AssetType::Material:
+					asset = CreateRef<MaterialAsset>(
+						[assetFile, assetDataOffset](MaterialAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+
+							archive >> desc.shaderHandle;
+							archive >> desc.albedoTexture;
+							archive >> desc.normalTexture;
+						}
+					);
+					break;
 			}
 
 			if (!asset) {
@@ -166,23 +205,23 @@ namespace flaw {
 		return g_contentsDir;
 	}
 
-	bool AssetDatabase::CreateAsset(const AssetCreateSettings* settings) {
+	AssetHandle AssetDatabase::CreateAsset(const AssetCreateSettings* settings) {
 		if (settings->type == AssetCreateSettings::Type::Texture2D) {
 			return CreateTexture2D((Texture2DCreateSettings*)settings);
 		}
 
-		return true;
+		return AssetHandle();
 	}
 
-	bool AssetDatabase::CreateTexture2D(Texture2DCreateSettings* settings) {
+	AssetHandle AssetDatabase::CreateTexture2D(const Texture2DCreateSettings* settings) {
 		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
 			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
-			return false;
+			return AssetHandle();
 		}
 
 		AssetMetadata meta;
 		meta.type = AssetType::Texture2D;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -202,10 +241,35 @@ namespace flaw {
 
 		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
 			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
-			return false;
+			return AssetHandle();
 		}
 
-		return true;
+		return meta.handle;
+	}
+
+	AssetHandle AssetDatabase::CreateMaterial(const MaterialCreateSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return AssetHandle();
+		}
+
+		AssetMetadata meta;
+		meta.type = AssetType::Material;
+		meta.handle = AssetManager::GenerateNewAssetHandle();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		archive << meta;
+		archive << settings->shaderHandle;
+		archive << settings->albedoTexture;
+		archive << settings->normalTexture;
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
+			return AssetHandle();
+		}
+
+		return meta.handle;
 	}
 
 	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {
@@ -227,6 +291,9 @@ namespace flaw {
 		else if (settings->type == AssetImportSettings::Type::Model) {
 			return ImportModel((ModelImportSettings*)settings);
 		}
+		else if (settings->type == AssetImportSettings::Type::GraphicsShader) {
+			return ImportGraphicsShader((GraphicsShaderImportSettings*)settings);
+		}
 
 		Log::Error("Unknown asset type: %d", settings->type);
 		return false;
@@ -239,7 +306,7 @@ namespace flaw {
 		}
 
 		AssetMetadata meta;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -275,7 +342,7 @@ namespace flaw {
 		}
 
 		AssetMetadata meta;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -304,7 +371,7 @@ namespace flaw {
 		}
 
 		AssetMetadata meta;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -360,7 +427,7 @@ namespace flaw {
 		}
 
 		AssetMetadata meta;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -396,7 +463,7 @@ namespace flaw {
 		}
 
 		AssetMetadata meta;
-		meta.handle.Generate();
+		meta.handle = AssetManager::GenerateNewAssetHandle();
 		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
 
 		SerializationArchive archive;
@@ -422,69 +489,136 @@ namespace flaw {
 			return false;
 		}
 
-		if (model.HasSkeleton()) {
-			// skeleton mesh
-			std::filesystem::path destPath = settings->destPath;
-			destPath.replace_filename(destPath.filename().generic_string() + "_SkeletalMesh.asset");
+		std::string fileNamePrefix = std::filesystem::path(settings->destPath).filename().generic_string();
 
-			std::string destPathStr = destPath.generic_string();
+		// skeleton mesh
+		std::filesystem::path destPath = settings->destPath;
+		destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
 
-			if (!FileSystem::MakeFile(destPathStr.c_str())) {
-				Log::Error("Failed to create asset file: %s", destPathStr.c_str());
-				return false;
-			}
+		std::string destPathStr = destPath.generic_string();
 
-			AssetMetadata meta;
-			meta.type = AssetType::SkeletalMesh;
-			meta.handle.Generate();
-			meta.fileIndex = FileSystem::FileIndex(destPathStr.c_str());
-
-			SerializationArchive archive;
-
-			std::vector<MeshSegment> segments;
-			std::transform(
-				model.GetMeshInfos().begin(),
-				model.GetMeshInfos().end(),
-				std::back_inserter(segments),
-				[](const ModelMeshInfo& meshInfo) {
-					return MeshSegment {
-						PrimitiveTopology::TriangleList,
-						meshInfo.vertexStart,
-						meshInfo.vertexCount,
-						meshInfo.indexStart,
-						meshInfo.indexCount
-					};
-				}
-			);
-
-			std::vector<Vertex3D> vertices;
-			std::transform(
-				model.GetVertices().begin(),
-				model.GetVertices().end(),
-				std::back_inserter(vertices),
-				[](const ModelVertex& vertex) {
-					return Vertex3D{
-						vertex.position,
-						vertex.texCoord,
-						vertex.tangent,
-						vertex.normal,
-						vertex.bitangent
-					};
-				}
-			);
-
-			archive << meta;
-			archive << segments;
-			archive << vertices;
-			archive << model.GetIndices();
-
-			if (!FileSystem::WriteFile(destPathStr.c_str(), archive.Data(), archive.RemainingSize())) {
-				Log::Error("Failed to write asset file: %s", destPathStr.c_str());
-				return false;
-			}
+		if (!FileSystem::MakeFile(destPathStr.c_str())) {
+			Log::Error("Failed to create asset file: %s", destPathStr.c_str());
+			return false;
 		}
-		else {
-			// static mesh
+
+		AssetMetadata meta;
+		meta.type = AssetType::SkeletalMesh;
+		meta.handle = AssetManager::GenerateNewAssetHandle();
+		meta.fileIndex = FileSystem::FileIndex(destPathStr.c_str());
+
+		SerializationArchive archive;
+
+		std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
+		std::vector<AssetHandle> loadedMaterial(model.GetMaterialCount());
+		for (const auto& mesh : model.GetMeshs()) {
+			const ModelMaterial& material = model.GetMaterialAt(mesh.materialIndex);
+
+			MaterialCreateSettings matSet = {};
+			std::filesystem::path materialPath = settings->destPath;
+			materialPath.replace_filename(fileNamePrefix + "_Material_" + std::to_string(mesh.materialIndex) + ".asset");
+			matSet.destPath = materialPath.generic_string();
+			matSet.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry");
+			matSet.renderMode = RenderMode::Opaque;
+			matSet.cullMode = CullMode::Back;
+			matSet.depthTest = DepthTest::Less;
+			matSet.depthWrite = true;
+
+			std::vector<std::pair<std::string, Ref<Image>>> images = {
+				{"Diffuse", material.diffuse},
+				{"Normal", material.normal},
+				{"Specular", material.specular},
+				{"Emissive", material.emissive}
+			};
+
+			for (const auto& [kindStr, image] : images) {
+				if (image) {
+					if (loadedImages.find(image) == loadedImages.end()) {
+						Texture2DCreateSettings textureSettings = {};
+
+						std::filesystem::path imageAssetPath = settings->destPath;
+						imageAssetPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset");
+
+						textureSettings.destPath = imageAssetPath.generic_string();
+						textureSettings.format = PixelFormat::RGBA8;
+						textureSettings.width = image->Width();
+						textureSettings.height = image->Height();
+						textureSettings.usageFlags = UsageFlag::Static;
+						textureSettings.bindFlags = BindFlag::ShaderResource;
+						textureSettings.accessFlags = 0;
+						textureSettings.data = image->Data();
+
+						loadedImages[image] = CreateTexture2D(&textureSettings);
+					}
+
+					if (kindStr == "Diffuse") {
+						matSet.albedoTexture = loadedImages[image];
+					}
+					else if (kindStr == "Normal") {
+						matSet.normalTexture = loadedImages[image];
+					}
+				}
+			}
+
+			loadedMaterial[mesh.materialIndex] = CreateMaterial(&matSet);
+		}
+
+		std::vector<MeshSegment> segments;
+		std::vector<AssetHandle> materials;
+		for (const auto& mesh : model.GetMeshs()) {
+			segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
+			materials.push_back(loadedMaterial[mesh.materialIndex]);
+		}
+
+		std::vector<Vertex3D> vertices;
+		std::transform(
+			model.GetVertices().begin(),
+			model.GetVertices().end(),
+			std::back_inserter(vertices),
+			[](const ModelVertex& vertex) {
+				return Vertex3D{
+					vertex.position,
+					vertex.texCoord,
+					vertex.tangent,
+					vertex.normal,
+					vertex.bitangent
+				};
+			}
+		);
+
+		archive << meta;
+		archive << segments;
+		archive << materials;
+		archive << vertices;
+		archive << model.GetIndices();
+
+		if (!FileSystem::WriteFile(destPathStr.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", destPathStr.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool AssetDatabase::ImportGraphicsShader(const GraphicsShaderImportSettings* settings) {
+		if (!FileSystem::MakeFile(settings->destPath.c_str())) {
+			Log::Error("Failed to create asset file: %s", settings->destPath.c_str());
+			return false;
+		}
+
+		AssetMetadata meta;
+		meta.handle = AssetManager::GenerateNewAssetHandle();
+		meta.fileIndex = FileSystem::FileIndex(settings->destPath.c_str());
+
+		SerializationArchive archive;
+		meta.type = AssetType::GraphicsShader;
+		archive << meta;
+
+		archive << settings->compileFlags;
+		archive << settings->srcPath;
+
+		if (!FileSystem::WriteFile(settings->destPath.c_str(), archive.Data(), archive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", settings->destPath.c_str());
 			return false;
 		}
 

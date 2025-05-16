@@ -4,6 +4,7 @@
 #include "Graphics/GraphicsFunc.h"
 #include "Fonts.h"
 #include "Sounds.h"
+#include "AssetManager.h"
 
 namespace flaw {
 	void Texture2DAsset::Load() {
@@ -169,24 +170,56 @@ namespace flaw {
 	}
 
 	void SkeletalMeshAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
-
-		std::vector<MeshSegment> segments;
-		archive >> segments;
-
-		std::vector<Vertex3D> verticees;
-		archive >> verticees;
-
-		std::vector<uint32_t> indices;
-		archive >> indices;
-		
-		_mesh = CreateRef<Mesh>(verticees, indices, segments);
+		_mesh = CreateRef<Mesh>(desc.vertices, desc.indices, desc.segments);
+		_materials = std::move(desc.materials);
 	}
 
 	void SkeletalMeshAsset::Unload() {
+		_materials.clear();
 		_mesh.reset();
+	}
+
+	void GraphicsShaderAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_shader = Graphics::CreateGraphicsShader(desc.shaderPath.c_str(), desc.shaderCompileFlags);
+		for (auto& inputElement : desc.inputElements) {
+			_shader->AddInputElement(inputElement);
+		}
+		_shader->CreateInputLayout();
+	}
+
+	void GraphicsShaderAsset::Unload() {
+		_shader.reset();
+	}
+
+	void MaterialAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_material = CreateRef<Material>();
+
+		auto graphicsShaderAsset = AssetManager::GetAsset<GraphicsShaderAsset>(desc.shaderHandle);
+		if (graphicsShaderAsset) {
+			_material->shader = graphicsShaderAsset->GetShader();
+		}
+
+		auto texture2DAsset = AssetManager::GetAsset<Texture2DAsset>(desc.albedoTexture);
+		if (texture2DAsset) {
+			_material->albedoTexture = texture2DAsset->GetTexture();
+		}
+
+		auto normalTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.normalTexture);
+		if (normalTextureAsset) {
+			_material->normalTexture = normalTextureAsset->GetTexture();
+		}
+	}
+
+	void MaterialAsset::Unload() {
+		_material.reset();
 	}
 }

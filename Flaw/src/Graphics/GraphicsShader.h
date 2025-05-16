@@ -17,8 +17,9 @@ namespace flaw {
 			const char* name;
 			ElementType type;
 			uint32_t count;
-			uint32_t offset;
 			bool normalized;
+
+			uint32_t offset;
 		};
 
 		GraphicsShader() = default;
@@ -27,6 +28,23 @@ namespace flaw {
 		virtual void CreateInputLayout() = 0;
 
 		virtual void Bind() = 0;
+
+		void AddInputElement(InputElement& element) {
+			uint32_t typeSize = 0; 
+			if (element.type == InputElement::ElementType::Float) {
+				typeSize = sizeof(float);
+			}
+			else if (element.type == InputElement::ElementType::Uint32) {
+				typeSize = sizeof(uint32_t);
+			}
+			else {
+				FASSERT(false, "Invalid type");
+			}
+
+			element.offset = _stride;
+			_stride += typeSize * element.count;
+			_inputElements.push_back(std::move(element));
+		}
 
 		template <typename T>
 		void AddInputElement(const char* name, uint32_t count, bool normalized = false) {

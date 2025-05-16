@@ -32,10 +32,10 @@ namespace flaw {
 			return;
 		}
 
-		ParseScene(scene);
+		ParseScene(std::filesystem::path(filePath).parent_path(), scene);
 	}
 
-	Model::Model(ModelType type, const char* memory, size_t size) {
+	Model::Model(ModelType type, const char* basePath, const char* memory, size_t size) {
 		_type = type;
 
 		Assimp::Importer importer;
@@ -45,14 +45,20 @@ namespace flaw {
 			return;
 		}
 
-		ParseScene(scene);
+		ParseScene(std::filesystem::path(basePath), scene);
 	}
 
-	void Model::ParseScene(const aiScene* scene) {
+	void Model::ParseScene(std::filesystem::path basePath, const aiScene* scene) {
+		_materials.resize(scene->mNumMaterials);
+		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
+			const aiMaterial* material = scene->mMaterials[i];
+			ParseMaterial(basePath, material, _materials[i]);
+		}
+
+		_meshes.resize(scene->mNumMeshes);
 		for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
 			const aiMesh* mesh = scene->mMeshes[i];
-
-			ParseMesh(mesh);
+			ParseMesh(mesh, _meshes[i]);
 		}
 
 		for (uint32_t i = 0; i < scene->mNumSkeletons; ++i) {
@@ -68,12 +74,48 @@ namespace flaw {
 		}
 	}
 
-	void Model::ParseMesh(const aiMesh* mesh) {
-		ModelMeshInfo meshInfo;
+	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {
+		aiString path;
+		if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS) {
+			material.diffuse = GetImageOrCreate(basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS) {
+			material.normal = GetImageOrCreate(basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &path) == AI_SUCCESS) {
+			material.specular = GetImageOrCreate(basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_EMISSIVE, 0, &path) == AI_SUCCESS) {
+			material.emissive = GetImageOrCreate(basePath / path.C_Str());
+		}
+
+		// TODO: add more texture
+	}
+
+	Ref<Image> Model::GetImageOrCreate(const std::filesystem::path& path) {
+		auto it = _images.find(path);
+		if (it != _images.end()) {
+			return it->second;
+		}
+
+		Ref<Image> image = CreateRef<Image>(path.generic_string().c_str(), 4);
+		if (image->IsValid()) {
+			_images[path] = image;
+			return image;
+		}
+
+		return nullptr;
+	}
+
+	void Model::ParseMesh(const aiMesh* mesh, ModelMesh& meshInfo) {
 		meshInfo.vertexStart = static_cast<uint32_t>(_vertices.size());
 		meshInfo.vertexCount = mesh->mNumVertices;
 		meshInfo.indexStart = static_cast<uint32_t>(_indices.size());
 		meshInfo.indexCount = mesh->mNumFaces * 3;
+		meshInfo.materialIndex = mesh->mMaterialIndex;
 
 		for (int32_t i = 0; i < mesh->mNumVertices; ++i) {
 			ModelVertex vertex;
@@ -92,7 +134,5 @@ namespace flaw {
 				_indices.push_back(face.mIndices[j]);
 			}
 		}
-
-		_meshes.push_back(meshInfo);
 	}
 }

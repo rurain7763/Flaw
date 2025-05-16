@@ -28,6 +28,7 @@ namespace flaw {
 	struct AssetCreateSettings {
 		enum class Type {
 			Texture2D,
+			Material,
 		};
 
 		Type type;
@@ -55,6 +56,21 @@ namespace flaw {
 		}
 	};
 
+	struct MaterialCreateSettings : public AssetCreateSettings {
+		RenderMode renderMode;
+		CullMode cullMode;
+		DepthTest depthTest;
+		bool depthWrite;
+
+		AssetHandle shaderHandle;
+		AssetHandle albedoTexture;
+		AssetHandle normalTexture;
+
+		MaterialCreateSettings() {
+			type = Type::Material;
+		}
+	};
+
 	struct AssetImportSettings {
 		enum class Type {
 			Texture2D,
@@ -63,6 +79,7 @@ namespace flaw {
 			Font,
 			Sound,
 			Model,
+			GraphicsShader,
 		};
 
 		Type type;
@@ -138,6 +155,16 @@ namespace flaw {
 		}
 	};
 
+	struct GraphicsShaderImportSettings : public AssetImportSettings {
+		std::string srcPath;
+		uint32_t compileFlags;
+
+		GraphicsShaderImportSettings() {
+			type = Type::GraphicsShader;
+			compileFlags = 0;
+		}
+	};
+
 	class AssetDatabase {
 	public:
 		static void Init(Application& application);
@@ -149,14 +176,15 @@ namespace flaw {
 
 		static const std::filesystem::path& GetContentsDirectory();
 
-		static bool CreateAsset(const AssetCreateSettings* settings);
+		static AssetHandle CreateAsset(const AssetCreateSettings* settings);
 
 		static bool ImportAsset(const AssetImportSettings* importSettings);
 
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
 
-		static bool CreateTexture2D(Texture2DCreateSettings* settings);
+		static AssetHandle CreateTexture2D(const Texture2DCreateSettings* settings);
+		static AssetHandle CreateMaterial(const MaterialCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);
@@ -164,5 +192,6 @@ namespace flaw {
 		static bool ImportFont(FontImportSettings* settings);
 		static bool ImportSound(SoundImportSettings* settings);
 		static bool ImportModel(ModelImportSettings* settings);
+		static bool ImportGraphicsShader(const GraphicsShaderImportSettings* settings);
 	};
 }

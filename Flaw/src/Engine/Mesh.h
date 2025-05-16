@@ -65,6 +65,10 @@ namespace flaw {
 			GenerateBoundingSphere(vertices);
 		}
 
+		uint32_t GetMeshSegmentCount() const {
+			return static_cast<uint32_t>(_meshSegments.size());
+		}
+
 		const std::vector<MeshSegment>& GetMeshSegments() const {
 			return _meshSegments;
 		}

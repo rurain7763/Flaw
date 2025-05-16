@@ -106,6 +106,7 @@ namespace flaw {
 		DrawFontImportPopup();
 		DrawSoundImportPopup();
 		DrawModelImportPopup();
+		DrawGraphicsShaderImportPopup();
 
 		std::filesystem::path dirHasToBeChanged;
 
@@ -319,6 +320,11 @@ namespace flaw {
 				ImGui::CloseCurrentPopup();
 			}
 
+			if (ImGui::Button("Graphics Shader")) {
+				_openGraphicsShaderImportPopup = true;
+				ImGui::CloseCurrentPopup();
+			}
+
 			ImGui::Separator();
 
 			if (ImGui::Button("Cancel")) {
@@ -356,6 +362,11 @@ namespace flaw {
 		if (_openModelImportPopup) {
 			ImGui::OpenPopup("Import Model");
 			_openModelImportPopup = false;
+		}
+
+		if (_openGraphicsShaderImportPopup) {
+			ImGui::OpenPopup("Import Graphics Shader");
+			_openGraphicsShaderImportPopup = false;
 		}
 	}
 
@@ -613,6 +624,82 @@ namespace flaw {
 				_importFilePath.clear();
 				ImGui::CloseCurrentPopup();
 			}
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserEditor::DrawGraphicsShaderImportPopup() {
+		if (ImGui::BeginPopupModal("Import Graphics Shader", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (!_importFilePath.empty()) {
+				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
+			}
+			else {
+				ImGui::Text("No file selected");
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("...")) {
+				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Shader Files (*.hlsl)\0");
+				if (!filePath.empty()) {
+					_importFilePath = filePath;
+				}
+			}
+
+			ImGui::Text("Vertex");
+			ImGui::SameLine();
+			static bool vertexShaderCompileFlag = false;
+			ImGui::Checkbox("##VertexShader", &vertexShaderCompileFlag);
+
+			ImGui::Text("Pixel");
+			ImGui::SameLine();
+			static bool pixelShaderCompileFlag = false;
+			ImGui::Checkbox("##PixelShader", &pixelShaderCompileFlag);
+
+			ImGui::Text("Geometry");
+			ImGui::SameLine();
+			static bool geometryShaderCompileFlag = false;
+			ImGui::Checkbox("##GeometryShader", &geometryShaderCompileFlag);
+
+			ImGui::Text("Hull");
+			ImGui::SameLine();
+			static bool hullShaderCompileFlag = false;
+			ImGui::Checkbox("##HullShader", &hullShaderCompileFlag);
+
+			ImGui::Text("Domain");
+			ImGui::SameLine();
+			static bool domainShaderCompileFlag = false;
+			ImGui::Checkbox("##DomainShader", &domainShaderCompileFlag);
+
+			if (!_importFilePath.empty()) {
+				if (ImGui::Button("OK")) {
+					GraphicsShaderImportSettings shaderSettings;
+					shaderSettings.srcPath = _importFilePath.generic_string();
+					shaderSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
+					shaderSettings.compileFlags = 0;
+					shaderSettings.compileFlags |= vertexShaderCompileFlag ? ShaderCompileFlag::Vertex : 0;
+					shaderSettings.compileFlags |= pixelShaderCompileFlag ? ShaderCompileFlag::Pixel : 0;
+					shaderSettings.compileFlags |= geometryShaderCompileFlag ? ShaderCompileFlag::Geometry : 0;
+					shaderSettings.compileFlags |= hullShaderCompileFlag ? ShaderCompileFlag::Hull : 0;
+					shaderSettings.compileFlags |= domainShaderCompileFlag ? ShaderCompileFlag::Domain : 0;
+
+					AssetDatabase::ImportAsset(&shaderSettings);
+					_importFilePath.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+			}
+
+			if (ImGui::Button("Cancel")) {
+				vertexShaderCompileFlag = false;
+				pixelShaderCompileFlag = false;
+				geometryShaderCompileFlag = false;
+				hullShaderCompileFlag = false;
+				domainShaderCompileFlag = false;
+				_importFilePath.clear();
+				ImGui::CloseCurrentPopup();
+			}
+
 			ImGui::EndPopup();
 		}
 	}

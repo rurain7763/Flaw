@@ -5,7 +5,7 @@
 namespace flaw {
 	class Sounds {
 	public:
-		static void Initialize();
+		static void Init();
 		static void Update();
 		static void Cleanup();
 

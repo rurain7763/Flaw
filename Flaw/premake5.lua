@@ -22,6 +22,7 @@ project "Flaw"
         "./src",
         "./Vendor/include",
         vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include",
+        vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include/Imath",
     }
     
     links {
@@ -32,7 +33,7 @@ project "Flaw"
         "msdf-atlas-gen.lib",
         "skia.dll.lib",
         "version.lib",
-        "bcrypt.lib",
+        "bcrypt.lib"
     }
 
     filter "action:vs*"
@@ -61,7 +62,9 @@ project "Flaw"
             "spdlogd.lib",
             "yaml-cppd.lib",
             "fmodL_vc.lib",
-            "assimp-vc143-mtd.lib"
+            "assimp-vc143-mtd.lib",
+            "OpenEXR-3_3_d.lib",
+            "Imath-3_1_d.lib"
         }
 
     filter "configurations:Release"
@@ -80,6 +83,8 @@ project "Flaw"
             "spdlog.lib",
             "yaml-cpp.lib",
             "fmod_vc.lib",
-            "assimp-vc143-mt.lib"
+            "assimp-vc143-mt.lib",
+            "OpenEXR-3_3.lib",
+            "Imath-3_1.lib"
         }
 

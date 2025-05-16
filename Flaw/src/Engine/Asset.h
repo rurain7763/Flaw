@@ -22,7 +22,7 @@ namespace flaw {
 
 	enum class AssetType : int32_t {
 		Unknown = 0,
-		Reserved,
+		GraphicsShader,
 		Texture2D,
 		Font,
 		Sound,
@@ -30,6 +30,7 @@ namespace flaw {
 		TextureCube,
 		Texture2DArray,
 		SkeletalMesh,
+		Material
 	};
 
 	class Asset {

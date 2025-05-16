@@ -11,6 +11,10 @@ namespace flaw {
 		static void Init();
 		static void Cleanup();
 
+		static void RegisterKey(const std::string_view& key, const AssetHandle& handle);
+		static void UnregisterKey(const std::string_view& key, const AssetHandle& handle);
+		static AssetHandle GetHandleByKey(const std::string_view& key);
+
 		static void RegisterAsset(const AssetHandle& handle, const Ref<Asset>& asset);
 		static void UnregisterAsset(const AssetHandle& handle);
 
@@ -26,6 +30,11 @@ namespace flaw {
 		static Ref<T> GetAsset(const AssetHandle& handle) {
 			return std::dynamic_pointer_cast<T>(GetAsset(handle));
 		}
+		
+		static AssetHandle GenerateNewAssetHandle();
+
+	private: 
+		static void RegisterDefaultGraphicsShader();
 	};
 }
 

@@ -9,6 +9,7 @@
 #include "Sound/SoundSource.h"
 #include "Graphics/GraphicsBuffers.h"
 #include "Mesh.h"
+#include "Material.h"
 
 namespace flaw {
 	class Texture2DAsset : public Asset {
@@ -125,7 +126,14 @@ namespace flaw {
 
 	class SkeletalMeshAsset : public Asset {
 	public:
-		SkeletalMeshAsset(const std::function<void(std::vector<int8_t>&)>& getMemoryFunc) : _getMemoryFunc(getMemoryFunc) {}
+		struct Descriptor {
+			std::vector<MeshSegment> segments;
+			std::vector<AssetHandle> materials;
+			std::vector<Vertex3D> vertices;
+			std::vector<uint32_t> indices;
+		};
+
+		SkeletalMeshAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
 
 		void Load() override;
 		void Unload() override;
@@ -133,11 +141,76 @@ namespace flaw {
 		AssetType GetAssetType() const override { return AssetType::SkeletalMesh; }
 		bool IsLoaded() const override { return _mesh != nullptr; }
 
-		const Ref<Mesh>& GetMesh() const { return _mesh; }
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		Ref<Mesh> GetMesh() const { return _mesh; }
+
+		const std::vector<AssetHandle>& GetMaterials() const { return _materials; }
+		const AssetHandle& GetMaterialAt(uint32_t index) const { return _materials[index]; }
 
 	private:
-		std::function<void(std::vector<int8_t>&)> _getMemoryFunc;
+		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<Mesh> _mesh;
+		std::vector<AssetHandle> _materials;
+	};
+
+	class GraphicsShaderAsset : public Asset {
+	public:
+		struct Descriptor {
+			uint32_t shaderCompileFlags;
+
+			// TODO: this should be change to actually code source not path
+			std::string shaderPath;
+			std::vector<GraphicsShader::InputElement> inputElements;
+		};
+
+		GraphicsShaderAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::GraphicsShader; }
+		bool IsLoaded() const override { return _shader != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<GraphicsShader>& GetShader() const { return _shader; }
+
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<GraphicsShader> _shader;
+	};
+
+	class MaterialAsset : public Asset {
+	public:
+		struct Descriptor {
+			RenderMode renderMode;
+			CullMode cullMode;
+			DepthTest depthTest;
+			bool depthWrite;
+
+			AssetHandle shaderHandle;
+			AssetHandle albedoTexture;
+			AssetHandle normalTexture;
+		};
+
+		MaterialAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Material; }
+		bool IsLoaded() const override { return _material != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<Material>& GetMaterial() const { return _material; }
+
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<Material> _material;
 	};
 }

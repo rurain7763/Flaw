@@ -37,6 +37,7 @@ namespace flaw{
 		void DrawFontImportPopup();
 		void DrawSoundImportPopup();
 		void DrawModelImportPopup();
+		void DrawGraphicsShaderImportPopup();
 
 	private:
 		Application& _app;
@@ -55,5 +56,6 @@ namespace flaw{
 		bool _openFontImportPopup = false;
 		bool _openSoundImportPopup = false;
 		bool _openModelImportPopup = false;
+		bool _openGraphicsShaderImportPopup = false;
 	};
 }

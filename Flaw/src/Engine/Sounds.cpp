@@ -5,7 +5,7 @@
 namespace flaw {
 	static SoundsContext* context = nullptr;
 
-	void Sounds::Initialize() {
+	void Sounds::Init() {
 		context = new FModSoundsContext();
 	}
 

@@ -13,6 +13,7 @@ namespace flaw {
 			Bmp,
 			Tga,
 			Dds,
+			Exr,
 			Unknown
 		};
 

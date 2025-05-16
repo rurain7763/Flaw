@@ -8,44 +8,106 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+#define IMATH_HALF_NO_LOOKUP_TABLE
+#include <OpenEXR/ImfRgbaFile.h>
+#include <OpenEXR/ImfArray.h>
+
 namespace flaw {
 	Image::Image(const char* filePath, uint32_t desiredChannels) {
 		_type = GetImageTypeFromExtension(filePath);
 
-		uint8_t* data = stbi_load(filePath, &_width, &_height, &_channels, desiredChannels);
-
-		if (data == nullptr) {
-			Log::Error("Failed to load image : %s", filePath);
+		if (_type == Image::Type::Unknown) {
+			Log::Error("Unknown image format : %s", filePath);
 			return;
 		}
 
-		if (desiredChannels != 0) {
-			_channels = desiredChannels;
+		if (_type == Image::Type::Exr) {
+			Imf::RgbaInputFile file(filePath);
+			Imath::Box2i dw = file.header().dataWindow();
+
+			_width = dw.max.x - dw.min.x + 1;
+			_height = dw.max.y - dw.min.y + 1;
+
+			Imf::Array2D<Imf::Rgba> pixels(_height, _width);
+
+			file.setFrameBuffer(&pixels[0][0] - dw.min.x - dw.min.y * _width, 1, _width);
+			file.readPixels(dw.min.y, dw.max.y);
+
+			if (desiredChannels == 0) {
+				desiredChannels = 4; // RGBA
+			}
+
+			_data.resize(_width * _height * desiredChannels); // RGBA
+			for (int y = 0; y < _height; ++y) {
+				for (int x = 0; x < _width; ++x) {
+					Imf::Rgba& pixel = pixels[y][x];
+
+					int32_t pixelIndex = (y * _width + x) * desiredChannels;
+					
+					if (desiredChannels == 1) {
+						_data[pixelIndex] = pixel.r * 255.f; // R
+					}
+					else if (desiredChannels == 3) {
+						_data[pixelIndex] = pixel.r * 255.f; // Rd
+						_data[pixelIndex + 1] = pixel.g * 255.f; // G
+						_data[pixelIndex + 2] = pixel.b * 255.f; // B
+					}
+					else if (desiredChannels == 4) {
+						_data[pixelIndex] = pixel.r * 255.f; // R
+						_data[pixelIndex + 1] = pixel.g * 255.f; // G
+						_data[pixelIndex + 2] = pixel.b * 255.f; // B
+						_data[pixelIndex + 3] = pixel.a * 255.f; // A
+					}
+				}
+			}
 		}
-
-		_data.resize(_width * _height * _channels);
-		memcpy(_data.data(), data, _data.size());
-
-		stbi_image_free(data);
+		else {
+			uint8_t* data = stbi_load(filePath, &_width, &_height, &_channels, desiredChannels);
+	
+			if (data == nullptr) {
+				Log::Error("Failed to load image : %s", filePath);
+				return;
+			}
+	
+			if (desiredChannels != 0) {
+				_channels = desiredChannels;
+			}
+	
+			_data.resize(_width * _height * _channels);
+			memcpy(_data.data(), data, _data.size());
+	
+			stbi_image_free(data);
+		}
 	}
 
 	Image::Image(Image::Type type, const char* source, size_t size, uint32_t desiredChannels) {
 		_type = type;
-		uint8_t* data = stbi_load_from_memory((const uint8_t*)source, size, &_width, &_height, &_channels, desiredChannels);
 
-		if (data == nullptr) {
-			Log::Error("Failed to load image");
+		if (_type == Image::Type::Unknown) {
+			Log::Error("Unknown image format");
 			return;
 		}
 
-		if (desiredChannels != 0) {
-			_channels = desiredChannels;
+		if (_type == Image::Type::Exr) {
+			// TODO: EXR 메모리 로드 구현
 		}
+		else {
+			uint8_t* data = stbi_load_from_memory((const uint8_t*)source, size, &_width, &_height, &_channels, desiredChannels);
 
-		_data.resize(_width * _height * _channels);
-		memcpy(_data.data(), data, _data.size());
+			if (data == nullptr) {
+				Log::Error("Failed to load image");
+				return;
+			}
 
-		stbi_image_free(data);
+			if (desiredChannels != 0) {
+				_channels = desiredChannels;
+			}
+
+			_data.resize(_width * _height * _channels);
+			memcpy(_data.data(), data, _data.size());
+
+			stbi_image_free(data);
+		}
 	}
 
 	void Image::SaveToFile(const char* filePath) const {
@@ -75,6 +137,9 @@ namespace flaw {
 		else if (path.extension() == ".dds") {
 			return Image::Type::Dds;
 		}
+		else if (path.extension() == ".exr") {
+			return Image::Type::Exr;
+		}
 		else {
 			return Image::Type::Unknown;
 		}
@@ -93,6 +158,9 @@ namespace flaw {
 			break;
 		case Image::Type::Tga:
 			stbi_write_tga(filePath, width, height, channels, data);
+			break;
+		case Image::Type::Exr:
+			// TODO: EXR 저장 구현
 			break;
 		case Image::Type::Dds:
 			Log::Error("DDS format is not supported for saving");

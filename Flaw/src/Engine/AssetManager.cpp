@@ -8,14 +8,56 @@
 #include "Serialization.h"
 
 namespace flaw {
+	static std::unordered_map<std::string, AssetHandle> g_assetKeyMap;
 	static std::unordered_map<AssetHandle, Ref<Asset>> g_registeredAssets;
 
 	void AssetManager::Init() {
-		// TODO: register initial assets
+		RegisterDefaultGraphicsShader();
+	}
+
+	void AssetManager::RegisterDefaultGraphicsShader() {
+		AssetHandle handle = g_registeredAssets.size();
+		auto graphicsShaderAsset = CreateRef<GraphicsShaderAsset>(
+			[](GraphicsShaderAsset::Descriptor& desc) {
+				desc.shaderPath = "Resources/Shaders/std3d_geometry.fx";
+				desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+				desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
+				desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			}
+		);
+
+		RegisterAsset(handle, graphicsShaderAsset);
+		RegisterKey("std3d_geometry", handle);
 	}
 
 	void AssetManager::Cleanup() {
 		g_registeredAssets.clear();
+	}
+
+	void AssetManager::RegisterKey(const std::string_view& key, const AssetHandle& handle) {
+		if (g_assetKeyMap.find(key.data()) != g_assetKeyMap.end()) {
+			return;
+		}
+		g_assetKeyMap[key.data()] = handle;
+	}
+
+	void AssetManager::UnregisterKey(const std::string_view& key, const AssetHandle& handle) {
+		auto it = g_assetKeyMap.find(key.data());
+		if (it == g_assetKeyMap.end()) {
+			return;
+		}
+		g_assetKeyMap.erase(it);
+	}
+
+	AssetHandle AssetManager::GetHandleByKey(const std::string_view& key) {
+		auto it = g_assetKeyMap.find(key.data());
+		if (it == g_assetKeyMap.end()) {
+			return AssetHandle();
+		}
+		return it->second;
 	}
 
 	void AssetManager::RegisterAsset(const AssetHandle& handle, const Ref<Asset>& asset) {
@@ -90,5 +132,16 @@ namespace flaw {
 
 	bool AssetManager::IsAssetRegistered(const AssetHandle& handle) {
 		return g_registeredAssets.find(handle) != g_registeredAssets.end();
+	}
+
+	AssetHandle AssetManager::GenerateNewAssetHandle() {
+		AssetHandle handle;
+		handle.Generate();
+
+		while (IsAssetRegistered(handle)) {
+			handle.Generate();
+		}
+
+		return handle;
 	}
 }

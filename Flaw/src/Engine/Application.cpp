@@ -30,41 +30,14 @@ namespace flaw {
 			Project::FromFile(projPath.string().c_str());
 		}
 
-		{
-			FLAW_PROFILE_SCOPE("Initialize Platform");
-			Platform::Init(props.title, props.width, props.height, _eventDispatcher);
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Graphics");
-			Graphics::Init(GraphicsType::DX11);
-			Renderer2D::Init();
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Fonts");
-			Fonts::Init();
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Sounds");
-			Sounds::Initialize();
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Asset Manager");
-			AssetManager::Init();
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Primitive Manager");
-			PrimitiveManager::Init();
-		}
-
-		{
-			FLAW_PROFILE_SCOPE("Initialize Mono Scripting");
-			Scripting::Init(*this);
-		}
+		Platform::Init(props.title, props.width, props.height, _eventDispatcher);
+		Graphics::Init(GraphicsType::DX11);
+		Renderer2D::Init();
+		Fonts::Init();
+		Sounds::Init();
+		AssetManager::Init();
+		PrimitiveManager::Init();
+		Scripting::Init(*this);
 
 		// 이벤트 등록
 		_eventDispatcher.Register<KeyPressEvent>([this](const KeyPressEvent& event) { Input::OnKeyPress(event.key); }, PID(this));

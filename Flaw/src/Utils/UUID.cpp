@@ -11,7 +11,13 @@ namespace flaw {
 	UUID::UUID() : _id(UUID_INVALID) {}
 	UUID::UUID(uint64_t id) : _id(id) {}
 
-	void UUID::Generate() {
+	UUID& UUID::Generate() {
 		_id = g_dist(g_gen);
+		return *this;
+	}
+
+	UUID& UUID::Invalidate() {
+		_id = UUID_INVALID;
+		return *this;
 	}
 }

@@ -307,9 +307,6 @@ namespace flaw {
 
 			// submit mesh
 			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
-				static Ref<GraphicsShader> g_std3dShader;
-				static Ref<Material> g_material;
-
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -317,30 +314,20 @@ namespace flaw {
 
 				Ref<Mesh> mesh = meshAsset->GetMesh();
 
-				if (g_std3dShader == nullptr) {
-					g_std3dShader = Graphics::CreateGraphicsShader("Resources/Shaders/std3d_geometry.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-					g_std3dShader->AddInputElement<float>("POSITION", 3);
-					g_std3dShader->AddInputElement<float>("TEXCOORD", 2);
-					g_std3dShader->AddInputElement<float>("TANGENT", 3);
-					g_std3dShader->AddInputElement<float>("NORMAL", 3);
-					g_std3dShader->AddInputElement<float>("BINORMAL", 3);
-					g_std3dShader->CreateInputLayout();
-				}
-
-				if (g_material == nullptr) {
-					g_material = CreateRef<Material>();
-					g_material->shader = g_std3dShader;
-					g_material->renderMode = RenderMode::Opaque;
-					g_material->cullMode = CullMode::Back;
-					g_material->depthTest = DepthTest::Less;
-					g_material->depthWrite = true;
-				}
-
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
 				auto& boundingSphere = mesh->GetBoundingSphere();
 
 				if (camera.isPerspective && camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
-					stage.renderQueue.Push(mesh, transform.worldTransform, g_material);
+					for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
+						auto& material = skeletalMeshComp.materials[i];
+
+						auto materialAsset = AssetManager::GetAsset<MaterialAsset>(material);
+						if (!materialAsset) {
+							continue;
+						}
+
+						stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial());
+					}
 				}
 			}
 

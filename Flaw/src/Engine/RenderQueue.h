@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Graphics.h"
 #include "Mesh.h"
+#include "Material.h"
 
 #include <map>
 #include <vector>
