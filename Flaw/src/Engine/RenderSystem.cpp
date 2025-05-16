@@ -188,6 +188,7 @@ namespace flaw {
 		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
 		_scene.GetSkyBoxSystem().Update();
+		_scene.GetShadowSystem().Update();
 
 		GatherLights();
 		GatherDecals();

@@ -8,28 +8,23 @@
 
 namespace flaw {
 	void Texture2DAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
+		Texture2D::Descriptor texDesc = {};
+		texDesc.format = desc.format;
+		texDesc.width = desc.width;
+		texDesc.height = desc.height;
+		texDesc.wrapS = Texture2D::Wrap::ClampToEdge;
+		texDesc.wrapT = Texture2D::Wrap::ClampToEdge;
+		texDesc.minFilter = Texture2D::Filter::Linear;
+		texDesc.magFilter = Texture2D::Filter::Linear;
+		texDesc.usage = desc.usage;
+		texDesc.access = desc.accessFlags;
+		texDesc.bindFlags = desc.bindFlags;
+		texDesc.data = desc.data.data();
 
-		Texture2D::Descriptor desc = {};
-		archive >> desc.format;
-		archive >> desc.width;
-		archive >> desc.height;
-		archive >> desc.wrapS;
-		archive >> desc.wrapT;
-		archive >> desc.minFilter;
-		archive >> desc.magFilter;
-		archive >> desc.usage;
-		archive >> desc.access;
-		archive >> desc.bindFlags;
-
-		std::vector<uint8_t> textureData;
-		archive >> textureData;
-		desc.data = textureData.data();
-
-		_texture = Graphics::CreateTexture2D(desc);
+		_texture = Graphics::CreateTexture2D(texDesc);
 	}
 
 	void Texture2DAsset::Unload() {
@@ -37,26 +32,21 @@ namespace flaw {
 	}
 
 	void Texture2DArrayAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
+		Texture2DArray::Descriptor texDesc = {};
+		texDesc.fromMemory = true;
+		texDesc.arraySize = desc.arraySize;
+		texDesc.format = desc.format;
+		texDesc.width = desc.width;
+		texDesc.height = desc.height;
+		texDesc.usage = desc.usage;
+		texDesc.access = desc.accessFlags;
+		texDesc.bindFlags = desc.bindFlags;
+		texDesc.data = desc.data.data();
 
-		Texture2DArray::Descriptor desc = {};
-		desc.fromMemory = true;
-		archive >> desc.arraySize;
-		archive >> desc.format;
-		archive >> desc.width;
-		archive >> desc.height;
-		archive >> desc.usage;
-		archive >> desc.access;
-		archive >> desc.bindFlags;
-		
-		std::vector<uint8_t> textureData;
-		archive >> textureData;
-		desc.data = textureData.data();
-
-		_texture = Graphics::CreateTexture2DArray(desc);
+		_texture = Graphics::CreateTexture2DArray(texDesc);
 	}
 
 	void Texture2DArrayAsset::Unload() {
@@ -64,22 +54,17 @@ namespace flaw {
 	}
 
 	void TextureCubeAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
+		TextureCube::Descriptor texDesc = {};
+		texDesc.format = desc.format;
+		texDesc.width = desc.width;
+		texDesc.height = desc.height;
+		texDesc.layout = desc.layout;
+		texDesc.data = desc.data.data();
 
-		TextureCube::Descriptor desc = {};
-		archive >> desc.format;
-		archive >> desc.width;
-		archive >> desc.height;
-		archive >> desc.layout;
-
-		std::vector<uint8_t> textureData;
-		archive >> textureData;
-		desc.data = textureData.data();
-
-		_texture = Graphics::CreateTextureCube(desc);
+		_texture = Graphics::CreateTextureCube(texDesc);
 	}
 
 	void TextureCubeAsset::Unload() {
@@ -87,30 +72,20 @@ namespace flaw {
 	}
 
 	void FontAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
+		_font = Fonts::CreateFontFromMemory(desc.fontData.data(), desc.fontData.size());
 
-		std::vector<int8_t> fontData;
-		archive >> fontData;
+		Texture2D::Descriptor texDesc = {};
+		texDesc.width = desc.width;
+		texDesc.height = desc.height;
+		texDesc.format = PixelFormat::RGBA8;
+		texDesc.data = desc.atlasData.data();
+		texDesc.usage = UsageFlag::Static;
+		texDesc.bindFlags = BindFlag::ShaderResource;
 
-		_font = Fonts::CreateFontFromMemory(fontData.data(), fontData.size());
-
-		FontAtlas atlas;
-		archive >> atlas.width;
-		archive >> atlas.height;
-		archive >> atlas.data;
-
-		Texture2D::Descriptor desc = {};
-		desc.width = atlas.width;
-		desc.height = atlas.height;
-		desc.format = PixelFormat::RGBA8;
-		desc.data = atlas.data.data();
-		desc.usage = UsageFlag::Static;
-		desc.bindFlags = BindFlag::ShaderResource;
-
-		_fontAtlas = Graphics::CreateTexture2D(desc);
+		_fontAtlas = Graphics::CreateTexture2D(texDesc);
 	}
 
 	void FontAsset::Unload() {
@@ -119,54 +94,14 @@ namespace flaw {
 	}
 
 	void SoundAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
+		Descriptor desc;
+		_getDesc(desc);
 
-		SerializationArchive archive(data.data(), data.size());
-
-		std::vector<int8_t> soundData;
-		archive >> soundData;
-
-		_sound = Sounds::CreateSoundSourceFromMemory(soundData.data(), soundData.size());
+		_sound = Sounds::CreateSoundSourceFromMemory(desc.soundData.data(), desc.soundData.size());
 	}
 
 	void SoundAsset::Unload() {
 		_sound.reset();
-	}
-
-	void MeshAsset::Load() {
-		std::vector<int8_t> data;
-		_getMemoryFunc(data);
-
-		SerializationArchive archive(data.data(), data.size());
-
-		auto& graphicsContext = Graphics::GetGraphicsContext();
-
-		std::vector<int8_t> meshData;
-		archive >> meshData;
-
-		VertexBuffer::Descriptor vertexDesc = {};
-		vertexDesc.usage = UsageFlag::Static;
-		vertexDesc.elmSize = sizeof(Vertex3D);
-		vertexDesc.bufferSize = meshData.size();
-		vertexDesc.initialData = meshData.data();
-
-		_vertexBuffer = graphicsContext.CreateVertexBuffer(vertexDesc);
-
-		std::vector<uint32_t> indices;
-		archive >> indices;
-
-		IndexBuffer::Descriptor indexDesc = {};
-		indexDesc.usage = UsageFlag::Static;
-		indexDesc.bufferSize = indices.size() * sizeof(uint32_t);
-		indexDesc.initialData = indices.data();
-
-		_indexBuffer = graphicsContext.CreateIndexBuffer(indexDesc);
-	}
-
-	void MeshAsset::Unload() {
-		_vertexBuffer.reset();
-		_indexBuffer.reset();
 	}
 
 	void SkeletalMeshAsset::Load() {

@@ -281,16 +281,15 @@ namespace flaw {
         }
 
 		AssetHandle meshHandle = _selectedEntt.GetComponent<SkeletalMeshComponent>().mesh;
-		auto meshAsset = AssetManager::GetAsset<MeshAsset>(meshHandle);
+		auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(meshHandle);
 		if (!meshAsset) {
 			return;
 		}
 
-		auto vertexBuffer = meshAsset->GetVertexBuffer();
-		auto indexBuffer = meshAsset->GetIndexBuffer();
-		
 		auto& mainPass = Graphics::GetMainRenderPass();
         auto& cmdQueue = _graphicsContext.GetCommandQueue();
+
+		Ref<Mesh> mesh = meshAsset->GetMesh();
 
 		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
 		mainPass->Bind(false, false);
@@ -304,9 +303,9 @@ namespace flaw {
         cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(_outlineGraphicsPipeline);
-		cmdQueue.SetVertexBuffer(meshAsset->GetVertexBuffer());
+		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 		cmdQueue.SetConstantBuffer(_mvpConstantBuffer, 0);
-		cmdQueue.DrawIndexed(indexBuffer, indexBuffer->IndexCount());
+		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
         cmdQueue.End();
 
         cmdQueue.Execute();

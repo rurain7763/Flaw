@@ -84,6 +84,7 @@ namespace flaw {
 			std::filesystem::path assetFile = dir.path();
 
 			if (dir.is_directory()) {
+				// it is directory, go deeper
 				if (recursive) {
 					RegisterAssetsInFolder(assetFile.generic_string().c_str(), recursive);
 				}
@@ -91,6 +92,7 @@ namespace flaw {
 			}
 
 			if (assetFile.extension() != ".asset") {
+				// we are not interested in other file types, skip them
 				continue;
 			}
 
@@ -99,7 +101,7 @@ namespace flaw {
 				continue;
 			}
 
-			SerializationArchive archive((const int8_t*)fileData.data(), fileData.size());
+			SerializationArchive archive(fileData.data(), fileData.size());
 
 			AssetMetadata metadata;
 			archive >> metadata;
@@ -128,25 +130,85 @@ namespace flaw {
 			}
 
 			Ref<Asset> asset;
-			const std::function<void(std::vector<int8_t>&)> getMemoryFunc = [assetFile, assetDataOffset](std::vector<int8_t>& data) {
-				FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
-				data = std::vector<int8_t>(data.begin() + assetDataOffset, data.end());
-			};
-
 			switch (metadata.type) {
-				case AssetType::Texture2D: asset = CreateRef<Texture2DAsset>(getMemoryFunc); break;
-				case AssetType::TextureCube: asset = CreateRef<TextureCubeAsset>(getMemoryFunc); break;
-				case AssetType::Texture2DArray: asset = CreateRef<Texture2DArrayAsset>(getMemoryFunc); break;
-				case AssetType::Font: asset = CreateRef<FontAsset>(getMemoryFunc); break;
-				case AssetType::Sound: asset = CreateRef<SoundAsset>(getMemoryFunc); break;
-				case AssetType::Mesh: asset = CreateRef<MeshAsset>(getMemoryFunc); break;
+				case AssetType::Texture2D:
+					asset = CreateRef<Texture2DAsset>(
+						[assetFile, assetDataOffset](Texture2DAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							archive >> desc.format;
+							archive >> desc.width;
+							archive >> desc.height;
+							archive.Consume(sizeof(Texture2D::Wrap) * 2);
+							archive.Consume(sizeof(Texture2D::Filter) * 2);
+							archive >> desc.usage;
+							archive >> desc.accessFlags;
+							archive >> desc.bindFlags;
+							archive >> desc.data;
+						}
+					);
+					break;
+				case AssetType::Texture2DArray:
+					asset = CreateRef<Texture2DArrayAsset>(
+						[assetFile, assetDataOffset](Texture2DArrayAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							archive >> desc.arraySize;
+							archive >> desc.format;
+							archive >> desc.width;
+							archive >> desc.height;
+							archive >> desc.usage;
+							archive >> desc.accessFlags;
+							archive >> desc.bindFlags;
+							archive >> desc.data;
+						}
+					);
+					break;
+				case AssetType::TextureCube:
+					asset = CreateRef<TextureCubeAsset>(
+						[assetFile, assetDataOffset](TextureCubeAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							archive >> desc.format;
+							archive >> desc.width;
+							archive >> desc.height;
+							archive >> desc.layout;
+							archive >> desc.data;
+						}
+					);
+					break;
+				case AssetType::Font:
+					asset = CreateRef<FontAsset>(
+						[assetFile, assetDataOffset](FontAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							archive >> desc.fontData;
+							archive >> desc.width;
+							archive >> desc.height;
+							archive >> desc.atlasData;
+						}
+					);
+					break;
+				case AssetType::Sound: 
+					asset = CreateRef<SoundAsset>(
+						[assetFile, assetDataOffset](SoundAsset::Descriptor& desc) {
+							std::vector<int8_t> data;
+							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
+							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
+							archive >> desc.soundData;
+						}
+					);
+					break;
 				case AssetType::SkeletalMesh:
 					asset = CreateRef<SkeletalMeshAsset>(
 						[assetFile, assetDataOffset](SkeletalMeshAsset::Descriptor& desc) {
 							std::vector<int8_t> data;
 							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
 							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
-							
 							archive >> desc.segments;
 							archive >> desc.materials;
 							archive >> desc.vertices;
@@ -160,7 +222,6 @@ namespace flaw {
 							std::vector<int8_t> data;
 							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
 							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
-
 							archive >> desc.shaderCompileFlags;
 							archive >> desc.shaderPath;
 						}
@@ -172,7 +233,6 @@ namespace flaw {
 							std::vector<int8_t> data;
 							FileSystem::ReadFile(assetFile.generic_string().c_str(), data);
 							SerializationArchive archive(&data[assetDataOffset], data.size() - assetDataOffset);
-
 							archive >> desc.shaderHandle;
 							archive >> desc.albedoTexture;
 							archive >> desc.normalTexture;
@@ -624,4 +684,172 @@ namespace flaw {
 
 		return true;
 	}
+
+	class AssetFile {
+	public:
+		bool ParseHeaderFromFile(const std::filesystem::path& path) {
+			std::vector<int8_t> fileData;
+			if (!FileSystem::ReadFile(path.generic_string().c_str(), fileData)) {
+				Log::Error("Failed to read asset file: %s", path.generic_string().c_str());
+				return false;
+			}
+
+			_filePath = path;
+
+			SerializationArchive archive(fileData.data(), fileData.size());
+			archive >> _metadata;
+
+			uint64_t fileIndex = FileSystem::FileIndex(path.generic_string().c_str());
+			if (_metadata.fileIndex != fileIndex) {
+				// 파일이 강제적으로 복사된 경우임. 메타 데이터를 갱신해야 함.
+				AssetMetadata newMetaData;
+				newMetaData.handle = AssetManager::GenerateNewAssetHandle();
+				newMetaData.fileIndex = fileIndex;
+
+				SerializationArchive newArchive;
+				newArchive << newMetaData;
+				newArchive.Append(archive.Data() + archive.Offset(), archive.RemainingSize());
+
+				if (!FileSystem::MakeFile(path.generic_string().c_str(), newArchive.Data(), newArchive.RemainingSize())) {
+					FASSERT(false, "Failed to write asset file: %s", path.generic_string().c_str());
+				}
+
+				return ParseHeaderFromFile(path);
+			}
+
+			_dataOffset = archive.Offset();
+
+			return true;
+		}
+
+		const AssetMetadata& GetMetadata() const {
+			return _metadata;
+		}
+
+		Ref<Asset> CreateAsset() {
+			Ref<Asset> asset;
+
+			switch (_metadata.type) {
+			case AssetType::Texture2D:
+				asset = CreateRef<Texture2DAsset>(
+					[this](Texture2DAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.format;
+						archive >> desc.width;
+						archive >> desc.height;
+						archive.Consume(sizeof(Texture2D::Wrap) * 2);
+						archive.Consume(sizeof(Texture2D::Filter) * 2);
+						archive >> desc.usage;
+						archive >> desc.accessFlags;
+						archive >> desc.bindFlags;
+						archive >> desc.data;
+					}
+				);
+				break;
+			case AssetType::Texture2DArray:
+				asset = CreateRef<Texture2DArrayAsset>(
+					[this](Texture2DArrayAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.arraySize;
+						archive >> desc.format;
+						archive >> desc.width;
+						archive >> desc.height;
+						archive >> desc.usage;
+						archive >> desc.accessFlags;
+						archive >> desc.bindFlags;
+						archive >> desc.data;
+					}
+				);
+				break;
+			case AssetType::TextureCube:
+				asset = CreateRef<TextureCubeAsset>(
+					[this](TextureCubeAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.format;
+						archive >> desc.width;
+						archive >> desc.height;
+						archive >> desc.layout;
+						archive >> desc.data;
+					}
+				);
+				break;
+			case AssetType::Font:
+				asset = CreateRef<FontAsset>(
+					[this](FontAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.fontData;
+						archive >> desc.width;
+						archive >> desc.height;
+						archive >> desc.atlasData;
+					}
+				);
+				break;
+			case AssetType::Sound:
+				asset = CreateRef<SoundAsset>(
+					[this](SoundAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.soundData;
+					}
+				);
+				break;
+			case AssetType::SkeletalMesh:
+				asset = CreateRef<SkeletalMeshAsset>(
+					[this](SkeletalMeshAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.segments;
+						archive >> desc.materials;
+						archive >> desc.vertices;
+						archive >> desc.indices;
+					}
+				);
+				break;
+			case AssetType::GraphicsShader:
+				asset = CreateRef<GraphicsShaderAsset>(
+					[this](GraphicsShaderAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.shaderCompileFlags;
+						archive >> desc.shaderPath;
+					}
+				);
+				break;
+			case AssetType::Material:
+				asset = CreateRef<MaterialAsset>(
+					[this](MaterialAsset::Descriptor& desc) {
+						std::vector<int8_t> data;
+						FileSystem::ReadFile(_filePath.generic_string().c_str(), data);
+						SerializationArchive archive(&data[_dataOffset], data.size() - _dataOffset);
+						archive >> desc.shaderHandle;
+						archive >> desc.albedoTexture;
+						archive >> desc.normalTexture;
+					}
+				);
+				break;
+			}
+
+			return asset;
+		}
+
+	private:
+
+
+	private:
+		std::filesystem::path _filePath;
+
+		AssetMetadata _metadata;
+		int32_t _dataOffset = 0;
+	};
 }
