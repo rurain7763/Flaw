@@ -10,6 +10,8 @@ namespace flaw {
 		_currentRenderMode = RenderMode::Count;
 		_currentRenderEntry = {};
 		_currentRenderEntryEnd = {};
+
+		_materialIndexMap.clear();
 		for (int32_t i = 0; i < _renderEntries.size(); i++) {
 			_renderEntries[i].clear();
 		}
@@ -28,25 +30,43 @@ namespace flaw {
 	}
 
 	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material) {
-		auto& entry = _renderEntries[uint32_t(material->renderMode)][material];
+		auto& entryList = _renderEntries[uint32_t(material->renderMode)];
+		int32_t entryIndex = -1;
+		
+		auto indexIt = _materialIndexMap.find(material);
+		if (indexIt == _materialIndexMap.end()) {
+			entryIndex = entryList.size();
+			_materialIndexMap[material] = entryIndex;
+			entryList.resize(entryIndex + 1);
+		}
+		else {
+			entryIndex = indexIt->second;
+		}
+		
+		auto& entry = entryList[entryIndex];
 		entry.material = material;
 
 		MeshKey meshKey(mesh, segmentIndex);
+		int32_t instanceIndex = -1;
 
-		auto it = entry.instancingObjects.find(meshKey);
-		if (it != entry.instancingObjects.end()) {
-			it->second.modelMatrices.push_back(worldMat);
-			it->second.instanceCount++;
-		}
-		else {
+		auto instancingIndexIt = entry.instancintIndexMap.find(meshKey);
+		if (instancingIndexIt == entry.instancintIndexMap.end()) {
 			InstancingObject instance;
 			instance.mesh = mesh;
 			instance.segmentIndex = segmentIndex;
-			instance.modelMatrices.push_back(worldMat);
-			instance.instanceCount = 1;
+			instance.instanceCount = 0;
 
-			entry.instancingObjects[meshKey] = instance;
+			instanceIndex = entry.instancingObjects.size();
+			entry.instancintIndexMap[meshKey] = instanceIndex;
+			entry.instancingObjects.emplace_back(instance);
 		}
+		else {
+			instanceIndex = instancingIndexIt->second;
+		}
+
+		auto& instance = entry.instancingObjects[instanceIndex];
+		instance.modelMatrices.emplace_back(worldMat);
+		instance.instanceCount++;
 	}
 
 	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material) {
@@ -77,6 +97,6 @@ namespace flaw {
 
 	RenderEntry& RenderQueue::Front() {
 		FASSERT(_currentRenderMode != RenderMode::Count, "RenderQueue is empty");
-		return _currentRenderEntry->second;
+		return *_currentRenderEntry;
 	}
 }

@@ -437,7 +437,7 @@ namespace flaw {
 			cmdQueue.Execute();
 
 			// instancing draw
-			for (auto& [key, obj] : entry.instancingObjects) {
+			for (auto& obj : entry.instancingObjects) {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 

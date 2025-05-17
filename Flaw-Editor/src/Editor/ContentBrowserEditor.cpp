@@ -22,6 +22,7 @@ namespace flaw {
 		CreateIcon(FileType::Font, "Resources/Icons/FontFile.png");
 		CreateIcon(FileType::Scene, "Resources/Icons/SceneFile.png");
 		CreateIcon(FileType::Sound, "Resources/Icons/SoundFile.png");
+		CreateIcon(FileType::Material, "Resources/Icons/MaterialFile.png");
 
 		_changeHandle = FindFirstChangeNotification(
 			_currentDirectory.wstring().c_str(),
@@ -193,6 +194,9 @@ namespace flaw {
 					}
 					else if (metadata.type == AssetType::Sound) {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Sound]);
+					}
+					else if (metadata.type == AssetType::Material) {
+						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Material]);
 					}
 					else {
 						dxTexture = std::static_pointer_cast<DXTexture2D>(_fileTypeIcons[(size_t)FileType::Unknown]);

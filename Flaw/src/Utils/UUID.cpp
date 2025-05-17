@@ -13,6 +13,9 @@ namespace flaw {
 
 	UUID& UUID::Generate() {
 		_id = g_dist(g_gen);
+		while (_id == UUID_INVALID) {
+			_id = g_dist(g_gen);
+		}
 		return *this;
 	}
 

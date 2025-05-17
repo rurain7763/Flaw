@@ -74,7 +74,7 @@ namespace flaw {
 		}
 	}
 
-	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {
+	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
 		aiString path;
 		if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS) {
 			material.diffuse = GetImageOrCreate(basePath / path.C_Str());
@@ -90,6 +90,14 @@ namespace flaw {
 
 		if (aiMaterial->GetTexture(aiTextureType_EMISSIVE, 0, &path) == AI_SUCCESS) {
 			material.emissive = GetImageOrCreate(basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &path) == AI_SUCCESS) {
+			// TODO: height map
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &path) == AI_SUCCESS) {
+			material.diffuse = GetImageOrCreate(basePath / path.C_Str());
 		}
 
 		// TODO: add more texture
@@ -117,6 +125,7 @@ namespace flaw {
 		meshInfo.indexCount = mesh->mNumFaces * 3;
 		meshInfo.materialIndex = mesh->mMaterialIndex;
 
+		_vertices.reserve(_vertices.size() + mesh->mNumVertices);
 		for (int32_t i = 0; i < mesh->mNumVertices; ++i) {
 			ModelVertex vertex;
 			vertex.position = vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
@@ -128,6 +137,7 @@ namespace flaw {
 			_vertices.push_back(vertex);
 		}
 
+		_indices.reserve(_indices.size() + mesh->mNumFaces * 3);
 		for (int32_t i = 0; i < mesh->mNumFaces; ++i) {
 			const aiFace& face = mesh->mFaces[i];
 			for (int32_t j = 0; j < face.mNumIndices; ++j) {

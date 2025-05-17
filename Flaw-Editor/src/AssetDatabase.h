@@ -183,6 +183,10 @@ namespace flaw {
 	private:
 		static void RegisterAssetsInFolder(const char* folderPath, bool recursive = true);
 
+		static Ref<Asset> CreateAssetInstance(AssetType assetType, const std::filesystem::path& path, int32_t dataOffset);
+
+		static AssetHandle CreateAssetFile(const char* path, AssetType assetType, std::function<void(SerializationArchive&)> serializeFunc);
+
 		static AssetHandle CreateTexture2D(const Texture2DCreateSettings* settings);
 		static AssetHandle CreateMaterial(const MaterialCreateSettings* settings);
 

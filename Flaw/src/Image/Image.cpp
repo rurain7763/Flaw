@@ -48,7 +48,7 @@ namespace flaw {
 						_data[pixelIndex] = pixel.r * 255.f; // R
 					}
 					else if (desiredChannels == 3) {
-						_data[pixelIndex] = pixel.r * 255.f; // Rd
+						_data[pixelIndex] = pixel.r * 255.f; // R
 						_data[pixelIndex + 1] = pixel.g * 255.f; // G
 						_data[pixelIndex + 2] = pixel.b * 255.f; // B
 					}

@@ -16,6 +16,8 @@ namespace flaw {
 		UUID& Generate();
 		UUID& Invalidate();
 
+		bool IsValid() const { return _id != UUID_INVALID; }
+
 		UUID& operator=(const UUID& other) {
 			if (this != &other) {
 				_id = other._id;

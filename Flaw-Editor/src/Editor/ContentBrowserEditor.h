@@ -23,6 +23,7 @@ namespace flaw{
 			Font,
 			Scene,
 			Sound,
+			Material,
 			Count
 		};
 

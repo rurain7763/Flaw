@@ -21,16 +21,13 @@ namespace flaw {
 
 	struct RenderEntry {
 		Ref<Material> material;
-		std::map<MeshKey, InstancingObject> instancingObjects;
+
+		std::map<MeshKey, int32_t> instancintIndexMap;
+		std::vector<InstancingObject> instancingObjects;
 	};
 
-	struct RenderQueue {
-		std::vector<std::map<Ref<Material>, RenderEntry>> _renderEntries;
-
-		RenderMode _currentRenderMode;
-		std::map<Ref<Material>, RenderEntry>::iterator _currentRenderEntry;
-		std::map<Ref<Material>, RenderEntry>::iterator _currentRenderEntryEnd;
-
+	class RenderQueue {
+	public:
 		RenderQueue();
 
 		void Open();
@@ -43,5 +40,13 @@ namespace flaw {
 		bool Empty();
 
 		RenderEntry& Front();
+
+	private:
+		std::map<Ref<Material>, int32_t> _materialIndexMap;
+		std::vector<std::vector<RenderEntry>> _renderEntries;
+
+		RenderMode _currentRenderMode;
+		std::vector<RenderEntry>::iterator _currentRenderEntry;
+		std::vector<RenderEntry>::iterator _currentRenderEntryEnd;
 	};
 }
