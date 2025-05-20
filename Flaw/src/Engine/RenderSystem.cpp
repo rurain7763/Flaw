@@ -128,13 +128,6 @@ namespace flaw {
 		sbDesc.accessFlags = AccessFlag::Write;
 		_batchedTransformSB = Graphics::CreateStructuredBuffer(sbDesc);
 
-		// Create a structured buffer for skeleton bones
-		sbDesc.elmSize = sizeof(mat4);
-		sbDesc.count = MaxSkeletonBoneCount;
-		sbDesc.bindFlags = BindFlag::ShaderResource;
-		sbDesc.accessFlags = AccessFlag::Write;
-		_skeletonBoneSB = Graphics::CreateStructuredBuffer(sbDesc);
-
 		// Create a structured buffer for point lights
 		sbDesc.elmSize = sizeof(PointLight);
 		sbDesc.count = MaxPointLights;
@@ -333,18 +326,21 @@ namespace flaw {
 
 				const auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(enttComp.uuid);
 				for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
-					auto& material = skeletalMeshComp.materials[i];
+					auto& materialHandle = skeletalMeshComp.materials[i];
+					auto& skeletonHandle = skeletalMeshComp.skeletons[i];
 
-					auto materialAsset = AssetManager::GetAsset<MaterialAsset>(material);
+					auto materialAsset = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 					if (!materialAsset) {
 						continue;
 					}
 
-					if (i >= skeletalAnimData.GetSkeletonCount()) {
+					auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(skeletonHandle);
+					if (!skeletonAsset) {
 						continue;
 					}
 
-					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), skeletalAnimData.GetSkeletonBoneMatrices(i), skeletalAnimData.GetSkeletonBoneCount(i));
+					const auto& animationMatrices = skeletalAnimData.bindingPosMatrices.at(skeletonAsset->GetSkeleton());
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), animationMatrices);
 				}
 			}
 
@@ -464,21 +460,15 @@ namespace flaw {
 			}
 
 			// skeletal mesh draw
-			cmdQueue.Begin();
-			cmdQueue.SetStructuredBuffer(_skeletonBoneSB, 1);
-			cmdQueue.End();
-
-			cmdQueue.Execute();
-
 			for (auto& obj : entry.skeletalInstancingObjects) {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
 				_batchedTransformSB->Update(&obj.modelMatrices, sizeof(mat4));
-				_skeletonBoneSB->Update(obj.skeletonBoneMatrices, sizeof(mat4) * obj.skeletonBoneCount);
 
 				cmdQueue.Begin();
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
+				cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, 1, meshSegment.indexStart, meshSegment.vertexStart);
 				cmdQueue.End();

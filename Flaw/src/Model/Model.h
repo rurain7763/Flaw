@@ -13,9 +13,11 @@ struct aiTexture;
 struct aiSkeleton;
 struct aiBone;
 struct aiNode;
+struct aiAnimation;
+struct aiNodeAnim;
 
 namespace flaw {
-	constexpr int32_t MaxBoneCount = 4;
+	constexpr int32_t MaxInfluenceBoneCount = 4;
 
 	enum class ModelType {
 		Obj,
@@ -29,13 +31,16 @@ namespace flaw {
 		vec2 texCoord;
 		vec3 tangent;
 		vec3 bitangent;
-		int32_t boneIndex[MaxBoneCount] = { -1, -1, -1, -1 };
-		float boneWeight[MaxBoneCount] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	};
 
-		void AddBoneWeight(int32_t index, float weight) {
-			for (int32_t i = 0; i < MaxBoneCount; ++i) {
-				if (boneIndex[i] == -1) {
-					boneIndex[i] = index;
+	struct ModelVertexBoneData {
+		std::string boneNames[MaxInfluenceBoneCount] = { "", "", "", ""};
+		float boneWeight[MaxInfluenceBoneCount] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		void AddBoneWeight(const char* boneName, float weight) {
+			for (int32_t i = 0; i < MaxInfluenceBoneCount; ++i) {
+				if (boneNames[i] == "") {
+					boneNames[i] = boneName;
 					boneWeight[i] = weight;
 					return;
 				}
@@ -50,26 +55,44 @@ namespace flaw {
 		Ref<Image> emissive;
 	};
 
+	struct ModelBone {
+		std::string name;
+		int32_t parentIndex = -1;
+		std::vector<int32_t> childrenIndices;
+		mat4 offsetMatrix = mat4(1.0f);
+		mat4 transformMatrix = mat4(1.0f);
+	};
+
+	struct ModelSkeleton {
+		std::unordered_map<std::string, int32_t> boneMap;
+		std::vector<ModelBone> bones;
+	};
+
+	struct ModelBoneAnimation {
+		std::string boneName;
+
+		std::vector<std::pair<float, vec3>> positionKeys;
+		std::vector<std::pair<float, vec4>> rotationKeys;
+		std::vector<std::pair<float, vec3>> scaleKeys;
+	};
+	
+	struct ModelSkeletalAnimation {
+		std::string name;
+		float duration = 0.0f;
+		float ticksPerSecond = 0.0f;
+
+		std::vector<ModelBoneAnimation> boneAnimations;
+	};
+
 	struct ModelMesh {
 		uint32_t vertexStart = 0;
 		uint32_t vertexCount = 0;
 		uint32_t indexStart = 0;
 		uint32_t indexCount = 0;
-		uint32_t materialIndex = 0;
+		int32_t materialIndex = -1;
+		int32_t skeletonIndex = -1;
 	};
 
-	struct ModelSkeleton {
-		uint32_t boneStart = 0;
-		uint32_t boneCount = 0;
-	};
-
-	struct ModelBone {
-		std::string name;
-		mat4 offsetMatrix;
-		mat4 transform;
-		int32_t parentIndex = -1;
-	};
-	
 	class Model {
 	public:
 		Model() = default;
@@ -78,13 +101,17 @@ namespace flaw {
 
 		ModelType GetModelType() const { return _type; }
 
-		const uint32_t GetMaterialCount() const { return _materials.size(); }
+		const std::vector<ModelMaterial>& GetMaterials() const { return _materials; }
 		const ModelMaterial& GetMaterialAt(uint32_t index) const { return _materials[index]; }
+		const std::vector<ModelSkeleton>& GetSkeletons() const { return _skeletons; }
+		const ModelSkeleton& GetSkeletonAt(uint32_t index) const { return _skeletons[index]; }
 		const std::vector<ModelVertex>& GetVertices() const { return _vertices; }
+		const ModelVertex& GetVertexAt(uint32_t index) const { return _vertices[index]; }
+		const ModelVertexBoneData& GetVertexBoneDataAt(uint32_t index) const { return _vertexBoneData[index]; }
 		const std::vector<uint32_t>& GetIndices() const { return _indices; }
 		const std::vector<ModelMesh>& GetMeshs() const { return _meshes; }
-		const std::vector<ModelSkeleton>& GetSkeletons() const { return _skeletons; }
-		const std::vector<ModelBone>& GetBones() const { return _bones; }
+
+		const mat4& GetGlobalInvMatrix() const { return _globalInvMatrix; }
 
 		bool HasSkeleton() const { return !_skeletons.empty(); }
 
@@ -93,24 +120,28 @@ namespace flaw {
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
 		void ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
+		void ParseSkeletons(const aiScene* scene);
 		void ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
-		void SetBonesTransform(const std::map<std::string, int32_t>& boneMap, const aiNode* node, const mat4& parentTransform, const mat4& globalInv);
+		void ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim);
 
 		Ref<Image> GetImageOrCreate(const std::filesystem::path& path);
 
 	private: 
 		ModelType _type = ModelType::Unknown;
 
+		mat4 _globalInvMatrix = mat4(1.0f);
+
 		std::unordered_map<std::filesystem::path, Ref<Image>> _images;
 		std::vector<ModelMaterial> _materials;
 
 		std::vector<ModelVertex> _vertices;
+		std::vector<ModelVertexBoneData> _vertexBoneData;
 		std::vector<uint32_t> _indices;
 
-		std::vector<ModelBone> _bones;
+		std::vector<ModelSkeleton> _skeletons;
+		std::vector<ModelSkeletalAnimation> _skeletalAnimations;
 
 		std::vector<ModelMesh> _meshes;
-		std::vector<ModelSkeleton> _skeletons;
 	};
 }

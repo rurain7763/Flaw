@@ -31,22 +31,19 @@ namespace flaw {
 			if (meshAsset == nullptr) {
 				continue;
 			}
-
-			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
-			if (skeletonAsset == nullptr) {
-				continue;
-			}
-
+			
 			auto& skeletalAnimData = _skeletonAnimations[enttComp.uuid];
+			skeletalAnimData.bindingPosMatrices.clear();
+			for (const auto& skeletonHandle : meshAsset->GetSkeletonHandles()) {
+				auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(skeletonHandle);
+				if (skeletonAsset == nullptr) {
+					continue;
+				}
 
-			Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
+				Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
 
-			skeletalAnimData.segments.clear();
-			for (const auto& segment : skeleton->GetSkeletonSegments()) {
-				skeletalAnimData.segments.emplace_back(segment.boneStart, segment.boneCount);
+				skeletalAnimData.bindingPosMatrices[skeleton] = skeleton->GetBindingPosGPUBuffer();
 			}
-
-			skeletonAsset->GetSkeleton()->GetBindPosMatrices(skeletalAnimData.boneMatrices);
 		}
 	}
 }

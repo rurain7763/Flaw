@@ -14,6 +14,15 @@ namespace flaw {
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_ConvertToLeftHanded;
 
+	mat4 ToMat4(const aiMatrix4x4& mat) {
+		return mat4(
+			mat.a1, mat.b1, mat.c1, mat.d1,
+			mat.a2, mat.b2, mat.c2, mat.d2,
+			mat.a3, mat.b3, mat.c3, mat.d3,
+			mat.a4, mat.b4, mat.c4, mat.d4
+		);
+	}
+
 	Model::Model(const char* filePath) {
 		std::string extension = std::filesystem::path(filePath).extension().generic_string();
 		
@@ -49,6 +58,10 @@ namespace flaw {
 	}
 
 	void Model::ParseScene(std::filesystem::path basePath, const aiScene* scene) {
+		_globalInvMatrix = ToMat4(scene->mRootNode->mTransformation);
+
+		ParseSkeletons(scene);
+
 		_materials.resize(scene->mNumMaterials);
 		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
 			const aiMaterial* material = scene->mMaterials[i];
@@ -61,11 +74,68 @@ namespace flaw {
 			ParseMesh(scene, mesh, _meshes[i]);
 		}
 
+		_skeletalAnimations.resize(scene->mNumAnimations);
 		for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
 			const aiAnimation* animation = scene->mAnimations[i];
-
-			// TODO: 애니메이션 파싱
+			ParseAnimation(scene, animation, _skeletalAnimations[i]);
 		}
+	}
+
+	void BuildBones(const std::unordered_set<std::string>& boneNames, ModelSkeleton& result, const aiNode* current, int32_t parentIndex, const mat4& parentMatrix) {
+		mat4 finalTransform = parentMatrix * ToMat4(current->mTransformation);
+		
+		auto it = boneNames.find(current->mName.C_Str());
+		if (it != boneNames.end()) {
+			int32_t boneIndex = result.boneMap.size();
+
+			ModelBone bone;
+			bone.name = current->mName.C_Str();
+			bone.parentIndex = parentIndex;
+			bone.transformMatrix = finalTransform;
+
+			result.bones.emplace_back(bone);
+			result.boneMap[current->mName.C_Str()] = boneIndex;
+			if (parentIndex != -1) {
+				result.bones[parentIndex].childrenIndices.push_back(boneIndex);
+			}
+			parentIndex = boneIndex;
+		}
+		
+		for (uint32_t i = 0; i < current->mNumChildren; ++i) {
+			BuildBones(boneNames, result, current->mChildren[i], parentIndex, finalTransform);
+		}
+	}
+
+	void BuildSkeletons(const std::unordered_set<std::string>& boneNames, std::vector<ModelSkeleton>& result, const aiNode* current, const mat4& parentMatrix) {
+		auto it = boneNames.find(current->mName.C_Str());
+		if (it != boneNames.end()) {
+			ModelSkeleton skeleton;
+			BuildBones(boneNames, skeleton, current, -1, parentMatrix);
+			result.push_back(skeleton);
+		}
+		else {
+			for (uint32_t i = 0; i < current->mNumChildren; ++i) {
+				BuildSkeletons(boneNames, result, current->mChildren[i], parentMatrix * ToMat4(current->mTransformation));
+			}
+		}
+	}
+
+	void Model::ParseSkeletons(const aiScene* scene) {
+		// get all bones name
+		std::unordered_set<std::string> boneNames;
+		for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
+			const aiMesh* mesh = scene->mMeshes[i];
+			
+			if (mesh->HasBones()) {
+				for (uint32_t j = 0; j < mesh->mNumBones; ++j) {
+					const aiBone* bone = mesh->mBones[j];
+					boneNames.insert(bone->mName.C_Str());
+				}
+			}
+		}
+
+		// build skeletons
+		BuildSkeletons(boneNames, _skeletons, scene->mRootNode, mat4(1.0f));
 	}
 
 	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
@@ -127,7 +197,7 @@ namespace flaw {
 			vertex.texCoord = mesh->HasTextureCoords(0) ? vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y) : vec2(0.0f);
 			vertex.tangent = mesh->HasTangentsAndBitangents() ? vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z) : vec3(0.0f);
 			vertex.bitangent = mesh->HasTangentsAndBitangents() ? vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z) : vec3(0.0f);
-			
+
 			_vertices.push_back(vertex);
 		}
 
@@ -139,58 +209,82 @@ namespace flaw {
 			}
 		}
 
-		ParseBones(scene, mesh, modelMesh);
-	}
-
-	mat4 ToMat4(const aiMatrix4x4& mat) {
-		return mat4(
-			mat.a1, mat.b1, mat.c1, mat.d1,
-			mat.a2, mat.b2, mat.c2, mat.d2,
-			mat.a3, mat.b3, mat.c3, mat.d3,
-			mat.a4, mat.b4, mat.c4, mat.d4
-		);
+		if (mesh->HasBones()) {
+			ParseBones(scene, mesh, modelMesh);
+		}
 	}
 
 	void Model::ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh) {
-		if (mesh->HasBones()) {
-			ModelSkeleton skeleton;
-			skeleton.boneStart = static_cast<uint32_t>(_bones.size());
-			skeleton.boneCount = mesh->mNumBones;
+		std::unordered_set<int32_t> candidateSkeletons;
+		for (int32_t i = 0; i < _skeletons.size(); ++i) {
+			candidateSkeletons.insert(i);
+		}
 
-			std::map<std::string, int32_t> boneMap;
+		_vertexBoneData.resize(_vertexBoneData.size() + modelMesh.vertexCount);
+		for (int32_t i = 0; i < mesh->mNumBones; ++i) {
+			const aiBone* bone = mesh->mBones[i];
+			const char* boneName = bone->mName.C_Str();
 
-			_bones.resize(_bones.size() + mesh->mNumBones);
-			for (int32_t i = 0; i < mesh->mNumBones; ++i) {
-				const aiBone* bone = mesh->mBones[i];
-				ModelBone& modelBone = _bones[skeleton.boneStart + i];
+			for (int32_t j = 0; j < bone->mNumWeights; ++j) {
+				const aiVertexWeight& weight = bone->mWeights[j];
 
-				modelBone.name = bone->mName.C_Str();
-				modelBone.offsetMatrix = ToMat4(bone->mOffsetMatrix);
-
-				for (int32_t j = 0; j < bone->mNumWeights; ++j) {
-					const aiVertexWeight& weight = bone->mWeights[j];
-					_vertices[modelMesh.vertexStart + weight.mVertexId].AddBoneWeight(i, weight.mWeight);
-				}
-
-				boneMap[modelBone.name] = skeleton.boneStart + i;
+				ModelVertexBoneData& vertexBoneData = _vertexBoneData[modelMesh.vertexStart + weight.mVertexId];
+				vertexBoneData.AddBoneWeight(boneName, weight.mWeight);
 			}
 
-			mat4 globalInverse = glm::inverse(ToMat4(scene->mRootNode->mTransformation));
-			SetBonesTransform(boneMap, scene->mRootNode, mat4(1.0f), globalInverse);
+			for (auto it = candidateSkeletons.begin(); it != candidateSkeletons.end();) {
+				ModelSkeleton& skeleton = _skeletons[*it];
 
-			_skeletons.push_back(skeleton);
+				if (skeleton.boneMap.find(boneName) == skeleton.boneMap.end()) {
+					it = candidateSkeletons.erase(it);
+				}
+				else {
+					int32_t boneIndex = skeleton.boneMap[boneName];
+					skeleton.bones[boneIndex].offsetMatrix = ToMat4(bone->mOffsetMatrix);
+					++it;
+				}
+			}
 		}
+
+		FASSERT(!candidateSkeletons.empty(), "No skeleton found for mesh");
+		modelMesh.skeletonIndex = *candidateSkeletons.begin();
 	}
 
-	void Model::SetBonesTransform(const std::map<std::string, int32_t>& boneMap, const aiNode* node, const mat4& parentTransform, const mat4& globalInv) {
-		mat4 finalTransform = parentTransform * ToMat4(node->mTransformation);
-		auto it = boneMap.find(node->mName.C_Str());
-		if (it != boneMap.end()) {
-			ModelBone& bone = _bones[it->second];
-			bone.transform = globalInv * finalTransform * bone.offsetMatrix;
-		}
-		for (int32_t i = 0; i < node->mNumChildren; ++i) {
-			SetBonesTransform(boneMap, node->mChildren[i], finalTransform, globalInv);
+	void Model::ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim) {
+		skeletalAnim.name = animation->mName.C_Str();
+		skeletalAnim.duration = animation->mDuration;
+		skeletalAnim.ticksPerSecond = animation->mTicksPerSecond != 0 ? animation->mTicksPerSecond : 25.0f;
+
+		skeletalAnim.boneAnimations.resize(animation->mNumChannels);
+		for (int32_t i = 0; i < animation->mNumChannels; ++i) {
+			const aiNodeAnim* channel = animation->mChannels[i];
+
+			ModelBoneAnimation& boneAnim = skeletalAnim.boneAnimations[i];
+			boneAnim.boneName = channel->mNodeName.C_Str();
+			
+			boneAnim.positionKeys.resize(channel->mNumPositionKeys);
+			for (int32_t j = 0; j < channel->mNumPositionKeys; ++j) {
+				boneAnim.positionKeys[j] = {
+					channel->mPositionKeys[j].mTime / skeletalAnim.ticksPerSecond,
+					vec3(channel->mPositionKeys[j].mValue.x, channel->mPositionKeys[j].mValue.y, channel->mPositionKeys[j].mValue.z)
+				};
+			}
+
+			boneAnim.rotationKeys.resize(channel->mNumRotationKeys);
+			for (int32_t j = 0; j < channel->mNumRotationKeys; ++j) {
+				boneAnim.rotationKeys[j] = {
+					channel->mRotationKeys[j].mTime / skeletalAnim.ticksPerSecond,
+					vec4(channel->mRotationKeys[j].mValue.x, channel->mRotationKeys[j].mValue.y, channel->mRotationKeys[j].mValue.z, channel->mRotationKeys[j].mValue.w)
+				};
+			}
+
+			boneAnim.scaleKeys.resize(channel->mNumScalingKeys);
+			for (int32_t j = 0; j < channel->mNumScalingKeys; ++j) {
+				boneAnim.scaleKeys[j] = {
+					channel->mScalingKeys[j].mTime / skeletalAnim.ticksPerSecond,
+					vec3(channel->mScalingKeys[j].mValue.x, channel->mScalingKeys[j].mValue.y, channel->mScalingKeys[j].mValue.z)
+				};
+			}
 		}
 	}
 }

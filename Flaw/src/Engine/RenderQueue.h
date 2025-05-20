@@ -25,8 +25,7 @@ namespace flaw {
 		int32_t segmentIndex = 0;
 
 		mat4 modelMatrices;
-		const mat4* skeletonBoneMatrices = nullptr;
-		int32_t skeletonBoneCount = 0;
+		Ref<StructuredBuffer> skeletonBoneMatrices;
 	};
 
 	struct RenderEntry {
@@ -45,7 +44,7 @@ namespace flaw {
 		void Close();
 
 		void Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material);
-		void Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const mat4* skeletonBones, int32_t skeletonBoneCount);
+		void Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const Ref<StructuredBuffer>& boneMatrices);
 		void Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material);
 		void Pop();
 

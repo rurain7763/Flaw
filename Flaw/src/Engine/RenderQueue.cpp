@@ -76,7 +76,7 @@ namespace flaw {
 		instance.instanceCount++;
 	}
 
-	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const mat4* skeletonBones, int32_t boneCount) {
+	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const Ref<StructuredBuffer>& boneMatrices) {
 		auto& entryList = _renderEntries[uint32_t(material->renderMode)];
 		int32_t entryIndex = GetRenderEntryIndex(material);
 
@@ -87,8 +87,7 @@ namespace flaw {
 		instance.mesh = mesh;
 		instance.segmentIndex = segmentIndex;
 		instance.modelMatrices = worldMat;
-		instance.skeletonBoneMatrices = skeletonBones;
-		instance.skeletonBoneCount = boneCount;
+		instance.skeletonBoneMatrices = boneMatrices;
 
 		entry.skeletalInstancingObjects.emplace_back(instance);
 	}

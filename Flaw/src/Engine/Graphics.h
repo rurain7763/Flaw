@@ -50,8 +50,8 @@ namespace flaw {
 		vec3 tangent;
 		vec3 normal;
 		vec3 binormal;
-		ivec4 boneIndex;
-		vec4 boneWeight;
+		ivec4 boneIndex = ivec4(-1, -1, -1, -1);
+		vec4 boneWeight = vec4(0.0f);
 	};
 
 	template<>

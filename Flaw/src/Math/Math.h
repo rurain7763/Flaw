@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utils/SerializationArchive.h"
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_ENABLE_EXPERIMENTAL
@@ -18,6 +20,25 @@ namespace flaw {
 	constexpr vec3 Left = vec3(-1.0f, 0.0f, 0.0f);
 	constexpr vec3 Up = vec3(0.0f, 1.0f, 0.0f);
 	constexpr vec3 Down = vec3(0.0f, -1.0f, 0.0f);
+
+	template<>
+	struct Serializer<mat4> {
+		static void Serialize(SerializationArchive& archive, const mat4& value) {
+			for (int i = 0; i < 4; ++i) {
+				for (int j = 0; j < 4; ++j) {
+					archive << value[i][j];
+				}
+			}
+		}
+
+		static void Deserialize(SerializationArchive& archive, mat4& value) {
+			for (int i = 0; i < 4; ++i) {
+				for (int j = 0; j < 4; ++j) {
+					archive >> value[i][j];
+				}
+			}
+		}
+	};
 
 	struct Plane {
 		vec4 data;

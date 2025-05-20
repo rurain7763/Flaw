@@ -2,24 +2,27 @@
 #include "Skeleton.h"
 
 namespace flaw {
-	Skeleton::Skeleton(const std::vector<SkeletonBoneMetadata>& boneMetas, const std::vector<SkeletonBone>& bones) 
-		: _boneMetadatas(boneMetas)
-		, _bones(bones)
+	Skeleton::Skeleton(const mat4& globalInvMatrix, const std::unordered_map<std::string, int32_t>& boneNameMap, const std::vector<SkeletonBone>& bones)
+		: _globalInvMatrix(globalInvMatrix)
+		, _boneNameMap(boneNameMap)
+		, _bones(bones) 
 	{
-		_skeletonSegments.resize(1);
-		_skeletonSegments[0].boneStart = 0;
-		_skeletonSegments[0].boneCount = bones.size();
+		GenerateBindingPosMatrices();
 	}
 
-	Skeleton::Skeleton(const std::vector<SkeletonBoneMetadata>& boneMetas, const std::vector<SkeletonBone>& bones, const std::vector<SkeletonSegment>& segments)
-		: _boneMetadatas(boneMetas)
-		, _bones(bones)
-		, _skeletonSegments(segments)
-	{
-	}
+	void Skeleton::GenerateBindingPosMatrices() {
+		// Transoformation matrices를 트리를 순회하며 계산한다.
+		std::vector<mat4> transformationMatrices(_bones.size());
+		std::transform(_bones.begin(), _bones.end(), transformationMatrices.begin(), [this](const SkeletonBone& bone) {
+			return _globalInvMatrix * bone.transformMatrix * bone.offsetMatrix;
+		});
 
-	void Skeleton::GetBindPosMatrices(std::vector<mat4>& out) const {
-		out.clear();
-		std::transform(_bones.begin(), _bones.end(), std::back_inserter(out), [](const SkeletonBone& bone) { return bone.transformMatrix; });
+		StructuredBuffer::Descriptor desc = {};
+		desc.elmSize = sizeof(mat4);
+		desc.count = transformationMatrices.size();
+		desc.bindFlags = BindFlag::ShaderResource;
+		desc.initialData = transformationMatrices.data();
+
+		_bindPosGPUBuffer = Graphics::CreateStructuredBuffer(desc);
 	}
 }

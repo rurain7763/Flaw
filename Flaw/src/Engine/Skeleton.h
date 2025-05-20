@@ -5,80 +5,60 @@
 #include "Utils/SerializationArchive.h"
 
 namespace flaw {
-	struct SkeletonSegment {
-		uint32_t boneStart = 0;
-		uint32_t boneCount = 0;
-	};
-
-	template<>
-	struct Serializer<SkeletonSegment> {
-		static void Serialize(SerializationArchive& archive, const SkeletonSegment& value) {
-			archive << value.boneStart;
-			archive << value.boneCount;
-		}
-		static void Deserialize(SerializationArchive& archive, SkeletonSegment& value) {
-			archive >> value.boneStart;
-			archive >> value.boneCount;
-		}
-	};
-
-	struct SkeletonBoneMetadata {
-		std::string name;
-	};
-
-	template<>
-	struct Serializer<SkeletonBoneMetadata> {
-		static void Serialize(SerializationArchive& archive, const SkeletonBoneMetadata& value) {
-			archive << value.name;
-		}
-
-		static void Deserialize(SerializationArchive& archive, SkeletonBoneMetadata& value) {
-			archive >> value.name;
-		}
-	};
-
 	struct SkeletonBone {
-		mat4 transformMatrix;
+		std::string name;
+		int32_t parentIndex = -1;
+		std::vector<int32_t> childrenIndices;
+		mat4 offsetMatrix = mat4(1.0f);
+		mat4 transformMatrix = mat4(1.0f);
 	};
 
 	template<>
 	struct Serializer<SkeletonBone> {
 		static void Serialize(SerializationArchive& archive, const SkeletonBone& value) {
-			for (int i = 0; i < 4; ++i) {
-				for (int j = 0; j < 4; ++j) {
-					archive << value.transformMatrix[i][j];
-				}
-			}
+			archive << value.name;
+			archive << value.parentIndex;
+			archive << value.childrenIndices;	
+			archive << value.offsetMatrix;
+			archive << value.transformMatrix;
 		}
 
 		static void Deserialize(SerializationArchive& archive, SkeletonBone& value) {
-			for (int i = 0; i < 4; ++i) {
-				for (int j = 0; j < 4; ++j) {
-					archive >> value.transformMatrix[i][j];
-				}
-			}
+			archive >> value.name;
+			archive >> value.parentIndex;
+			archive >> value.childrenIndices;
+			archive >> value.offsetMatrix;
+			archive >> value.transformMatrix;
 		}
 	};
 
 	class Skeleton {
 	public:
-		Skeleton() = default;
-		Skeleton(const std::vector<SkeletonBoneMetadata>& boneMetas, const std::vector<SkeletonBone>& bones);
-		Skeleton(const std::vector<SkeletonBoneMetadata>& boneMetas, const std::vector<SkeletonBone>& bones, const std::vector<SkeletonSegment>& segments);
+		Skeleton(const mat4& globalInvMatrix, const std::unordered_map<std::string, int32_t>& boneNameMap, const std::vector<SkeletonBone>& bones);
 
-		void GetBindPosMatrices(std::vector<mat4>& out) const;
-
-		const std::vector<SkeletonSegment>& GetSkeletonSegments() const {
-			return _skeletonSegments;
-		}
-
-		const std::vector<SkeletonBoneMetadata>& GetBoneMetadatas() const {
-			return _boneMetadatas;
-		}
+		Ref<StructuredBuffer> GetBindingPosGPUBuffer() const { return _bindPosGPUBuffer; }
 
 	private:
-		std::vector<SkeletonBoneMetadata> _boneMetadatas;
+		void GenerateBindingPosMatrices();
+
+	private:
+		mat4 _globalInvMatrix = mat4(1.0f);
+		std::unordered_map<std::string, int32_t> _boneNameMap;
 		std::vector<SkeletonBone> _bones;
-		std::vector<SkeletonSegment> _skeletonSegments;
+
+		Ref<StructuredBuffer> _bindPosGPUBuffer;
+	};
+
+	struct SkeletalAnimationBone {
+		std::string boneName;
+
+		std::vector<std::pair<float, vec3>> positionKeys;
+		std::vector<std::pair<float, vec4>> rotationKeys;
+		std::vector<std::pair<float, vec3>> scaleKeys;
+	};
+
+	class SkeletalAnimation {
+	public:
+
 	};
 }
