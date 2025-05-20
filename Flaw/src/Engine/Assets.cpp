@@ -110,9 +110,11 @@ namespace flaw {
 
 		_mesh = CreateRef<Mesh>(desc.vertices, desc.indices, desc.segments);
 		_materials = std::move(desc.materials);
+		_skeletonHandle = desc.skeletonHandle;
 	}
 
 	void SkeletalMeshAsset::Unload() {
+		_skeletonHandle.Invalidate();
 		_materials.clear();
 		_mesh.reset();
 	}
@@ -156,5 +158,16 @@ namespace flaw {
 
 	void MaterialAsset::Unload() {
 		_material.reset();
+	}
+
+	void SkeletonAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_skeleton = CreateRef<Skeleton>(desc.boneMetadatas, desc.bones, desc.segments);
+	}
+
+	void SkeletonAsset::Unload() {
+		_skeleton.reset();
 	}
 }

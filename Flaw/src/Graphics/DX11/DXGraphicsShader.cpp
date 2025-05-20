@@ -112,6 +112,14 @@ namespace flaw {
 					case 4: return DXGI_FORMAT_R32G32B32A32_UINT;
 				}
 				break;
+			case InputElement::ElementType::Int:
+				switch (count) {
+					case 1: return DXGI_FORMAT_R32_SINT;
+					case 2: return DXGI_FORMAT_R32G32_SINT;
+					case 3: return DXGI_FORMAT_R32G32B32_SINT;
+					case 4: return DXGI_FORMAT_R32G32B32A32_SINT;
+				}
+				break;
 		}
 		return DXGI_FORMAT_UNKNOWN;
 	}

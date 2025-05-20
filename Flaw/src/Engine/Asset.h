@@ -30,7 +30,8 @@ namespace flaw {
 		TextureCube,
 		Texture2DArray,
 		SkeletalMesh,
-		Material
+		Material,
+		Skeleton,
 	};
 
 	class Asset {

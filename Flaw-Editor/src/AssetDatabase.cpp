@@ -225,6 +225,7 @@ namespace flaw {
 					archive >> desc.materials;
 					archive >> desc.vertices;
 					archive >> desc.indices;
+					archive >> desc.skeletonHandle;
 				}
 			);
 			break;
@@ -252,6 +253,18 @@ namespace flaw {
 					archive >> desc.shaderHandle;
 					archive >> desc.albedoTexture;
 					archive >> desc.normalTexture;
+				}
+			);
+			break;
+		case AssetType::Skeleton:
+			asset = CreateRef<SkeletonAsset>(
+				[path, dataOffset](SkeletonAsset::Descriptor& desc) {
+					std::vector<int8_t> data;
+					FileSystem::ReadFile(path.generic_string().c_str(), data);
+					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
+					archive >> desc.segments;
+					archive >> desc.boneMetadatas;
+					archive >> desc.bones;
 				}
 			);
 			break;
@@ -302,6 +315,12 @@ namespace flaw {
 		if (settings->type == AssetCreateSettings::Type::Texture2D) {
 			return CreateTexture2D((Texture2DCreateSettings*)settings);
 		}
+		else if (settings->type == AssetCreateSettings::Type::Material) {
+			return CreateMaterial((MaterialCreateSettings*)settings);
+		}
+		else if (settings->type == AssetCreateSettings::Type::Skeleton) {
+			return CreateSkeleton((SkeletonCreateSettings*)settings);
+		}
 
 		return AssetHandle();
 	}
@@ -331,6 +350,14 @@ namespace flaw {
 			archive << settings->shaderHandle;
 			archive << settings->albedoTexture;
 			archive << settings->normalTexture;
+		});
+	}
+
+	AssetHandle AssetDatabase::CreateSkeleton(const SkeletonCreateSettings* settings) {
+		return CreateAssetFile(settings->destPath.c_str(), AssetType::Skeleton, [&](SerializationArchive& archive) {
+			archive << settings->segments;
+			archive << settings->boneMetadatas;
+			archive << settings->bones;
 		});
 	}
 
@@ -456,87 +483,96 @@ namespace flaw {
 			return false;
 		}
 
-		std::filesystem::path destPath = settings->destPath;
-		std::string fileNamePrefix = destPath.stem().generic_string();
-		destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
+		AssetHandle ret;
+		if (model.HasSkeleton()) {
+			std::filesystem::path destPath = settings->destPath;
+			std::string fileNamePrefix = destPath.stem().generic_string();
+			destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
 
-		return CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
-			std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
-			std::vector<AssetHandle> loadedMaterial(model.GetMaterialCount());
-			for (const auto& mesh : model.GetMeshs()) {
-				const ModelMaterial& material = model.GetMaterialAt(mesh.materialIndex);
+			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
+				std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
+				std::vector<AssetHandle> loadedMaterial(model.GetMaterialCount());
+				for (const auto& mesh : model.GetMeshs()) {
+					const ModelMaterial& material = model.GetMaterialAt(mesh.materialIndex);
 
-				MaterialCreateSettings matSet = {};
-				matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material_" + std::to_string(mesh.materialIndex) + ".asset").generic_string();
-				matSet.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry");
-				matSet.renderMode = RenderMode::Opaque;
-				matSet.cullMode = CullMode::Back;
-				matSet.depthTest = DepthTest::Less;
-				matSet.depthWrite = true;
+					MaterialCreateSettings matSet = {};
+					matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material_" + std::to_string(mesh.materialIndex) + ".asset").generic_string();
+					matSet.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry_skeletal");
+					matSet.renderMode = RenderMode::Opaque;
+					matSet.cullMode = CullMode::Back;
+					matSet.depthTest = DepthTest::Less;
+					matSet.depthWrite = true;
 
-				std::vector<std::pair<std::string, Ref<Image>>> images = {
-					{"Diffuse", material.diffuse},
-					{"Normal", material.normal},
-					{"Specular", material.specular},
-					{"Emissive", material.emissive}
-				};
+					std::vector<std::pair<std::string, Ref<Image>>> images = {
+						{"Diffuse", material.diffuse},
+						{"Normal", material.normal},
+						{"Specular", material.specular},
+						{"Emissive", material.emissive}
+					};
 
-				for (const auto& [kindStr, image] : images) {
-					if (image) {
-						if (loadedImages.find(image) == loadedImages.end()) {
-							Texture2DCreateSettings textureSettings = {};
-							textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
-							textureSettings.format = PixelFormat::RGBA8;
-							textureSettings.width = image->Width();
-							textureSettings.height = image->Height();
-							textureSettings.usageFlags = UsageFlag::Static;
-							textureSettings.bindFlags = BindFlag::ShaderResource;
-							textureSettings.accessFlags = 0;
-							textureSettings.data = image->Data();
+					for (const auto& [kindStr, image] : images) {
+						if (image) {
+							if (loadedImages.find(image) == loadedImages.end()) {
+								Texture2DCreateSettings textureSettings = {};
+								textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
+								textureSettings.format = PixelFormat::RGBA8;
+								textureSettings.width = image->Width();
+								textureSettings.height = image->Height();
+								textureSettings.usageFlags = UsageFlag::Static;
+								textureSettings.bindFlags = BindFlag::ShaderResource;
+								textureSettings.accessFlags = 0;
+								textureSettings.data = image->Data();
 
-							loadedImages[image] = CreateTexture2D(&textureSettings);
-						}
+								loadedImages[image] = CreateTexture2D(&textureSettings);
+							}
 
-						if (kindStr == "Diffuse") {
-							matSet.albedoTexture = loadedImages[image];
-						}
-						else if (kindStr == "Normal") {
-							matSet.normalTexture = loadedImages[image];
+							if (kindStr == "Diffuse") {
+								matSet.albedoTexture = loadedImages[image];
+							}
+							else if (kindStr == "Normal") {
+								matSet.normalTexture = loadedImages[image];
+							}
 						}
 					}
+
+					loadedMaterial[mesh.materialIndex] = CreateMaterial(&matSet);
 				}
 
-				loadedMaterial[mesh.materialIndex] = CreateMaterial(&matSet);
-			}
+				std::vector<MeshSegment> segments;
+				std::vector<AssetHandle> materials;
+				for (const auto& mesh : model.GetMeshs()) {
+					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
+					materials.push_back(loadedMaterial[mesh.materialIndex]);
+				}
 
-			std::vector<MeshSegment> segments;
-			std::vector<AssetHandle> materials;
-			for (const auto& mesh : model.GetMeshs()) {
-				segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
-				materials.push_back(loadedMaterial[mesh.materialIndex]);
-			}
-
-			std::vector<Vertex3D> vertices;
-			std::transform(
-				model.GetVertices().begin(),
-				model.GetVertices().end(),
-				std::back_inserter(vertices),
-				[](const ModelVertex& vertex) {
-					return Vertex3D{
-						vertex.position,
+				std::vector<Vertex3D> vertices;
+				std::transform(model.GetVertices().begin(), model.GetVertices().end(), std::back_inserter(vertices), [](const ModelVertex& vertex) { 
+					return Vertex3D{ 
+						vertex.position, 
 						vertex.texCoord,
-						vertex.tangent,
-						vertex.normal,
-						vertex.bitangent
+						vertex.tangent, 
+						vertex.normal, 
+						vertex.bitangent, 
+						{ vertex.boneIndex[0], vertex.boneIndex[1], vertex.boneIndex[2], vertex.boneIndex[3] },
+						{ vertex.boneWeight[0], vertex.boneWeight[1], vertex.boneWeight[2], vertex.boneWeight[3] },
 					};
-				}
-			);
+				});
 
-			archive << segments;
-			archive << materials;
-			archive << vertices;
-			archive << model.GetIndices();
-		}).IsValid();
+				SkeletonCreateSettings skeletonSettings = {};
+				skeletonSettings.destPath = destPath.replace_filename(fileNamePrefix + "_Skeleton.asset").generic_string();
+				std::transform(model.GetSkeletons().begin(), model.GetSkeletons().end(), std::back_inserter(skeletonSettings.segments), [](const ModelSkeleton& skeleton) { return SkeletonSegment{ skeleton.boneStart, skeleton.boneCount }; });
+				std::transform(model.GetBones().begin(), model.GetBones().end(), std::back_inserter(skeletonSettings.boneMetadatas), [](const ModelBone& bone) { return SkeletonBoneMetadata{ bone.name }; });
+				std::transform(model.GetBones().begin(), model.GetBones().end(), std::back_inserter(skeletonSettings.bones), [](const ModelBone& bone) { return SkeletonBone{ bone.transform }; });
+
+				archive << segments;
+				archive << materials;
+				archive << vertices;
+				archive << model.GetIndices();
+				archive << CreateSkeleton(&skeletonSettings);
+			});
+		}
+
+		return ret.Invalidate();
 	}
 
 	bool AssetDatabase::ImportGraphicsShader(const GraphicsShaderImportSettings* settings) {

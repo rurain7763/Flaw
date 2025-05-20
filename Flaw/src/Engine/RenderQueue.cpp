@@ -29,12 +29,12 @@ namespace flaw {
 		}
 	}
 
-	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material) {
-		auto& entryList = _renderEntries[uint32_t(material->renderMode)];
+	int32_t RenderQueue::GetRenderEntryIndex(const Ref<Material>& material) {
 		int32_t entryIndex = -1;
-		
+
 		auto indexIt = _materialIndexMap.find(material);
 		if (indexIt == _materialIndexMap.end()) {
+			auto& entryList = _renderEntries[uint32_t(material->renderMode)];
 			entryIndex = entryList.size();
 			_materialIndexMap[material] = entryIndex;
 			entryList.resize(entryIndex + 1);
@@ -42,6 +42,13 @@ namespace flaw {
 		else {
 			entryIndex = indexIt->second;
 		}
+
+		return entryIndex;
+	}
+
+	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material) {
+		auto& entryList = _renderEntries[uint32_t(material->renderMode)];
+		int32_t entryIndex = GetRenderEntryIndex(material);
 		
 		auto& entry = entryList[entryIndex];
 		entry.material = material;
@@ -67,6 +74,23 @@ namespace flaw {
 		auto& instance = entry.instancingObjects[instanceIndex];
 		instance.modelMatrices.emplace_back(worldMat);
 		instance.instanceCount++;
+	}
+
+	void RenderQueue::Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const mat4* skeletonBones, int32_t boneCount) {
+		auto& entryList = _renderEntries[uint32_t(material->renderMode)];
+		int32_t entryIndex = GetRenderEntryIndex(material);
+
+		auto& entry = entryList[entryIndex];
+		entry.material = material;
+
+		SkeletalInstancingObject instance = {};
+		instance.mesh = mesh;
+		instance.segmentIndex = segmentIndex;
+		instance.modelMatrices = worldMat;
+		instance.skeletonBoneMatrices = skeletonBones;
+		instance.skeletonBoneCount = boneCount;
+
+		entry.skeletalInstancingObjects.emplace_back(instance);
 	}
 
 	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material) {

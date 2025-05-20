@@ -316,6 +316,8 @@
     </ClInclude>
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Engine\Material.h" />
+    <ClInclude Include="src\Engine\Skeleton.h" />
+    <ClInclude Include="src\Engine\AnimationSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -475,5 +477,7 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\Engine\Skeleton.cpp" />
+    <ClCompile Include="src\Engine\AnimationSystem.cpp" />
   </ItemGroup>
 </Project>

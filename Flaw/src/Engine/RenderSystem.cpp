@@ -7,11 +7,11 @@
 #include "Time/Time.h"
 #include "Graphics/GraphicsFunc.h"
 #include "LandscapeSystem.h"
+#include "AnimationSystem.h"
 #include "ShadowSystem.h"
 #include "PrimitiveManager.h"
 
 // TODO: remove this
-#include "Image/Image.h"
 #include "Renderer2D.h"
 #include "SkyBoxSystem.h"
 #include "ParticleSystem.h"
@@ -128,6 +128,13 @@ namespace flaw {
 		sbDesc.accessFlags = AccessFlag::Write;
 		_batchedTransformSB = Graphics::CreateStructuredBuffer(sbDesc);
 
+		// Create a structured buffer for skeleton bones
+		sbDesc.elmSize = sizeof(mat4);
+		sbDesc.count = MaxSkeletonBoneCount;
+		sbDesc.bindFlags = BindFlag::ShaderResource;
+		sbDesc.accessFlags = AccessFlag::Write;
+		_skeletonBoneSB = Graphics::CreateStructuredBuffer(sbDesc);
+
 		// Create a structured buffer for point lights
 		sbDesc.elmSize = sizeof(PointLight);
 		sbDesc.count = MaxPointLights;
@@ -185,6 +192,7 @@ namespace flaw {
 		_globalConstants.deltaTime = Time::DeltaTime();
 		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
 
+		_scene.GetAnimationSystem().Update();
 		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
 		_scene.GetSkyBoxSystem().Update();
@@ -207,6 +215,7 @@ namespace flaw {
 		_globalConstants.deltaTime = Time::DeltaTime();
 		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
 
+		_scene.GetAnimationSystem().Update();
 		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
 		_scene.GetSkyBoxSystem().Update();
@@ -307,7 +316,7 @@ namespace flaw {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
+			for (auto&& [entity, enttComp, transform, skeletalMeshComp] : _scene.GetRegistry().view<EntityComponent, TransformComponent, SkeletalMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -318,17 +327,24 @@ namespace flaw {
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
 				auto& boundingSphere = mesh->GetBoundingSphere();
 
-				if (camera.isPerspective && camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
-					for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
-						auto& material = skeletalMeshComp.materials[i];
+				if (camera.isPerspective && !camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
+					continue;
+				}
 
-						auto materialAsset = AssetManager::GetAsset<MaterialAsset>(material);
-						if (!materialAsset) {
-							continue;
-						}
+				const auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(enttComp.uuid);
+				for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
+					auto& material = skeletalMeshComp.materials[i];
 
-						stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial());
+					auto materialAsset = AssetManager::GetAsset<MaterialAsset>(material);
+					if (!materialAsset) {
+						continue;
 					}
+
+					if (i >= skeletalAnimData.GetSkeletonCount()) {
+						continue;
+					}
+
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), skeletalAnimData.GetSkeletonBoneMatrices(i), skeletalAnimData.GetSkeletonBoneCount(i));
 				}
 			}
 
@@ -352,7 +368,6 @@ namespace flaw {
 			RenderDecal(stage);
 			RenderDefferdLighting(stage);
 			RenderTransparent(stage);
-			// TODO: Add more render stages
 			FinalizeRender(stage);
 		}
 	}
@@ -421,11 +436,7 @@ namespace flaw {
 				}
 			}
 
-			std::memcpy(
-				_materialConstants.intConstants,
-				entry.material->intConstants,
-				sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4
-			);
+			std::memcpy(_materialConstants.intConstants, entry.material->intConstants, sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4);
 
 			_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
 
@@ -449,6 +460,28 @@ namespace flaw {
 				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
 				cmdQueue.End();
 
+				cmdQueue.Execute();
+			}
+
+			// skeletal mesh draw
+			cmdQueue.Begin();
+			cmdQueue.SetStructuredBuffer(_skeletonBoneSB, 1);
+			cmdQueue.End();
+
+			cmdQueue.Execute();
+
+			for (auto& obj : entry.skeletalInstancingObjects) {
+				auto& mesh = obj.mesh;
+				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
+
+				_batchedTransformSB->Update(&obj.modelMatrices, sizeof(mat4));
+				_skeletonBoneSB->Update(obj.skeletonBoneMatrices, sizeof(mat4) * obj.skeletonBoneCount);
+
+				cmdQueue.Begin();
+				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
+				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
+				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, 1, meshSegment.indexStart, meshSegment.vertexStart);
+				cmdQueue.End();
 				cmdQueue.Execute();
 			}
 

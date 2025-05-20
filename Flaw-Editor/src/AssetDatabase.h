@@ -29,6 +29,7 @@ namespace flaw {
 		enum class Type {
 			Texture2D,
 			Material,
+			Skeleton,
 		};
 
 		Type type;
@@ -68,6 +69,16 @@ namespace flaw {
 
 		MaterialCreateSettings() {
 			type = Type::Material;
+		}
+	};
+
+	struct SkeletonCreateSettings : public AssetCreateSettings {
+		std::vector<SkeletonSegment> segments;
+		std::vector<SkeletonBoneMetadata> boneMetadatas;
+		std::vector<SkeletonBone> bones;
+
+		SkeletonCreateSettings() {
+			type = Type::Skeleton;
 		}
 	};
 
@@ -189,6 +200,7 @@ namespace flaw {
 
 		static AssetHandle CreateTexture2D(const Texture2DCreateSettings* settings);
 		static AssetHandle CreateMaterial(const MaterialCreateSettings* settings);
+		static AssetHandle CreateSkeleton(const SkeletonCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);

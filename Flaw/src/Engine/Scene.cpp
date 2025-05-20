@@ -11,6 +11,7 @@
 #include "SkyBoxSystem.h"
 #include "LandscapeSystem.h"
 #include "ShadowSystem.h"
+#include "AnimationSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -39,6 +40,10 @@ namespace flaw {
 		_registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
 		_registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
 		_registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
+
+		_animationSystem = CreateScope<AnimationSystem>(*this);
+		_registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*_animationSystem);
+		_registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*_animationSystem);
 
 		_renderSystem = CreateScope<RenderSystem>(*this);
 

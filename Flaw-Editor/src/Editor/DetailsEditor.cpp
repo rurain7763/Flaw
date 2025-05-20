@@ -215,7 +215,7 @@ namespace flaw {
 							if (metadata.type == AssetType::SkeletalMesh) {
 								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
 								meshRendererComp.mesh = metadata.handle;
-								meshRendererComp.materials = asset->GetMaterials();
+								meshRendererComp.materials = asset->GetMaterialHandles();
 							}
 						}
 					}

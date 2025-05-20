@@ -10,6 +10,7 @@
 #include "Graphics/GraphicsBuffers.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "Skeleton.h"
 
 namespace flaw {
 	class Texture2DAsset : public Asset {
@@ -157,6 +158,7 @@ namespace flaw {
 			std::vector<AssetHandle> materials;
 			std::vector<Vertex3D> vertices;
 			std::vector<uint32_t> indices;
+			AssetHandle skeletonHandle;
 		};
 
 		SkeletalMeshAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
@@ -171,14 +173,16 @@ namespace flaw {
 
 		Ref<Mesh> GetMesh() const { return _mesh; }
 
-		const std::vector<AssetHandle>& GetMaterials() const { return _materials; }
-		const AssetHandle& GetMaterialAt(uint32_t index) const { return _materials[index]; }
+		const std::vector<AssetHandle>& GetMaterialHandles() const { return _materials; }
+		const AssetHandle& GetMaterialHandleAt(uint32_t index) const { return _materials[index]; }
+		const AssetHandle& GetSkeletonHandle() const { return _skeletonHandle; }
 
 	private:
 		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<Mesh> _mesh;
 		std::vector<AssetHandle> _materials;
+		AssetHandle _skeletonHandle;
 	};
 
 	class GraphicsShaderAsset : public Asset {
@@ -238,5 +242,31 @@ namespace flaw {
 		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<Material> _material;
+	};
+
+	class SkeletonAsset : public Asset {
+	public:
+		struct Descriptor {
+			std::vector<SkeletonSegment> segments;
+			std::vector<SkeletonBoneMetadata> boneMetadatas;
+			std::vector<SkeletonBone> bones;
+		};
+
+		SkeletonAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Skeleton; }
+		bool IsLoaded() const override { return _skeleton != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<Skeleton>& GetSkeleton() const { return _skeleton; }
+
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<Skeleton> _skeleton;
 	};
 }

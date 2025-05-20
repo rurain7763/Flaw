@@ -17,6 +17,7 @@ namespace flaw {
 	class SkyBoxSystem;
 	class LandscapeSystem;
 	class ShadowSystem;
+	class AnimationSystem;
 
 	class Scene {
 	public:
@@ -51,6 +52,7 @@ namespace flaw {
 		SkyBoxSystem& GetSkyBoxSystem() { return *_skyBoxSystem; }
 		LandscapeSystem& GetLandscapeSystem() { return *_landscapeSystem; }
 		ShadowSystem& GetShadowSystem() { return *_shadowSystem; }
+		AnimationSystem& GetAnimationSystem() { return *_animationSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -67,6 +69,7 @@ namespace flaw {
 		Scope<SkyBoxSystem> _skyBoxSystem;
 		Scope<LandscapeSystem> _landscapeSystem;
 		Scope<ShadowSystem> _shadowSystem;
+		Scope<AnimationSystem> _animationSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

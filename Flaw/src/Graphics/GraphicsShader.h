@@ -11,7 +11,8 @@ namespace flaw {
 		struct InputElement {
 			enum class ElementType {
 				Float,
-				Uint32
+				Uint32,
+				Int,
 			};
 
 			const char* name;
@@ -36,6 +37,9 @@ namespace flaw {
 			}
 			else if (element.type == InputElement::ElementType::Uint32) {
 				typeSize = sizeof(uint32_t);
+			}
+			else if (element.type == InputElement::ElementType::Int) {
+				typeSize = sizeof(int32_t);
 			}
 			else {
 				FASSERT(false, "Invalid type");
@@ -72,6 +76,18 @@ namespace flaw {
 			attribute.normalized = normalized;
 			attribute.offset = _stride;
 			_stride += sizeof(uint32_t) * count;
+			_inputElements.push_back(std::move(attribute));
+		}
+
+		template <>
+		void AddInputElement<int32_t>(const char* name, uint32_t count, bool normalized) {
+			InputElement attribute;
+			attribute.name = name;
+			attribute.type = InputElement::ElementType::Int;
+			attribute.count = count;
+			attribute.normalized = normalized;
+			attribute.offset = _stride;
+			_stride += sizeof(int32_t) * count;
 			_inputElements.push_back(std::move(attribute));
 		}
 

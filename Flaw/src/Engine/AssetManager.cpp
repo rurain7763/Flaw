@@ -26,11 +26,31 @@ namespace flaw {
 				desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
 				desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
 				desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
+				desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
 			}
 		);
 
 		RegisterAsset(handle, graphicsShaderAsset);
 		RegisterKey("std3d_geometry", handle);
+
+		handle = g_registeredAssets.size();
+		graphicsShaderAsset = CreateRef<GraphicsShaderAsset>(
+			[](GraphicsShaderAsset::Descriptor& desc) {
+				desc.shaderPath = "Resources/Shaders/std3d_geometry_skeletal.fx";
+				desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+				desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
+				desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+				desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
+				desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
+			}
+		);
+
+		RegisterAsset(handle, graphicsShaderAsset);
+		RegisterKey("std3d_geometry_skeletal", handle);
 	}
 
 	void AssetManager::Cleanup() {

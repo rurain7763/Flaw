@@ -50,6 +50,8 @@ namespace flaw {
 		vec3 tangent;
 		vec3 normal;
 		vec3 binormal;
+		ivec4 boneIndex;
+		vec4 boneWeight;
 	};
 
 	template<>
@@ -60,6 +62,8 @@ namespace flaw {
 			archive << value.tangent.x << value.tangent.y << value.tangent.z;
 			archive << value.normal.x << value.normal.y << value.normal.z;
 			archive << value.binormal.x << value.binormal.y << value.binormal.z;
+			archive << value.boneIndex.x << value.boneIndex.y << value.boneIndex.z << value.boneIndex.w;
+			archive << value.boneWeight.x << value.boneWeight.y << value.boneWeight.z << value.boneWeight.w;
 		}
 
 		static void Deserialize(SerializationArchive& archive, Vertex3D& value) {
@@ -68,6 +72,8 @@ namespace flaw {
 			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
 			archive >> value.normal.x >> value.normal.y >> value.normal.z;
 			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
+			archive >> value.boneIndex.x >> value.boneIndex.y >> value.boneIndex.z >> value.boneIndex.w;
+			archive >> value.boneWeight.x >> value.boneWeight.y >> value.boneWeight.z >> value.boneWeight.w;
 		}
 	};
 

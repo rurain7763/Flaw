@@ -102,6 +102,8 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Engine\AnimationSystem.h" />
+    <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\Debug\Instrumentor.h" />
     <ClInclude Include="src\ECS\ECS.h" />
@@ -190,6 +192,8 @@
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\AnimationSystem.cpp" />
+    <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />
     <ClCompile Include="src\Engine\Assets.cpp" />

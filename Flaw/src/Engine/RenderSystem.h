@@ -45,6 +45,7 @@ namespace flaw {
 		constexpr static uint32_t MaxBatchVertexCount = 10000;
 		constexpr static uint32_t MaxBatchIndexCount = 30000;
 		constexpr static uint32_t MaxBatchTransformCount = 100;
+		constexpr static uint32_t MaxSkeletonBoneCount = 10000;
 		constexpr static uint32_t MaxDecalCount = 1000;
 		constexpr static uint32_t MaxPointLights = 10;
 		constexpr static uint32_t MaxSpotLights = 10;
@@ -78,6 +79,7 @@ namespace flaw {
 		Ref<ConstantBuffer> _lightCB;
 		Ref<ConstantBuffer> _materialCB;
 		Ref<StructuredBuffer> _batchedTransformSB;
+		Ref<StructuredBuffer> _skeletonBoneSB;
 
 		struct DirectionalLightUniforms {
 			mat4 view;
