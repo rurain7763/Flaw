@@ -250,6 +250,7 @@ namespace flaw {
 			mat4 globalInvMatrix;
 			std::vector<SkeletonNode> nodes;
 			std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+			std::vector<AssetHandle> animationHandles;
 		};
 
 		SkeletonAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
@@ -263,10 +264,38 @@ namespace flaw {
 		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
 
 		const Ref<Skeleton>& GetSkeleton() const { return _skeleton; }
+		const std::vector<AssetHandle>& GetAnimationHandles() const { return _animationHandles; }
 
 	private:
 		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<Skeleton> _skeleton;
+		std::vector<AssetHandle> _animationHandles;
+	};
+
+	class SkeletalAnimationAsset : public Asset {
+	public:
+		struct Descriptor {
+			std::string name;
+			float durationSec;
+			std::vector<SkeletalAnimationNode> animationNodes;
+		};
+
+		SkeletalAnimationAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::SkeletalAnimation; }
+		bool IsLoaded() const override { return _animation != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<SkeletalAnimation>& GetAnimation() const { return _animation; }
+
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<SkeletalAnimation> _animation;
 	};
 }

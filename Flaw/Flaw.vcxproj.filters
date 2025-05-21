@@ -318,6 +318,7 @@
     <ClInclude Include="src\Engine\Material.h" />
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Engine\AnimationSystem.h" />
+    <ClInclude Include="src\Utils\Search.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">

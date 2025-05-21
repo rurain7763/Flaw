@@ -4,6 +4,7 @@
 #include "Skeleton.h"
 #include "AssetManager.h"
 #include "Assets.h"
+#include "Time/Time.h"
 
 namespace flaw {
 	AnimationSystem::AnimationSystem(Scene& scene)
@@ -40,7 +41,43 @@ namespace flaw {
 				continue;
 			}
 
-			skeletalAnimData.boneMatrices = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
+			Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
+
+			skeletalAnimData.bindingPosMatrices = skeleton->GetBindingPosGPUBuffer();
+
+			if (!skeletalAnimData.animationMatrices || skeletalAnimData.animationMatrices->Size() < sizeof(mat4) * skeleton->GetBoneCount()) {
+				StructuredBuffer::Descriptor desc = {};
+				desc.elmSize = sizeof(mat4);
+				desc.count = skeleton->GetBoneCount();
+				desc.bindFlags = BindFlag::ShaderResource;
+				desc.accessFlags = AccessFlag::Write;
+				desc.initialData = nullptr;
+
+				skeletalAnimData.animationMatrices = Graphics::CreateStructuredBuffer(desc);
+			}
+
+			// TODO: temporary animation
+			skeletalAnimData.boneMatrices = skeletalAnimData.bindingPosMatrices;
+			for (AssetHandle animationHandle : skeletonAsset->GetAnimationHandles()) {
+				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandle);
+				if (animationAsset == nullptr) {
+					continue;
+				}
+
+				Ref<SkeletalAnimation> animation = animationAsset->GetAnimation();
+
+				skeletalAnimData.animationTime += Time::DeltaTime();
+				if (skeletalAnimData.animationTime > animation->GetDurationSec()) {
+					skeletalAnimData.animationTime = 0.0f;
+				}
+
+				std::vector<mat4> animationMatrices;
+				skeleton->GetAnimationMatrices(animation, skeletalAnimData.animationTime, animationMatrices);
+				skeletalAnimData.animationMatrices->Update(animationMatrices.data(), sizeof(mat4) * animationMatrices.size());
+
+				skeletalAnimData.boneMatrices = skeletalAnimData.animationMatrices;
+				break;
+			}
 		}
 	}
 }

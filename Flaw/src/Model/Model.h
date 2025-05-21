@@ -34,13 +34,13 @@ namespace flaw {
 	};
 
 	struct ModelVertexBoneData {
-		std::string boneNames[MaxInfluenceBoneCount] = { "", "", "", ""};
+		int32_t boneIndices[MaxInfluenceBoneCount] = { -1, -1, -1, -1 };
 		float boneWeight[MaxInfluenceBoneCount] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		void AddBoneWeight(const char* boneName, float weight) {
+		void AddBoneWeight(int32_t index, float weight) {
 			for (int32_t i = 0; i < MaxInfluenceBoneCount; ++i) {
-				if (boneNames[i] == "") {
-					boneNames[i] = boneName;
+				if (boneIndices[i] == -1) {
+					boneIndices[i] = index;
 					boneWeight[i] = weight;
 					return;
 				}
@@ -64,6 +64,7 @@ namespace flaw {
 
 	struct ModelSkeletonBoneNode {
 		int32_t nodeIndex = -1;
+		int32_t boneIndex = -1;
 		mat4 offsetMatrix = mat4(1.0f);
 	};
 
@@ -77,12 +78,13 @@ namespace flaw {
 					return static_cast<int32_t>(i);
 				}
 			}
-			return -1;
+
+			throw std::runtime_error("Node not found: " + name);
 		}
 	};
 
-	struct ModelBoneAnimation {
-		std::string boneName;
+	struct ModelSkeletalAnimationNode {
+		std::string name;
 
 		std::vector<std::pair<float, vec3>> positionKeys;
 		std::vector<std::pair<float, vec4>> rotationKeys;
@@ -91,10 +93,9 @@ namespace flaw {
 	
 	struct ModelSkeletalAnimation {
 		std::string name;
-		float duration = 0.0f;
-		float ticksPerSecond = 0.0f;
+		float durationSec = 0.0f;
 
-		std::vector<ModelBoneAnimation> boneAnimations;
+		std::vector<ModelSkeletalAnimationNode> _nodes;
 	};
 
 	struct ModelMesh {
@@ -121,6 +122,7 @@ namespace flaw {
 		const ModelVertexBoneData& GetVertexBoneDataAt(uint32_t index) const { return _vertexBoneData[index]; }
 		const std::vector<uint32_t>& GetIndices() const { return _indices; }
 		const std::vector<ModelMesh>& GetMeshs() const { return _meshes; }
+		const std::vector<ModelSkeletalAnimation>& GetSkeletalAnimations() const { return _skeletalAnimations; }
 
 		const mat4& GetGlobalInvMatrix() const { return _globalInvMatrix; }
 
@@ -131,7 +133,7 @@ namespace flaw {
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
 		void ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
-		void ParseSkeleton(const aiScene* scene);
+		void ParseSkeleton(ModelSkeleton& result, const aiNode* current, int32_t parentIndex);
 		void ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim);

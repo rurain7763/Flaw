@@ -10,6 +10,10 @@ namespace flaw {
 	class Scene;
 
 	struct SkeletalAnimationData {
+		Ref<StructuredBuffer> bindingPosMatrices;
+		Ref<StructuredBuffer> animationMatrices;
+		float animationTime = 0.0f;
+
 		Ref<StructuredBuffer> boneMatrices;
 	};
 

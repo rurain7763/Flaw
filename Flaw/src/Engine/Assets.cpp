@@ -165,9 +165,22 @@ namespace flaw {
 		_getDesc(desc);
 
 		_skeleton = CreateRef<Skeleton>(desc.globalInvMatrix, desc.nodes, desc.boneMap);
+		_animationHandles = desc.animationHandles;
 	}
 
 	void SkeletonAsset::Unload() {
+		_animationHandles.clear();
 		_skeleton.reset();
+	}
+
+	void SkeletalAnimationAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_animation = CreateRef<SkeletalAnimation>(desc.name, desc.durationSec, desc.animationNodes);
+	}
+
+	void SkeletalAnimationAsset::Unload() {
+		_animation.reset();
 	}
 }

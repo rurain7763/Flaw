@@ -187,6 +187,7 @@
     <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
     <ClInclude Include="src\Utils\Raycast.h" />
+    <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
     <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\pch.h" />

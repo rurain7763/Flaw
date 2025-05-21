@@ -265,6 +265,19 @@ namespace flaw {
 					archive >> desc.globalInvMatrix;
 					archive >> desc.nodes;
 					archive >> desc.boneMap;
+					archive >> desc.animationHandles;
+				}
+			);
+			break;
+		case AssetType::SkeletalAnimation:
+			asset = CreateRef<SkeletalAnimationAsset>(
+				[path, dataOffset](SkeletalAnimationAsset::Descriptor& desc) {
+					std::vector<int8_t> data;
+					FileSystem::ReadFile(path.generic_string().c_str(), data);
+					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
+					archive >> desc.name;
+					archive >> desc.durationSec;
+					archive >> desc.animationNodes;
 				}
 			);
 			break;
@@ -358,6 +371,15 @@ namespace flaw {
 			archive << settings->globalInvMatrix;
 			archive << settings->nodes;
 			archive << settings->boneMap;
+			archive << settings->animationHandles;
+		});
+	}
+
+	AssetHandle AssetDatabase::CreateSkeletalAnimation(const SkeletalAnimationCreateSettings* settings) {
+		return CreateAssetFile(settings->destPath.c_str(), AssetType::SkeletalAnimation, [&](SerializationArchive& archive) {
+			archive << settings->name;
+			archive << settings->durationSec;
+			archive << settings->animationNodes;
 		});
 	}
 
@@ -557,15 +579,9 @@ namespace flaw {
 						vertex3D.tangent = vertex.tangent;
 						vertex3D.normal = vertex.normal;
 						vertex3D.binormal = vertex.bitangent;
-
 						for (int32_t j = 0; j < 4; ++j) {
-							const std::string& boneName = vertexBoneData.boneNames[j];
-							if (boneName.empty()) {
-								break;
-							}
-
-							vertex3D.boneIndex[j] = modelSkeleton.boneMap.at(boneName).nodeIndex;
-							vertex3D.boneWeight[j] = vertexBoneData.boneWeight[j];
+							vertex3D.boneIndices[j] = vertexBoneData.boneIndices[j];
+							vertex3D.boneWeights[j] = vertexBoneData.boneWeight[j];
 						}
 
 						vertices.push_back(vertex3D);
@@ -579,8 +595,28 @@ namespace flaw {
 					return SkeletonNode{ node.name, node.parentIndex, node.transformMatrix, node.childrenIndices };
 				});
 				std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.boneMap, skeletonSettings.boneMap.end()), [](const auto& pair) {
-					return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.offsetMatrix });
+					return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.boneIndex, pair.second.offsetMatrix });
 				});
+				
+				for (const auto& animation : model.GetSkeletalAnimations()) {
+					SkeletalAnimationCreateSettings animSettings = {};
+					animSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + animation.name + ".asset").generic_string();
+					animSettings.name = animation.name;
+					animSettings.durationSec = animation.durationSec;
+					std::transform(animation._nodes.begin(), animation._nodes.end(), std::back_inserter(animSettings.animationNodes), [](const ModelSkeletalAnimationNode& boneAnim) {
+						std::vector<SkeletalAnimationNodeKey<vec3>> positionKeys;
+						std::transform(boneAnim.positionKeys.begin(), boneAnim.positionKeys.end(), std::back_inserter(positionKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
+
+						std::vector<SkeletalAnimationNodeKey<vec4>> rotationKeys;
+						std::transform(boneAnim.rotationKeys.begin(), boneAnim.rotationKeys.end(), std::back_inserter(rotationKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec4>{key.first, key.second}; });
+
+						std::vector<SkeletalAnimationNodeKey<vec3>> scaleKeys;
+						std::transform(boneAnim.scaleKeys.begin(), boneAnim.scaleKeys.end(), std::back_inserter(scaleKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
+						
+						return SkeletalAnimationNode(boneAnim.name, positionKeys, rotationKeys, scaleKeys);
+					});
+					skeletonSettings.animationHandles.push_back(CreateSkeletalAnimation(&animSettings));
+				}
 
 				archive << segments;
 				archive << CreateSkeleton(&skeletonSettings);

@@ -30,6 +30,7 @@ namespace flaw {
 			Texture2D,
 			Material,
 			Skeleton,
+			SkeletalAnimation,
 		};
 
 		Type type;
@@ -76,9 +77,20 @@ namespace flaw {
 		mat4 globalInvMatrix = mat4(1.0f);
 		std::vector<SkeletonNode> nodes;
 		std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+		std::vector<AssetHandle> animationHandles;
 
 		SkeletonCreateSettings() {
 			type = Type::Skeleton;
+		}
+	};
+
+	struct SkeletalAnimationCreateSettings : public AssetCreateSettings {
+		std::string name;
+		float durationSec = 0.0f;
+		std::vector<SkeletalAnimationNode> animationNodes;
+
+		SkeletalAnimationCreateSettings() {
+			type = Type::SkeletalAnimation;
 		}
 	};
 
@@ -201,6 +213,7 @@ namespace flaw {
 		static AssetHandle CreateTexture2D(const Texture2DCreateSettings* settings);
 		static AssetHandle CreateMaterial(const MaterialCreateSettings* settings);
 		static AssetHandle CreateSkeleton(const SkeletonCreateSettings* settings);
+		static AssetHandle CreateSkeletalAnimation(const SkeletalAnimationCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);

@@ -32,6 +32,7 @@ namespace flaw {
 		SkeletalMesh,
 		Material,
 		Skeleton,
+		SkeletalAnimation,
 	};
 
 	class Asset {

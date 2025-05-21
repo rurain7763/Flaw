@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "Utils/SerializationArchive.h"
@@ -20,6 +21,51 @@ namespace flaw {
 	constexpr vec3 Left = vec3(-1.0f, 0.0f, 0.0f);
 	constexpr vec3 Up = vec3(0.0f, 1.0f, 0.0f);
 	constexpr vec3 Down = vec3(0.0f, -1.0f, 0.0f);
+
+	template<>
+	struct Serializer<vec2> {
+		static void Serialize(SerializationArchive& archive, const vec2& value) {
+			archive << value.x;
+			archive << value.y;
+		}
+
+		static void Deserialize(SerializationArchive& archive, vec2& value) {
+			archive >> value.x;
+			archive >> value.y;
+		}
+	};
+
+	template<>
+	struct Serializer<vec3> {
+		static void Serialize(SerializationArchive& archive, const vec3& value) {
+			archive << value.x;
+			archive << value.y;
+			archive << value.z;
+		}
+
+		static void Deserialize(SerializationArchive& archive, vec3& value) {
+			archive >> value.x;
+			archive >> value.y;
+			archive >> value.z;
+		}
+	};
+
+	template<>
+	struct Serializer<vec4> {
+		static void Serialize(SerializationArchive& archive, const vec4& value) {
+			archive << value.x;
+			archive << value.y;
+			archive << value.z;
+			archive << value.w;
+		}
+
+		static void Deserialize(SerializationArchive& archive, vec4& value) {
+			archive >> value.x;
+			archive >> value.y;
+			archive >> value.z;
+			archive >> value.w;
+		}
+	};
 
 	template<>
 	struct Serializer<mat4> {
@@ -161,6 +207,10 @@ namespace flaw {
 
 	inline mat4 ModelMatrix(const vec3& position, const vec3& rotation, const vec3& scale) {
 		return Translate(position) * QRotate(rotation) * Scale(scale);
+	}
+
+	inline mat4 ModelMatrix(const vec3& position, const quat& rotation, const vec3& scale) {
+		return Translate(position) * toMat4(rotation) * Scale(scale);
 	}
 
 	inline void ExtractModelMatrix(const mat4& matrix, vec3& outPosition, vec3& outRotation, vec3& outScale) {
