@@ -303,7 +303,7 @@ namespace flaw {
 	struct SkeletalMeshComponent {
 		AssetHandle mesh;
 		std::vector<AssetHandle> materials;
-		std::vector<AssetHandle> skeletons;
+		AssetHandle skeleton;
 
 		bool castShadow = true;
 

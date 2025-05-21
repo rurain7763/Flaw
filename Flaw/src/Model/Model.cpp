@@ -60,7 +60,7 @@ namespace flaw {
 	void Model::ParseScene(std::filesystem::path basePath, const aiScene* scene) {
 		_globalInvMatrix = ToMat4(scene->mRootNode->mTransformation);
 
-		ParseSkeletons(scene);
+		ParseSkeleton(scene);
 
 		_materials.resize(scene->mNumMaterials);
 		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
@@ -81,61 +81,27 @@ namespace flaw {
 		}
 	}
 
-	void BuildBones(const std::unordered_set<std::string>& boneNames, ModelSkeleton& result, const aiNode* current, int32_t parentIndex, const mat4& parentMatrix) {
-		mat4 finalTransform = parentMatrix * ToMat4(current->mTransformation);
-		
-		auto it = boneNames.find(current->mName.C_Str());
-		if (it != boneNames.end()) {
-			int32_t boneIndex = result.boneMap.size();
+	void BuildSkeleton(ModelSkeleton& result, const aiNode* current, int32_t parentIndex) {
+		int32_t nodeIndex = result.nodes.size();
+		std::string nodeName = current->mName.C_Str();
 
-			ModelBone bone;
-			bone.name = current->mName.C_Str();
-			bone.parentIndex = parentIndex;
-			bone.transformMatrix = finalTransform;
+		ModelSkeletonNode node;
+		node.name = nodeName;
+		node.parentIndex = parentIndex;
+		node.transformMatrix = ToMat4(current->mTransformation);
 
-			result.bones.emplace_back(bone);
-			result.boneMap[current->mName.C_Str()] = boneIndex;
-			if (parentIndex != -1) {
-				result.bones[parentIndex].childrenIndices.push_back(boneIndex);
-			}
-			parentIndex = boneIndex;
+		result.nodes.emplace_back(node);
+		if (parentIndex != -1) {
+			result.nodes[parentIndex].childrenIndices.push_back(nodeIndex);
 		}
-		
+
 		for (uint32_t i = 0; i < current->mNumChildren; ++i) {
-			BuildBones(boneNames, result, current->mChildren[i], parentIndex, finalTransform);
+			BuildSkeleton(result, current->mChildren[i], nodeIndex);
 		}
 	}
 
-	void BuildSkeletons(const std::unordered_set<std::string>& boneNames, std::vector<ModelSkeleton>& result, const aiNode* current, const mat4& parentMatrix) {
-		auto it = boneNames.find(current->mName.C_Str());
-		if (it != boneNames.end()) {
-			ModelSkeleton skeleton;
-			BuildBones(boneNames, skeleton, current, -1, parentMatrix);
-			result.push_back(skeleton);
-		}
-		else {
-			for (uint32_t i = 0; i < current->mNumChildren; ++i) {
-				BuildSkeletons(boneNames, result, current->mChildren[i], parentMatrix * ToMat4(current->mTransformation));
-			}
-		}
-	}
-
-	void Model::ParseSkeletons(const aiScene* scene) {
-		// get all bones name
-		std::unordered_set<std::string> boneNames;
-		for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
-			const aiMesh* mesh = scene->mMeshes[i];
-			
-			if (mesh->HasBones()) {
-				for (uint32_t j = 0; j < mesh->mNumBones; ++j) {
-					const aiBone* bone = mesh->mBones[j];
-					boneNames.insert(bone->mName.C_Str());
-				}
-			}
-		}
-
-		// build skeletons
-		BuildSkeletons(boneNames, _skeletons, scene->mRootNode, mat4(1.0f));
+	void Model::ParseSkeleton(const aiScene* scene) {
+		BuildSkeleton(_skeleton, scene->mRootNode, -1);
 	}
 
 	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
@@ -215,11 +181,6 @@ namespace flaw {
 	}
 
 	void Model::ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh) {
-		std::unordered_set<int32_t> candidateSkeletons;
-		for (int32_t i = 0; i < _skeletons.size(); ++i) {
-			candidateSkeletons.insert(i);
-		}
-
 		_vertexBoneData.resize(_vertexBoneData.size() + modelMesh.vertexCount);
 		for (int32_t i = 0; i < mesh->mNumBones; ++i) {
 			const aiBone* bone = mesh->mBones[i];
@@ -232,22 +193,11 @@ namespace flaw {
 				vertexBoneData.AddBoneWeight(boneName, weight.mWeight);
 			}
 
-			for (auto it = candidateSkeletons.begin(); it != candidateSkeletons.end();) {
-				ModelSkeleton& skeleton = _skeletons[*it];
-
-				if (skeleton.boneMap.find(boneName) == skeleton.boneMap.end()) {
-					it = candidateSkeletons.erase(it);
-				}
-				else {
-					int32_t boneIndex = skeleton.boneMap[boneName];
-					skeleton.bones[boneIndex].offsetMatrix = ToMat4(bone->mOffsetMatrix);
-					++it;
-				}
+			auto it = _skeleton.boneMap.find(boneName);
+			if (it == _skeleton.boneMap.end()) {
+				_skeleton.boneMap[boneName] = ModelSkeletonBoneNode{ _skeleton.FindNode(boneName), ToMat4(bone->mOffsetMatrix) };
 			}
 		}
-
-		FASSERT(!candidateSkeletons.empty(), "No skeleton found for mesh");
-		modelMesh.skeletonIndex = *candidateSkeletons.begin();
 	}
 
 	void Model::ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim) {

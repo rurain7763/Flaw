@@ -222,7 +222,7 @@ namespace flaw {
 					FileSystem::ReadFile(path.generic_string().c_str(), data);
 					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
 					archive >> desc.segments;
-					archive >> desc.skeletons;
+					archive >> desc.skeleton;
 					archive >> desc.materials;
 					archive >> desc.vertices;
 					archive >> desc.indices;
@@ -263,8 +263,8 @@ namespace flaw {
 					FileSystem::ReadFile(path.generic_string().c_str(), data);
 					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
 					archive >> desc.globalInvMatrix;
-					archive >> desc.boneNameMap;
-					archive >> desc.bones;
+					archive >> desc.nodes;
+					archive >> desc.boneMap;
 				}
 			);
 			break;
@@ -356,8 +356,8 @@ namespace flaw {
 	AssetHandle AssetDatabase::CreateSkeleton(const SkeletonCreateSettings* settings) {
 		return CreateAssetFile(settings->destPath.c_str(), AssetType::Skeleton, [&](SerializationArchive& archive) {
 			archive << settings->globalInvMatrix;
-			archive << settings->boneNameMap;
-			archive << settings->bones;
+			archive << settings->nodes;
+			archive << settings->boneMap;
 		});
 	}
 
@@ -538,34 +538,18 @@ namespace flaw {
 					++i;
 				}
 
-				i = 0;
-				std::vector<AssetHandle> loadedSkeletons;
-				for (const auto& skeleton : model.GetSkeletons()) {
-					SkeletonCreateSettings skeletonSettings = {};
-					skeletonSettings.globalInvMatrix = model.GetGlobalInvMatrix();
-					skeletonSettings.destPath = destPath.replace_filename(fileNamePrefix + "_Skeleton_" + std::to_string(i) + ".asset").generic_string();
-					skeletonSettings.boneNameMap = skeleton.boneMap;
-					std::transform(skeleton.bones.begin(), skeleton.bones.end(), std::back_inserter(skeletonSettings.bones), [](const ModelBone& bone) {
-						return SkeletonBone{ bone.name, bone.parentIndex, bone.childrenIndices, bone.offsetMatrix, bone.transformMatrix };
-					});
-
-					loadedSkeletons.push_back(CreateSkeleton(&skeletonSettings));
-					++i;
-				}
+				const ModelSkeleton& modelSkeleton = model.GetSkeleton();
 
 				std::vector<MeshSegment> segments;
 				std::vector<AssetHandle> materials;
-				std::vector<AssetHandle> skeletons;
 				std::vector<Vertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
 					materials.push_back(loadedMaterials[mesh.materialIndex]);
-					skeletons.push_back(loadedSkeletons[mesh.skeletonIndex]);
 
 					for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
 						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
-						const ModelSkeleton& skeleton = model.GetSkeletonAt(mesh.skeletonIndex);
 
 						Vertex3D vertex3D = {};
 						vertex3D.position = vertex.position;
@@ -580,7 +564,7 @@ namespace flaw {
 								break;
 							}
 
-							vertex3D.boneIndex[j] = skeleton.boneMap.at(boneName);
+							vertex3D.boneIndex[j] = modelSkeleton.boneMap.at(boneName).nodeIndex;
 							vertex3D.boneWeight[j] = vertexBoneData.boneWeight[j];
 						}
 
@@ -588,8 +572,18 @@ namespace flaw {
 					}
 				}
 
+				SkeletonCreateSettings skeletonSettings = {};
+				skeletonSettings.globalInvMatrix = model.GetGlobalInvMatrix();
+				skeletonSettings.destPath = destPath.replace_filename(fileNamePrefix + "_Skeleton.asset").generic_string();
+				std::transform(modelSkeleton.nodes.begin(), modelSkeleton.nodes.end(), std::back_inserter(skeletonSettings.nodes), [](const ModelSkeletonNode& node) {
+					return SkeletonNode{ node.name, node.parentIndex, node.transformMatrix, node.childrenIndices };
+				});
+				std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.boneMap, skeletonSettings.boneMap.end()), [](const auto& pair) {
+					return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.offsetMatrix });
+				});
+
 				archive << segments;
-				archive << skeletons;
+				archive << CreateSkeleton(&skeletonSettings);
 				archive << materials;
 				archive << vertices;
 				archive << model.GetIndices();

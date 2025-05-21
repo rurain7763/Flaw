@@ -33,17 +33,14 @@ namespace flaw {
 			}
 			
 			auto& skeletalAnimData = _skeletonAnimations[enttComp.uuid];
-			skeletalAnimData.bindingPosMatrices.clear();
-			for (const auto& skeletonHandle : meshAsset->GetSkeletonHandles()) {
-				auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(skeletonHandle);
-				if (skeletonAsset == nullptr) {
-					continue;
-				}
+			skeletalAnimData.boneMatrices = nullptr;
 
-				Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
-
-				skeletalAnimData.bindingPosMatrices[skeleton] = skeleton->GetBindingPosGPUBuffer();
+			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
+			if (skeletonAsset == nullptr) {
+				continue;
 			}
+
+			skeletalAnimData.boneMatrices = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
 		}
 	}
 }

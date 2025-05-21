@@ -155,7 +155,7 @@ namespace flaw {
 	public:
 		struct Descriptor {
 			std::vector<MeshSegment> segments;
-			std::vector<AssetHandle> skeletons;
+			AssetHandle skeleton;
 			std::vector<AssetHandle> materials;
 			std::vector<Vertex3D> vertices;
 			std::vector<uint32_t> indices;
@@ -175,15 +175,14 @@ namespace flaw {
 
 		const std::vector<AssetHandle>& GetMaterialHandles() const { return _materials; }
 		const AssetHandle& GetMaterialHandleAt(uint32_t index) const { return _materials[index]; }
-		const std::vector<AssetHandle>& GetSkeletonHandles() const { return _skeletons; }
-		const AssetHandle& GetSkeletonHandleAt(uint32_t index) const { return _skeletons[index]; }
+		const AssetHandle& GetSkeletonHandle() const { return _skeleton; }
 
 	private:
 		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<Mesh> _mesh;
 		std::vector<AssetHandle> _materials;
-		std::vector<AssetHandle> _skeletons;
+		AssetHandle _skeleton;
 	};
 
 	class GraphicsShaderAsset : public Asset {
@@ -249,8 +248,8 @@ namespace flaw {
 	public:
 		struct Descriptor {
 			mat4 globalInvMatrix;
-			std::unordered_map<std::string, int32_t> boneNameMap;
-			std::vector<SkeletonBone> bones;
+			std::vector<SkeletonNode> nodes;
+			std::unordered_map<std::string, SkeletonBoneNode> boneMap;
 		};
 
 		SkeletonAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}

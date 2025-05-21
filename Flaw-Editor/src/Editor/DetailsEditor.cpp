@@ -216,7 +216,7 @@ namespace flaw {
 								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
 								meshRendererComp.mesh = metadata.handle;
 								meshRendererComp.materials = asset->GetMaterialHandles();
-								meshRendererComp.skeletons = asset->GetSkeletonHandles();
+								meshRendererComp.skeleton = asset->GetSkeletonHandle();
 							}
 						}
 					}
@@ -246,26 +246,22 @@ namespace flaw {
 					}
 				}
 
-				if (ImGui::CollapsingHeader("Skeletons")) {
-					for (size_t i = 0; i < meshRendererComp.skeletons.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(meshRendererComp.skeletons[i])) {
-							ImGui::Text("Skeleton %zu", i);
-						}
-						else {
-							ImGui::Text("Skeleton Invalid##%d", i);
-						}
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-								AssetMetadata metadata;
-								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-									if (metadata.type == AssetType::SkeletalMesh) {
-										meshRendererComp.skeletons[i] = metadata.handle;
-									}
-								}
+				if (AssetManager::IsAssetRegistered(meshRendererComp.skeleton)) {
+					ImGui::Text("Skeleton");
+				}
+				else {
+					ImGui::Text("Skeleton Invalid");
+				}
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::SkeletalMesh) {
+								meshRendererComp.skeleton = metadata.handle;
 							}
-							ImGui::EndDragDropTarget();
 						}
 					}
+					ImGui::EndDragDropTarget();
 				}
 			});
 

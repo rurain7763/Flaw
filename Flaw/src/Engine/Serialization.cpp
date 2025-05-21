@@ -164,11 +164,7 @@ namespace flaw {
 				out << mat;
 			}
 			out << YAML::EndSeq;
-			out << YAML::Key << "Skeletons" << YAML::Value << YAML::BeginSeq;
-			for (const auto& skeleton : comp.skeletons) {
-				out << skeleton;
-			}
-			out << YAML::EndSeq;
+			out << YAML::Key << "Skeleton" << YAML::Value << comp.skeleton;
 			out << YAML::Key << "CastShadow" << YAML::Value << comp.castShadow;
 			out << YAML::EndMap;
 		}
@@ -541,10 +537,7 @@ namespace flaw {
 					for (const auto& mat : component.second["Materials"]) {
 						comp.materials.push_back(mat.as<uint64_t>());
 					}
-					comp.skeletons.clear();
-					for (const auto& skeleton : component.second["Skeletons"]) {
-						comp.skeletons.push_back(skeleton.as<uint64_t>());
-					}
+					comp.skeleton = component.second["Skeleton"].as<uint64_t>();
 					comp.castShadow = component.second["CastShadow"].as<bool>();
 				}
 				else if (name == "ParticleComponent") {

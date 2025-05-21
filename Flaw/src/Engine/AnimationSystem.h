@@ -10,7 +10,7 @@ namespace flaw {
 	class Scene;
 
 	struct SkeletalAnimationData {
-		std::unordered_map<Ref<Skeleton>, Ref<StructuredBuffer>> bindingPosMatrices;
+		Ref<StructuredBuffer> boneMatrices;
 	};
 
 	class AnimationSystem {

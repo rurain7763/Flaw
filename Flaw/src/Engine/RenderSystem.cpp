@@ -325,22 +325,19 @@ namespace flaw {
 				}
 
 				const auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(enttComp.uuid);
+				if (skeletalAnimData.boneMatrices == nullptr) {
+					continue;
+				}
+
 				for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
 					auto& materialHandle = skeletalMeshComp.materials[i];
-					auto& skeletonHandle = skeletalMeshComp.skeletons[i];
 
 					auto materialAsset = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 					if (!materialAsset) {
 						continue;
 					}
 
-					auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(skeletonHandle);
-					if (!skeletonAsset) {
-						continue;
-					}
-
-					const auto& animationMatrices = skeletalAnimData.bindingPosMatrices.at(skeletonAsset->GetSkeleton());
-					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), animationMatrices);
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), skeletalAnimData.boneMatrices);
 				}
 			}
 

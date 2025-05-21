@@ -55,17 +55,30 @@ namespace flaw {
 		Ref<Image> emissive;
 	};
 
-	struct ModelBone {
+	struct ModelSkeletonNode {
 		std::string name;
 		int32_t parentIndex = -1;
-		std::vector<int32_t> childrenIndices;
-		mat4 offsetMatrix = mat4(1.0f);
 		mat4 transformMatrix = mat4(1.0f);
+		std::vector<int32_t> childrenIndices;
+	};
+
+	struct ModelSkeletonBoneNode {
+		int32_t nodeIndex = -1;
+		mat4 offsetMatrix = mat4(1.0f);
 	};
 
 	struct ModelSkeleton {
-		std::unordered_map<std::string, int32_t> boneMap;
-		std::vector<ModelBone> bones;
+		std::vector<ModelSkeletonNode> nodes;
+		std::unordered_map<std::string, ModelSkeletonBoneNode> boneMap;
+
+		int32_t FindNode(const std::string& name) const {
+			for (size_t i = 0; i < nodes.size(); ++i) {
+				if (nodes[i].name == name) {
+					return static_cast<int32_t>(i);
+				}
+			}
+			return -1;
+		}
 	};
 
 	struct ModelBoneAnimation {
@@ -90,7 +103,6 @@ namespace flaw {
 		uint32_t indexStart = 0;
 		uint32_t indexCount = 0;
 		int32_t materialIndex = -1;
-		int32_t skeletonIndex = -1;
 	};
 
 	class Model {
@@ -103,8 +115,7 @@ namespace flaw {
 
 		const std::vector<ModelMaterial>& GetMaterials() const { return _materials; }
 		const ModelMaterial& GetMaterialAt(uint32_t index) const { return _materials[index]; }
-		const std::vector<ModelSkeleton>& GetSkeletons() const { return _skeletons; }
-		const ModelSkeleton& GetSkeletonAt(uint32_t index) const { return _skeletons[index]; }
+		const ModelSkeleton& GetSkeleton() const { return _skeleton; }
 		const std::vector<ModelVertex>& GetVertices() const { return _vertices; }
 		const ModelVertex& GetVertexAt(uint32_t index) const { return _vertices[index]; }
 		const ModelVertexBoneData& GetVertexBoneDataAt(uint32_t index) const { return _vertexBoneData[index]; }
@@ -113,14 +124,14 @@ namespace flaw {
 
 		const mat4& GetGlobalInvMatrix() const { return _globalInvMatrix; }
 
-		bool HasSkeleton() const { return !_skeletons.empty(); }
+		bool HasSkeleton() const { return !_skeleton.boneMap.empty(); }
 
 		bool IsValid() const { return !_meshes.empty(); }
 
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
 		void ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
-		void ParseSkeletons(const aiScene* scene);
+		void ParseSkeleton(const aiScene* scene);
 		void ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim);
@@ -139,7 +150,7 @@ namespace flaw {
 		std::vector<ModelVertexBoneData> _vertexBoneData;
 		std::vector<uint32_t> _indices;
 
-		std::vector<ModelSkeleton> _skeletons;
+		ModelSkeleton _skeleton;
 		std::vector<ModelSkeletalAnimation> _skeletalAnimations;
 
 		std::vector<ModelMesh> _meshes;
