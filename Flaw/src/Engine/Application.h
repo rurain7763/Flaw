@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "LayerRegistry.h"
 #include "Event/EventDispatcher.h"
+#include "Utils/ThreadPool.h"
 
 #include <functional>
 #include <mutex>
@@ -26,7 +27,11 @@ namespace flaw {
 		void PushLayerAsOverlay(Layer* layer);
 		void RemoveLayer(Layer* layer);
 
+		// add main thread task, task will be excuted after everthing is done
 		void AddTask(const std::function<void()>& task);
+
+		// add async task, task will be excuted in thread pool
+		void AddAsyncTask(const std::function<void()>& task);
 
 		void Run();
 
@@ -41,6 +46,8 @@ namespace flaw {
 
 		bool _running;
 		bool _minimized;
+
+		ThreadPool _threadPool;
 
 		std::vector<std::function<void()>> _tasks;
 		std::mutex _taskMutex;

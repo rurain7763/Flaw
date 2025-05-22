@@ -29,10 +29,7 @@ namespace flaw {
 	}
 
 	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
-		//if (registry.any_of<DirectionalLightComponent>(entity) || registry.any_of<PointLightComponent>(entity) || registry.any_of<SpotLightComponent>(entity)) {
 		if (registry.any_of<DirectionalLightComponent>(entity)) {
-			auto& enttComp = registry.get<EntityComponent>(entity);
-
 			Texture2D::Descriptor texDesc = {};
 			texDesc.width = ShadowMapSize;
 			texDesc.height = ShadowMapSize;
@@ -55,22 +52,19 @@ namespace flaw {
 			ShadowMap shadowMap;
 			shadowMap.renderPass = Graphics::CreateRenderPass(shadowMapDesc);
 			
-			_shadowMaps[enttComp.uuid] = shadowMap;
+			_shadowMaps[(uint32_t)entity] = shadowMap;
 		}
 	}
 
 	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		auto& enttComp = registry.get<EntityComponent>(entity);
-		if (_shadowMaps.find(enttComp.uuid) != _shadowMaps.end()) {
-			_shadowMaps.erase(enttComp.uuid);
-		}
+		_shadowMaps.erase((uint32_t)entity);
 	}
 
 	void ShadowSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 
-		for (auto&& [entity, enttComp, transComp, lightComp] : registry.view<EntityComponent, TransformComponent, DirectionalLightComponent>().each()) {
-			auto& shadowMap = _shadowMaps[enttComp.uuid];
+		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
+			auto& shadowMap = _shadowMaps[(uint32_t)entity];
 
 			// TODO: 현재는 하드코딩된 값으로 테스트
 			const float orthoHalfSize = (ShadowMapSize / 100.f) / 2.0f;
@@ -109,7 +103,7 @@ namespace flaw {
 			auto& entry = _shadowMapRenderQueue.Front();
 			_shadowMapRenderQueue.Pop();
 
-			for (const auto& [uuid, shadowMap] : _shadowMaps) {
+			for (const auto& [entt, shadowMap] : _shadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
 
 				cmdQueue.Begin();

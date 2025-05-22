@@ -41,7 +41,7 @@ namespace flaw {
 		_registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
 		_registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
 
-		_animationSystem = CreateScope<AnimationSystem>(*this);
+		_animationSystem = CreateScope<AnimationSystem>(_app, *this);
 		_registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*_animationSystem);
 		_registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*_animationSystem);
 
@@ -100,7 +100,7 @@ namespace flaw {
 		entity.EachChildren([this](const Entity& child) { DestroyEntityRecursive(child); });
 		_childMap.erase(entityUUID);
 
-		if (entity.HasComponent<Rigidbody2DComponent>()) {
+		if (_physics2DWorld && entity.HasComponent<Rigidbody2DComponent>()) {
 			auto& rigidbody2D = entity.GetComponent<Rigidbody2DComponent>();
 			_physics2DWorld->DestroyBody((b2Body*)rigidbody2D.runtimeBody);
 		}
@@ -141,6 +141,10 @@ namespace flaw {
 		UUID copyUUID = cloned.GetUUID();
 
 		CopyComponentIfExists<EntityComponent>(srcEntt, cloned);
+
+		// because uuid is changed, we need to set it again
+		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
+
 		CopyComponentIfExists<TransformComponent>(srcEntt, cloned);
 		CopyComponentIfExists<CameraComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntt, cloned);
@@ -162,9 +166,6 @@ namespace flaw {
 		CopyComponentIfExists<SkyBoxComponent>(srcEntt, cloned);
 		CopyComponentIfExists<DecalComponent>(srcEntt, cloned);
 		CopyComponentIfExists<LandScaperComponent>(srcEntt, cloned);
-
-		// because uuid is changed, we need to set it again
-		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
 
 		// clone children
 		srcEntt.EachChildren([this, &cloned, sameUUID](const Entity& child) {

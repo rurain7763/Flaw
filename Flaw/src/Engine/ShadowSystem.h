@@ -29,7 +29,7 @@ namespace flaw {
 		void Update();
 		void Render(Ref<StructuredBuffer>& batchedTransformSB);
 
-		ShadowMap& GetShadowMap(const UUID& uuid) { return _shadowMaps[uuid]; }
+		ShadowMap& GetShadowMap(const uint32_t& uuid) { return _shadowMaps[uuid]; }
 
 	private:
 		constexpr static uint32_t ShadowMapSize = 2048;
@@ -42,6 +42,6 @@ namespace flaw {
 
 		RenderQueue _shadowMapRenderQueue;
 
-		std::unordered_map<UUID, ShadowMap> _shadowMaps;
+		std::unordered_map<uint32_t, ShadowMap> _shadowMaps;
 	};
 }

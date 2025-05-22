@@ -10,10 +10,14 @@ namespace flaw {
 	constexpr uint32_t LoadOptFlags =
 		aiProcess_Triangulate |
 		aiProcess_CalcTangentSpace |
-		aiProcess_GenSmoothNormals |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_LimitBoneWeights |
 		aiProcess_OptimizeGraph |
+		aiProcess_OptimizeMeshes |
+		aiProcess_ValidateDataStructure |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_FixInfacingNormals | 
+		aiProcess_SortByPType | 
 		aiProcess_ConvertToLeftHanded;
 
 	mat4 ToMat4(const aiMatrix4x4& mat) {
@@ -115,19 +119,57 @@ namespace flaw {
 			material.specular = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
+		if (aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &path) == AI_SUCCESS) {
+			material.shininess = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
 		if (aiMaterial->GetTexture(aiTextureType_EMISSIVE, 0, &path) == AI_SUCCESS) {
 			material.emissive = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &path) == AI_SUCCESS) {
-			// TODO: height map
+			material.height = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &path) == AI_SUCCESS) {
-			material.diffuse = GetImageOrCreate(scene, basePath / path.C_Str());
+			material.albedo = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
-		// TODO: add more texture
+		if (aiMaterial->GetTexture(aiTextureType_OPACITY, 0, &path) == AI_SUCCESS) {
+			material.opacity = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_REFLECTION, 0, &path) == AI_SUCCESS) {
+			material.reflection = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_AMBIENT, 0, &path) == AI_SUCCESS) {
+			material.ambient = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_DISPLACEMENT, 0, &path) == AI_SUCCESS) {
+			material.displacement = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_LIGHTMAP, 0, &path) == AI_SUCCESS) {
+			material.lightmap = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &path) == AI_SUCCESS) {
+			material.ambientOcclusion = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_METALNESS, 0, &path) == AI_SUCCESS) {
+			material.metallic = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &path) == AI_SUCCESS) {
+			material.roughness = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
+
+		if (aiMaterial->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &path) == AI_SUCCESS) {
+			material.normal = GetImageOrCreate(scene, basePath / path.C_Str());
+		}
 	}
 
 	Ref<Image> Model::GetImageOrCreate(const aiScene* scene, const std::filesystem::path& path) {

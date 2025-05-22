@@ -17,7 +17,9 @@
 #include "PrimitiveManager.h"
 
 namespace flaw {
-	Application::Application(const ApplicationProps& props) {
+	Application::Application(const ApplicationProps& props) 
+		: _threadPool(4)
+	{
 		FLAW_PROFILE_FUNCTION();
 
 		if (props.argc > 0) {
@@ -85,6 +87,10 @@ namespace flaw {
 	void Application::AddTask(const std::function<void()>& task) {
 		std::lock_guard<std::mutex> lock(_taskMutex);
 		_tasks.emplace_back(task);
+	}
+
+	void Application::AddAsyncTask(const std::function<void()>& task) {
+		_threadPool.EnqueueTask(task);
 	}
 
 	void Application::Run() {

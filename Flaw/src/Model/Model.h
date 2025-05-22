@@ -56,7 +56,18 @@ namespace flaw {
 		Ref<Image> diffuse;
 		Ref<Image> normal;
 		Ref<Image> specular;
+		Ref<Image> ambient;
 		Ref<Image> emissive;
+		Ref<Image> height;
+		Ref<Image> shininess;
+		Ref<Image> opacity;
+		Ref<Image> displacement;
+		Ref<Image> lightmap;
+		Ref<Image> reflection;
+		Ref<Image> albedo;
+		Ref<Image> metallic;
+		Ref<Image> roughness;
+		Ref<Image> ambientOcclusion;
 	};
 
 	struct ModelSkeletonNode {

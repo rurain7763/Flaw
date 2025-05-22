@@ -5,10 +5,12 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Time/Time.h"
+#include "Application.h"
 
 namespace flaw {
-	AnimationSystem::AnimationSystem(Scene& scene)
-		: _scene(scene)
+	AnimationSystem::AnimationSystem(Application& app, Scene& scene)
+		: _app(app)
+		, _scene(scene)
 	{
 	}
 
@@ -17,35 +19,31 @@ namespace flaw {
 
 		if (registry.any_of<SkeletalMeshComponent>(entity)) {
 			auto& skeletalMeshComp = registry.get<SkeletalMeshComponent>(entity);
-			_skeletonAnimations[enttComp.uuid] = SkeletalAnimationData();
+			_skeletonAnimations[(uint32_t)entity] = CreateRef<SkeletalAnimationData>();
 		}
 	}
 
 	void AnimationSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		auto& enttComp = registry.get<EntityComponent>(entity);
-		_skeletonAnimations.erase(enttComp.uuid);
+		_skeletonAnimations.erase((uint32_t)entity);
 	}
 
 	void AnimationSystem::Update() {
-		for (auto&& [entity, enttComp, transformComp, skeletalMeshComp] : _scene.GetRegistry().view<EntityComponent, TransformComponent, SkeletalMeshComponent>().each()) {
+		for (auto&& [entity, transformComp, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
 			auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 			if (meshAsset == nullptr) {
 				continue;
 			}
 			
-			auto& skeletalAnimData = _skeletonAnimations[enttComp.uuid];
-			skeletalAnimData.boneMatrices = nullptr;
-
 			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
 			if (skeletonAsset == nullptr) {
 				continue;
 			}
 
 			Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
+			auto skeletalAnimData = _skeletonAnimations[(uint32_t)entity];
+			auto bindingPosMatricesSB = skeleton->GetBindingPosGPUBuffer();
 
-			skeletalAnimData.bindingPosMatrices = skeleton->GetBindingPosGPUBuffer();
-
-			if (!skeletalAnimData.animationMatrices || skeletalAnimData.animationMatrices->Size() < sizeof(mat4) * skeleton->GetBoneCount()) {
+			if (skeletalAnimData->_bindingPosMatrices != bindingPosMatricesSB) {
 				StructuredBuffer::Descriptor desc = {};
 				desc.elmSize = sizeof(mat4);
 				desc.count = skeleton->GetBoneCount();
@@ -53,11 +51,12 @@ namespace flaw {
 				desc.accessFlags = AccessFlag::Write;
 				desc.initialData = nullptr;
 
-				skeletalAnimData.animationMatrices = Graphics::CreateStructuredBuffer(desc);
+				skeletalAnimData->_animationMatricesSB = Graphics::CreateStructuredBuffer(desc);
 			}
+			skeletalAnimData->_bindingPosMatrices = bindingPosMatricesSB;
 
 			// TODO: temporary animation
-			skeletalAnimData.boneMatrices = skeletalAnimData.bindingPosMatrices;
+			skeletalAnimData->_boneMatricesSB = skeletalAnimData->_bindingPosMatrices;
 			for (AssetHandle animationHandle : skeletonAsset->GetAnimationHandles()) {
 				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandle);
 				if (animationAsset == nullptr) {
@@ -66,16 +65,19 @@ namespace flaw {
 
 				Ref<SkeletalAnimation> animation = animationAsset->GetAnimation();
 
-				skeletalAnimData.animationTime += Time::DeltaTime();
-				if (skeletalAnimData.animationTime > animation->GetDurationSec()) {
-					skeletalAnimData.animationTime = 0.0f;
+				skeletalAnimData->_animationTime += Time::DeltaTime();
+				if (skeletalAnimData->_animationTime > animation->GetDurationSec()) {
+					skeletalAnimData->_animationTime = 0.0f;
 				}
 
-				std::vector<mat4> animationMatrices;
-				skeleton->GetAnimationMatrices(animation, skeletalAnimData.animationTime, animationMatrices);
-				skeletalAnimData.animationMatrices->Update(animationMatrices.data(), sizeof(mat4) * animationMatrices.size());
+				_app.AddAsyncTask([animation, skeleton, skeletalAnimData]() {
+					std::lock_guard<std::mutex> lock(skeletalAnimData->_mutex);
+					skeleton->GetAnimationMatrices(animation, skeletalAnimData->_animationTime, skeletalAnimData->_animationMatrices);
+					skeletalAnimData->_animationMatricesDirty = true;
+				});
 
-				skeletalAnimData.boneMatrices = skeletalAnimData.animationMatrices;
+				skeletalAnimData->_boneMatricesSB = skeletalAnimData->_animationMatricesSB;
+
 				break;
 			}
 		}

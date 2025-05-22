@@ -95,35 +95,27 @@ namespace flaw {
 		GenerateBindingPosMatrices();
 	}
 
-	void Skeleton::ComputeTransformationMatircesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const {
+	void Skeleton::ComputeTransformationMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const {
 		std::vector<mat4> parentMatrices(_nodes.size());
-		std::queue<int32_t> queue;
-		queue.push(0);
 
 		result.resize(_boneMap.size());
-		while (!queue.empty()) {
-			int32_t nodeIndex = queue.front();
-			queue.pop();
-
-			const auto& node = _nodes[nodeIndex];
-			mat4 transformMatrix = node.IsRoot() ? getNodeTransformMatrixFunc(nodeIndex) : parentMatrices[node.parentIndex] * getNodeTransformMatrixFunc(nodeIndex);
-
+		for (int32_t i = 0; i < _nodes.size(); ++i) {
+			const auto& node = _nodes[i];
+			mat4 localMatrix = getNodeTransformMatrixFunc(i);
+			mat4 transformMatrix = node.IsRoot() ? localMatrix : parentMatrices[node.parentIndex] * localMatrix;
+			
 			auto it = _boneMap.find(node.name);
 			if (it != _boneMap.end()) {
 				result[it->second.boneIndex] = _globalInvMatrix * transformMatrix * it->second.offsetMatrix;
 			}
 
-			parentMatrices[nodeIndex] = transformMatrix;
-
-			for (int32_t childIndex : node.childrenIndices) {
-				queue.push(childIndex);
-			}
+			parentMatrices[i] = transformMatrix;
 		}
 	}
 
 	void Skeleton::GenerateBindingPosMatrices() {
 		std::vector<mat4> transformationMatrices;
-		ComputeTransformationMatircesInHierachy([this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; }, transformationMatrices);
+		ComputeTransformationMatricesInHierachy([this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; }, transformationMatrices);
 
 		StructuredBuffer::Descriptor desc = {};
 		desc.elmSize = sizeof(mat4);
@@ -135,12 +127,14 @@ namespace flaw {
 	}
 
 	void Skeleton::GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const {
-		ComputeTransformationMatircesInHierachy([this, &animation, &timeSec](int32_t nodeIndex) {
+		ComputeTransformationMatricesInHierachy([this, &animation, &timeSec](int32_t nodeIndex) {
 			int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
 			if (animationNodeIndex != -1) {
 				return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
 			}
-			return mat4(1.0f); // NOTE: identity matrix for non-animated nodes, this is work for now but tutorial says to use the node.transformMatrix.
+			// NOTE: identity matrix for non-animated nodes, this is work for now but tutorial says to use the node.transformMatrix.
+			// return mat4(1.0f); 
+			return _nodes[nodeIndex].transformMatrix;
 		}, out);
 	}
 }

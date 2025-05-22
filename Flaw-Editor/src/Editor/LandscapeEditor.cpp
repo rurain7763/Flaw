@@ -146,7 +146,7 @@ namespace flaw {
 
 		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
 		auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
-		auto& landscape = landscapeSys.GetLandscape(_selectedEntt.GetUUID());
+		auto& landscape = landscapeSys.GetLandscape(_selectedEntt);
 
 		LandscapeBrushUniform brushUniform = {};
 		brushUniform.modelMatrix = transComp.worldTransform;
@@ -192,7 +192,7 @@ namespace flaw {
 
 		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
 		auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
-		auto& landscape = landscapeSys.GetLandscape(_selectedEntt.GetUUID());
+		auto& landscape = landscapeSys.GetLandscape(_selectedEntt);
 
 		vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
 

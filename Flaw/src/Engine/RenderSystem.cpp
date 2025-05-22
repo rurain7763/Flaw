@@ -309,7 +309,7 @@ namespace flaw {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, enttComp, transform, skeletalMeshComp] : _scene.GetRegistry().view<EntityComponent, TransformComponent, SkeletalMeshComponent>().each()) {
+			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -324,8 +324,9 @@ namespace flaw {
 					continue;
 				}
 
-				const auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(enttComp.uuid);
-				if (skeletalAnimData.boneMatrices == nullptr) {
+				auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((uint32_t)entity);
+				auto boneMatrices = skeletalAnimData.GetBoneMatrices();
+				if (boneMatrices == nullptr) {
 					continue;
 				}
 
@@ -337,7 +338,7 @@ namespace flaw {
 						continue;
 					}
 
-					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), skeletalAnimData.boneMatrices);
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), boneMatrices);
 				}
 			}
 
@@ -461,13 +462,13 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				_batchedTransformSB->Update(&obj.modelMatrices, sizeof(mat4));
+				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
 				cmdQueue.Begin();
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
-				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, 1, meshSegment.indexStart, meshSegment.vertexStart);
+				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
 				cmdQueue.End();
 				cmdQueue.Execute();
 			}
@@ -631,8 +632,8 @@ namespace flaw {
 		cmdQueue.End();
 		cmdQueue.Execute();
 
-		for (auto&& [entity, enttComp, transform, directionalLightComp] : enttRegistry.view<EntityComponent, TransformComponent, DirectionalLightComponent>().each()) {
-			auto& shadowMap = shadowSys.GetShadowMap(enttComp.uuid);
+		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
+			auto& shadowMap = shadowSys.GetShadowMap((uint32_t)entity);
 			
 			DirectionalLightUniforms uniforms = {};
 			uniforms.view = shadowMap.uniforms.view;

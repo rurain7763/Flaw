@@ -157,7 +157,7 @@ namespace flaw {
 		void GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const;
 
 	private:
-		void ComputeTransformationMatircesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const;
+		void ComputeTransformationMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const;
 		void GenerateBindingPosMatrices();
 
 	private:

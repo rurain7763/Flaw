@@ -53,7 +53,7 @@ namespace flaw {
 		auto& entry = entryList[entryIndex];
 		entry.material = material;
 
-		MeshKey meshKey(mesh, segmentIndex);
+		MeshKey meshKey{ mesh, segmentIndex };
 		int32_t instanceIndex = -1;
 
 		auto instancingIndexIt = entry.instancintIndexMap.find(meshKey);
@@ -83,13 +83,27 @@ namespace flaw {
 		auto& entry = entryList[entryIndex];
 		entry.material = material;
 
-		SkeletalInstancingObject instance = {};
-		instance.mesh = mesh;
-		instance.segmentIndex = segmentIndex;
-		instance.modelMatrices = worldMat;
-		instance.skeletonBoneMatrices = boneMatrices;
+		SkeletalMeshKey meshKey{ mesh, segmentIndex, boneMatrices };
+		int32_t instanceIndex = -1;
 
-		entry.skeletalInstancingObjects.emplace_back(instance);
+		auto skeletalInstancingIndexIt = entry.skeletalInstancingIndexMap.find(meshKey);
+		if (skeletalInstancingIndexIt == entry.skeletalInstancingIndexMap.end()) {
+			SkeletalInstancingObject instance;
+			instance.mesh = mesh;
+			instance.segmentIndex = segmentIndex;
+			instance.skeletonBoneMatrices = boneMatrices;
+
+			instanceIndex = entry.skeletalInstancingObjects.size();
+			entry.skeletalInstancingIndexMap[meshKey] = instanceIndex;
+			entry.skeletalInstancingObjects.emplace_back(instance);
+		}
+		else {
+			instanceIndex = skeletalInstancingIndexIt->second;
+		}
+
+		auto& instance = entry.skeletalInstancingObjects[instanceIndex];
+		instance.modelMatrices.emplace_back(worldMat);
+		instance.instanceCount++;
 	}
 
 	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material) {

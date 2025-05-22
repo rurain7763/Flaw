@@ -191,6 +191,7 @@
     <ClInclude Include="src\Utils\SerializationArchive.h" />
     <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Utils\ThreadPool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
@@ -250,6 +251,7 @@
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Utils\ThreadPool.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
