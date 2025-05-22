@@ -32,9 +32,7 @@ namespace flaw {
 		bool IsValid() const { return !_data.empty(); }
 
 		static void SaveToFile(const char* filePath, const void* data, int32_t width, int32_t height, Type type, int32_t channels = 4);
-
-	private:
-		Type GetImageTypeFromExtension(const char* filePath);
+		static Type GetImageTypeFromExtension(const char* filePath);
 
 	private:
 		Type _type = Type::Unknown;

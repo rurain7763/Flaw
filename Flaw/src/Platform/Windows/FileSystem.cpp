@@ -68,4 +68,14 @@ namespace flaw {
 
 		return (static_cast<uint64_t>(fileInfo.nFileIndexHigh) << 32) | fileInfo.nFileIndexLow;
 	}
+
+	std::string FileSystem::GetUniqueFilePath(const char* expectedPath) {
+		std::filesystem::path path(expectedPath);
+		std::string uniquePath = path.generic_string();
+		int counter = 1;
+		while (std::filesystem::exists(uniquePath)) {
+			uniquePath = (path.parent_path() / (path.stem().generic_string() + "_" + std::to_string(counter++) + path.extension().generic_string())).generic_string();
+		}
+		return uniquePath;
+	}
 }

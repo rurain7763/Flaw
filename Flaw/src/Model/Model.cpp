@@ -13,6 +13,7 @@ namespace flaw {
 		aiProcess_GenSmoothNormals |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_LimitBoneWeights |
+		aiProcess_OptimizeGraph |
 		aiProcess_ConvertToLeftHanded;
 
 	mat4 ToMat4(const aiMatrix4x4& mat) {
@@ -26,7 +27,7 @@ namespace flaw {
 
 	Model::Model(const char* filePath) {
 		std::string extension = std::filesystem::path(filePath).extension().generic_string();
-		
+
 		_type = ModelType::Unknown;
 		if (extension == ".obj") {
 			_type = ModelType::Obj;
@@ -66,7 +67,7 @@ namespace flaw {
 		_materials.resize(scene->mNumMaterials);
 		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
 			const aiMaterial* material = scene->mMaterials[i];
-			ParseMaterial(basePath, material, _materials[i]);
+			ParseMaterial(scene, basePath, material, _materials[i]);
 		}
 
 		_meshes.resize(scene->mNumMeshes);
@@ -100,22 +101,22 @@ namespace flaw {
 		}
 	}
 
-	void Model::ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
+	void Model::ParseMaterial(const aiScene* scene, const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
 		aiString path;
 		if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS) {
-			material.diffuse = GetImageOrCreate(basePath / path.C_Str());
+			material.diffuse = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS) {
-			material.normal = GetImageOrCreate(basePath / path.C_Str());
+			material.normal = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &path) == AI_SUCCESS) {
-			material.specular = GetImageOrCreate(basePath / path.C_Str());
+			material.specular = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_EMISSIVE, 0, &path) == AI_SUCCESS) {
-			material.emissive = GetImageOrCreate(basePath / path.C_Str());
+			material.emissive = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &path) == AI_SUCCESS) {
@@ -123,25 +124,33 @@ namespace flaw {
 		}
 
 		if (aiMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &path) == AI_SUCCESS) {
-			material.diffuse = GetImageOrCreate(basePath / path.C_Str());
+			material.diffuse = GetImageOrCreate(scene, basePath / path.C_Str());
 		}
 
 		// TODO: add more texture
 	}
 
-	Ref<Image> Model::GetImageOrCreate(const std::filesystem::path& path) {
+	Ref<Image> Model::GetImageOrCreate(const aiScene* scene, const std::filesystem::path& path) {
 		auto it = _images.find(path);
 		if (it != _images.end()) {
 			return it->second;
 		}
 
-		Ref<Image> image = CreateRef<Image>(path.generic_string().c_str(), 4);
-		if (image->IsValid()) {
-			_images[path] = image;
-			return image;
+		Ref<Image> img;
+
+		const aiTexture* embeddedTexture = scene->GetEmbeddedTexture(path.generic_string().c_str());
+		if (embeddedTexture) {
+			img = CreateRef<Image>(Image::GetImageTypeFromExtension(path.generic_string().c_str()), (const char*)embeddedTexture->pcData, embeddedTexture->mWidth, 4);
+		}
+		else {
+			img = CreateRef<Image>(path.generic_string().c_str(), 4);
 		}
 
-		return nullptr;
+		if (img && img->IsValid()) {
+			_images[path] = img;
+		}
+
+		return img;
 	}
 
 	void Model::ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh) {

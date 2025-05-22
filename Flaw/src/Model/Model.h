@@ -39,6 +39,10 @@ namespace flaw {
 
 		void AddBoneWeight(int32_t index, float weight) {
 			for (int32_t i = 0; i < MaxInfluenceBoneCount; ++i) {
+				if (boneIndices[i] == index) {
+					return;
+				}
+
 				if (boneIndices[i] == -1) {
 					boneIndices[i] = index;
 					boneWeight[i] = weight;
@@ -132,13 +136,13 @@ namespace flaw {
 
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
-		void ParseMaterial(const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
+		void ParseMaterial(const aiScene* scene, const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
 		void ParseSkeleton(ModelSkeleton& result, const aiNode* current, int32_t parentIndex);
 		void ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim);
 
-		Ref<Image> GetImageOrCreate(const std::filesystem::path& path);
+		Ref<Image> GetImageOrCreate(const aiScene* scene, const std::filesystem::path& path);
 
 	private: 
 		ModelType _type = ModelType::Unknown;

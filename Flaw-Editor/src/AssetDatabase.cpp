@@ -302,6 +302,9 @@ namespace flaw {
 	}
 
 	AssetHandle AssetDatabase::CreateAssetFile(const char* path, AssetType assetType, std::function<void(SerializationArchive&)> serializeFunc) {
+		std::string uniquePath = FileSystem::GetUniqueFilePath(path);
+		path = uniquePath.c_str();
+		
 		if (!FileSystem::MakeFile(path)) {
 			Log::Error("Failed to create asset file: %s", path);
 			return AssetHandle();
@@ -512,12 +515,11 @@ namespace flaw {
 			destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
 
 			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
-				int32_t i = 0;
 				std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
 				std::vector<AssetHandle> loadedMaterials;
 				for (const auto& material : model.GetMaterials()) {
 					MaterialCreateSettings matSet = {};
-					matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material_" + std::to_string(i) + ".asset").generic_string();
+					matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material.asset").generic_string();
 					matSet.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry_skeletal");
 					matSet.renderMode = RenderMode::Opaque;
 					matSet.cullMode = CullMode::Back;
@@ -557,7 +559,6 @@ namespace flaw {
 					}
 
 					loadedMaterials.push_back(CreateMaterial(&matSet));
-					++i;
 				}
 
 				const ModelSkeleton& modelSkeleton = model.GetSkeleton();

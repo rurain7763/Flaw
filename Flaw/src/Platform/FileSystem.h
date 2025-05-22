@@ -14,5 +14,7 @@ namespace flaw {
 		static bool ReadFile(const char* path, std::vector<int8_t>& out);
 
 		static uint64_t FileIndex(const char* path);
+
+		static std::string GetUniqueFilePath(const char* expectedPath);
 	};
 }

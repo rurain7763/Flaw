@@ -17,14 +17,6 @@ namespace flaw {
 	}
 
 	vec3 SkeletalAnimationNode::InterpolatePosition(float time) const {
-		if (_positionKeys.empty()) {
-			return vec3(0.0f);
-		}
-
-		if (_positionKeys.size() == 1) {
-			return _positionKeys[0].value;
-		}
-
 		int32_t index = Lowerbound<SkeletalAnimationNodeKey<vec3>>(_positionKeys, [&time](const auto& pair) { return pair.time >= time; });
 		if (index == 0) {
 			return _positionKeys[0].value;
@@ -41,14 +33,6 @@ namespace flaw {
 	}
 
 	quat SkeletalAnimationNode::InterpolateRotation(float time) const {
-		if (_rotationKeys.empty()) {
-			return quat(1, 0, 0, 0);
-		}
-
-		if (_rotationKeys.size() == 1) {
-			return _rotationKeys[0].value;
-		}
-
 		int32_t index = Lowerbound<SkeletalAnimationNodeKey<vec4>>(_rotationKeys, [&time](const auto& pair) { return pair.time >= time; });
 		if (index == 0) {
 			const auto& key = _rotationKeys[0];
@@ -70,14 +54,6 @@ namespace flaw {
 	}
 
 	vec3 SkeletalAnimationNode::InterpolateScale(float time) const {
-		if (_scaleKeys.empty()) {
-			return vec3(1.0f);
-		}
-
-		if (_scaleKeys.size() == 1) {
-			return _scaleKeys[0].value;
-		}
-
 		int32_t index = Lowerbound<SkeletalAnimationNodeKey<vec3>>(_scaleKeys, [&time](const auto& pair) { return pair.time >= time; });
 		if (index == 0) {
 			return _scaleKeys[0].value;
@@ -160,10 +136,11 @@ namespace flaw {
 
 	void Skeleton::GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const {
 		ComputeTransformationMatircesInHierachy([this, &animation, &timeSec](int32_t nodeIndex) {
-			const auto& skeletonNode = _nodes[nodeIndex];
-			int32_t animationNodeIndex = animation->GetNodeIndex(skeletonNode.name);
-			if (animationNodeIndex == -1) return mat4(1.0);
-			else return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+			int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
+			if (animationNodeIndex != -1) {
+				return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+			}
+			return mat4(1.0f); // NOTE: identity matrix for non-animated nodes, this is work for now but tutorial says to use the node.transformMatrix.
 		}, out);
 	}
 }
