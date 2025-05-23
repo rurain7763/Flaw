@@ -2,7 +2,6 @@
 #include "ShadowSystem.h"
 #include "Scene.h"
 #include "Components.h"
-#include "PrimitiveManager.h"
 #include "AssetManager.h"
 #include "Assets.h"
 
@@ -16,6 +15,8 @@ namespace flaw {
 		shadowMapShader->AddInputElement<float>("TANGENT", 3);
 		shadowMapShader->AddInputElement<float>("NORMAL", 3);
 		shadowMapShader->AddInputElement<float>("BINORMAL", 3);
+		shadowMapShader->AddInputElement<int32_t>("BONEINDICES", 4);
+		shadowMapShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		shadowMapShader->CreateInputLayout();
 
 		_shadowMapMaterial = CreateRef<Material>();

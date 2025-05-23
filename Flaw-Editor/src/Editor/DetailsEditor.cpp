@@ -191,32 +191,14 @@ namespace flaw {
 				ParticleComponentDrawer::Draw(_selectedEntt);
 				});
 
-			DrawComponent<StaticMeshComponent>(_selectedEntt, [](StaticMeshComponent& meshFilterComp) {
+			DrawComponent<StaticMeshComponent>(_selectedEntt, [](StaticMeshComponent& staticMeshComp) {
 				ImGui::Text("Mesh");
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
 						AssetMetadata metadata;
 						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
 							if (metadata.type == AssetType::SkeletalMesh) {
-								meshFilterComp.mesh = metadata.handle;
-							}
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-			});
-
-			DrawComponent<SkeletalMeshComponent>(_selectedEntt, [](SkeletalMeshComponent& meshRendererComp) {
-				ImGui::Text("Mesh");
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
-								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
-								meshRendererComp.mesh = metadata.handle;
-								meshRendererComp.materials = asset->GetMaterialHandles();
-								meshRendererComp.skeleton = asset->GetSkeletonHandle();
+								staticMeshComp.mesh = metadata.handle;
 							}
 						}
 					}
@@ -224,8 +206,50 @@ namespace flaw {
 				}
 
 				if (ImGui::CollapsingHeader("Materials")) {
-					for (size_t i = 0; i < meshRendererComp.materials.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(meshRendererComp.materials[i])) {
+					for (size_t i = 0; i < staticMeshComp.materials.size(); ++i) {
+						if (AssetManager::IsAssetRegistered(staticMeshComp.materials[i])) {
+							ImGui::Text("Material %zu", i);
+						}
+						else {
+							ImGui::Text("Material Invalid##%d", i);
+						}
+						if (ImGui::BeginDragDropTarget()) {
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+								AssetMetadata metadata;
+								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+									if (metadata.type == AssetType::Material) {
+										staticMeshComp.materials[i] = metadata.handle;
+									}
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+					}
+				}
+
+				ImGui::Checkbox("Cast Shadow", &staticMeshComp.castShadow);
+			});
+
+			DrawComponent<SkeletalMeshComponent>(_selectedEntt, [](SkeletalMeshComponent& skeletalMeshComp) {
+				ImGui::Text("Mesh");
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
+							if (metadata.type == AssetType::SkeletalMesh) {
+								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
+								skeletalMeshComp.mesh = metadata.handle;
+								skeletalMeshComp.materials = asset->GetMaterialHandles();
+								skeletalMeshComp.skeleton = asset->GetSkeletonHandle();
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::CollapsingHeader("Materials")) {
+					for (size_t i = 0; i < skeletalMeshComp.materials.size(); ++i) {
+						if (AssetManager::IsAssetRegistered(skeletalMeshComp.materials[i])) {
 							ImGui::Text("Material %zu", i);
 						}
 						else {
@@ -237,7 +261,7 @@ namespace flaw {
 								AssetMetadata metadata;
 								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
 									if (metadata.type == AssetType::Material) {
-										meshRendererComp.materials[i] = metadata.handle;
+										skeletalMeshComp.materials[i] = metadata.handle;
 									}
 								}
 							}
@@ -246,7 +270,7 @@ namespace flaw {
 					}
 				}
 
-				if (AssetManager::IsAssetRegistered(meshRendererComp.skeleton)) {
+				if (AssetManager::IsAssetRegistered(skeletalMeshComp.skeleton)) {
 					ImGui::Text("Skeleton");
 				}
 				else {
@@ -257,7 +281,7 @@ namespace flaw {
 						AssetMetadata metadata;
 						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
 							if (metadata.type == AssetType::SkeletalMesh) {
-								meshRendererComp.skeleton = metadata.handle;
+								skeletalMeshComp.skeleton = metadata.handle;
 							}
 						}
 					}
@@ -266,11 +290,11 @@ namespace flaw {
 
 				// TODO: 임시 테스트
 				ImGui::Text("Blend Factor");
-				if (ImGui::DragFloat("Blend Factor", &meshRendererComp.blendFactor, 0.1f, 0.0, 1.0)) {
-					meshRendererComp.blendFactor = glm::clamp(meshRendererComp.blendFactor, 0.f, 1.f);
+				if (ImGui::DragFloat("Blend Factor", &skeletalMeshComp.blendFactor, 0.1f, 0.0, 1.0)) {
+					skeletalMeshComp.blendFactor = glm::clamp(skeletalMeshComp.blendFactor, 0.f, 1.f);
 				}
 
-				ImGui::Checkbox("Cast Shadow", &meshRendererComp.castShadow);
+				ImGui::Checkbox("Cast Shadow", &skeletalMeshComp.castShadow);
 			});
 
 			DrawComponent<SkyLightComponent>(_selectedEntt, [](SkyLightComponent& skyLightComp) {

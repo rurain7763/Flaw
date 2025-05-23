@@ -151,6 +151,35 @@ namespace flaw {
 		Ref<SoundSource> _sound;
 	};
 
+	class StaticMeshAsset : public Asset {
+	public:
+		struct Descriptor {
+			std::vector<MeshSegment> segments;
+			std::vector<AssetHandle> materials;
+			std::vector<Vertex3D> vertices;
+			std::vector<uint32_t> indices;
+		};
+
+		StaticMeshAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::StaticMesh; }
+		bool IsLoaded() const override { return _mesh != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<Mesh>& GetMesh() const { return _mesh; }
+		const std::vector<AssetHandle>& GetMaterialHandles() const { return _materials; }
+	
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<Mesh> _mesh;
+		std::vector<AssetHandle> _materials;
+	};
+
 	class SkeletalMeshAsset : public Asset {
 	public:
 		struct Descriptor {

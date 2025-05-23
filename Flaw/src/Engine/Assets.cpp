@@ -104,6 +104,19 @@ namespace flaw {
 		_sound.reset();
 	}
 
+	void StaticMeshAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_mesh = CreateRef<Mesh>(desc.vertices, desc.indices, desc.segments);
+		_materials = std::move(desc.materials);
+	}
+
+	void StaticMeshAsset::Unload() {
+		_materials.clear();
+		_mesh.reset();
+	}
+
 	void SkeletalMeshAsset::Load() {
 		Descriptor desc;
 		_getDesc(desc);

@@ -26,7 +26,7 @@ namespace flaw {
 		Texture2D,
 		Font,
 		Sound,
-		Mesh,
+		StaticMesh,
 		TextureCube,
 		Texture2DArray,
 		SkeletalMesh,

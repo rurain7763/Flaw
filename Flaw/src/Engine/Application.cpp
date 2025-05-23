@@ -14,7 +14,6 @@
 #include "Fonts.h"
 #include "Sounds.h"
 #include "Renderer2D.h"
-#include "PrimitiveManager.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) 
@@ -38,7 +37,6 @@ namespace flaw {
 		Fonts::Init();
 		Sounds::Init();
 		AssetManager::Init();
-		PrimitiveManager::Init();
 		Scripting::Init(*this);
 
 		// 이벤트 등록
@@ -60,7 +58,6 @@ namespace flaw {
 		_eventDispatcher.UnregisterAll(PID(this));
 
 		Scripting::Cleanup();
-		PrimitiveManager::Cleanup();
 		AssetManager::Cleanup();
 		Sounds::Cleanup();
 		Fonts::Cleanup();

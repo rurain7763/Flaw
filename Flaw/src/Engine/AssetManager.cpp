@@ -5,6 +5,7 @@
 #include "Image/Image.h"
 #include "Graphics/Texture.h"
 #include "Graphics.h"
+#include "Graphics/GraphicsFunc.h"
 #include "Serialization.h"
 
 namespace flaw {
@@ -12,45 +13,99 @@ namespace flaw {
 	static std::unordered_map<AssetHandle, Ref<Asset>> g_registeredAssets;
 
 	void AssetManager::Init() {
-		RegisterDefaultGraphicsShader();
+		RegisterDefaultGraphicsShaders();
+		RegisterDefaultMaterials();
+		RegisterDefaultStaticMeshs();
 	}
 
-	void AssetManager::RegisterDefaultGraphicsShader() {
+	void AssetManager::RegisterDefaultGraphicsShaders() {
 		AssetHandle handle = g_registeredAssets.size();
-		auto graphicsShaderAsset = CreateRef<GraphicsShaderAsset>(
-			[](GraphicsShaderAsset::Descriptor& desc) {
-				desc.shaderPath = "Resources/Shaders/std3d_geometry.fx";
-				desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
-				desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
-				desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
-				desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
-			}
-		);
-
-		RegisterAsset(handle, graphicsShaderAsset);
+		RegisterAsset(handle, CreateRef<GraphicsShaderAsset>([](GraphicsShaderAsset::Descriptor& desc) {
+			desc.shaderPath = "Resources/Shaders/std3d_geometry.fx";
+			desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+			desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
+			desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
+			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
+		}));
 		RegisterKey("std3d_geometry", handle);
 
 		handle = g_registeredAssets.size();
-		graphicsShaderAsset = CreateRef<GraphicsShaderAsset>(
-			[](GraphicsShaderAsset::Descriptor& desc) {
-				desc.shaderPath = "Resources/Shaders/std3d_geometry_skeletal.fx";
-				desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
-				desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
-				desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-				desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
-				desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
-			}
-		);
-
-		RegisterAsset(handle, graphicsShaderAsset);
+		RegisterAsset(handle, CreateRef<GraphicsShaderAsset>([](GraphicsShaderAsset::Descriptor& desc) {
+			desc.shaderPath = "Resources/Shaders/std3d_geometry_skeletal.fx";
+			desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+			desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
+			desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
+			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
+		}));
 		RegisterKey("std3d_geometry_skeletal", handle);
+
+		handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<GraphicsShaderAsset>([](GraphicsShaderAsset::Descriptor& desc) {
+			desc.shaderPath = "Resources/Shaders/lighting3d_point.fx";
+			desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+			desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+		}));
+		RegisterKey("lighting3d_point", handle);
+
+		handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<GraphicsShaderAsset>([](GraphicsShaderAsset::Descriptor& desc) {
+			desc.shaderPath = "Resources/Shaders/lighting3d_spot.fx";
+			desc.shaderCompileFlags = ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel;
+			desc.inputElements.push_back({ "POSITION", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "TEXCOORD", GraphicsShader::InputElement::ElementType::Float, 2, false });
+			desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
+			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
+			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
+		}));
+		RegisterKey("lighting3d_spot", handle);
+	}
+
+	void AssetManager::RegisterDefaultMaterials() {
+		AssetHandle handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<MaterialAsset>([](MaterialAsset::Descriptor& desc) {
+			desc.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry");
+			desc.renderMode = RenderMode::Opaque;
+			desc.cullMode = CullMode::Back;
+			desc.depthTest = DepthTest::LessEqual;
+			desc.depthWrite = true;
+		}));
+		RegisterKey("default_material_geometry", handle);
+	}
+
+	void AssetManager::RegisterDefaultStaticMeshs() {
+		AssetHandle handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
+			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
+		}));
+		RegisterKey("default_static_cone_mesh", handle);
+
+		handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
+			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
+		}));
+		RegisterKey("default_static_cube_mesh", handle);
+
+		handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
+			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
+		}));
+		RegisterKey("default_static_sphere_mesh", handle);
 	}
 
 	void AssetManager::Cleanup() {
@@ -148,6 +203,15 @@ namespace flaw {
 		}
 
 		return it->second;
+	}
+
+	Ref<Asset> AssetManager::GetAsset(const std::string_view& key) {
+		auto it = g_assetKeyMap.find(key.data());
+		if (it == g_assetKeyMap.end()) {
+			return nullptr;
+		}
+
+		return GetAsset(it->second);
 	}
 
 	bool AssetManager::IsAssetRegistered(const AssetHandle& handle) {

@@ -78,6 +78,37 @@ namespace flaw {
 				_eventDispatcher.Dispatch<OnSelectEntityEvent>(_selectedEntt);
 			}
 
+			if (ImGui::MenuItem("Create cube")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Cube";
+				AssetHandle cubeMeshAsseHandle = AssetManager::GetHandleByKey("default_static_cube_mesh");
+				auto& meshAsset = AssetManager::GetAsset<StaticMeshAsset>(cubeMeshAsseHandle);
+				if (meshAsset) {
+					auto& meshComp = newEntity.AddComponent<StaticMeshComponent>();
+					meshComp.mesh = cubeMeshAsseHandle;
+					meshComp.materials.clear();
+					for (const auto& materialHandle : meshAsset->GetMaterialHandles()) {
+						meshComp.materials.push_back(materialHandle);
+					}
+				}
+			}
+
+			if (ImGui::MenuItem("Create cone")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Cone";
+				AssetHandle coneMeshAsseHandle = AssetManager::GetHandleByKey("default_static_cone_mesh");
+
+				auto& meshAsset = AssetManager::GetAsset<StaticMeshAsset>(coneMeshAsseHandle);
+				if (meshAsset) {
+					auto& meshComp = newEntity.AddComponent<StaticMeshComponent>();
+					meshComp.mesh = coneMeshAsseHandle;
+					meshComp.materials.clear();
+					for (const auto& materialHandle : meshAsset->GetMaterialHandles()) {
+						meshComp.materials.push_back(materialHandle);
+					}
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 

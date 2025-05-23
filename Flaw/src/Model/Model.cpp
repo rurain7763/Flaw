@@ -9,6 +9,7 @@
 namespace flaw {
 	constexpr uint32_t LoadOptFlags =
 		aiProcess_Triangulate |
+		aiProcess_GenNormals |
 		aiProcess_CalcTangentSpace |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_LimitBoneWeights |

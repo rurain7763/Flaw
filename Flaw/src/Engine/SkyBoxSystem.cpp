@@ -4,7 +4,6 @@
 #include "Components.h"
 #include "AssetManager.h"
 #include "Assets.h"
-#include "PrimitiveManager.h"
 
 namespace flaw {
 	SkyBoxSystem::SkyBoxSystem(Scene& scene)
@@ -15,6 +14,11 @@ namespace flaw {
 		_skyBoxShader = context.CreateGraphicsShader("Resources/Shaders/skybox.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		_skyBoxShader->AddInputElement<float>("POSITION", 3);
 		_skyBoxShader->AddInputElement<float>("TEXCOORD", 2);
+		_skyBoxShader->AddInputElement<float>("TANGENT", 3);
+		_skyBoxShader->AddInputElement<float>("NORMAL", 3);
+		_skyBoxShader->AddInputElement<float>("BINORMAL", 3);
+		_skyBoxShader->AddInputElement<int32_t>("BONEINDICES", 4);
+		_skyBoxShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_skyBoxShader->CreateInputLayout();
 
 		_skyBoxMaterial = CreateRef<Material>();
@@ -51,12 +55,12 @@ namespace flaw {
 		if (_skyBoxTexture2D) {
 			_skyBoxMaterial->intConstants[0] = 0;
 			_skyBoxMaterial->albedoTexture = _skyBoxTexture2D;
-			mesh = PrimitiveManager::GetSphereMesh();
+			mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_sphere_mesh")->GetMesh();
 		}
 		else if (_skyBoxTextureCube) {
 			_skyBoxMaterial->intConstants[0] = 1;
 			_skyBoxMaterial->cubeTextures[0] = _skyBoxTextureCube;
-			mesh = PrimitiveManager::GetCubeMesh();
+			mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cube_mesh")->GetMesh();
 		}
 
 		auto& mainPass = Graphics::GetMainRenderPass();

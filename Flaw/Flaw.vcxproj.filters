@@ -112,9 +112,6 @@
     <ClInclude Include="src\Engine\Platform.h">
       <Filter>Engine</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\PrimitiveManager.h">
-      <Filter>Engine</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Project.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -350,9 +347,6 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Platform.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Engine\PrimitiveManager.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Project.cpp">

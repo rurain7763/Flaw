@@ -108,6 +108,11 @@ namespace flaw {
 			return;
 		}
 
+		if (_unbindFunc) {
+			Log::Warn("Texture already binded");
+			return;
+		}
+
 		_context.DeviceContext()->VSSetShaderResources(slot, 1, _srv.GetAddressOf());
 		_context.DeviceContext()->DSSetShaderResources(slot, 1, _srv.GetAddressOf());
 		_context.DeviceContext()->HSSetShaderResources(slot, 1, _srv.GetAddressOf());
@@ -126,6 +131,11 @@ namespace flaw {
 	}
 
 	void DXTexture2D::BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) {
+		if (_unbindFunc) {
+			Log::Warn("Texture already binded");
+			return;
+		}
+
 		if (bindFlags & BindFlag::ShaderResource) {
 			if (!_srv) {
 				Log::Warn("ShaderResourceView is nullptr");

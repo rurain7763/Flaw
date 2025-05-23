@@ -23,6 +23,7 @@ namespace flaw {
 		static void ReloadAsset(const AssetHandle& handle);
 
 		static Ref<Asset> GetAsset(const AssetHandle& handle);
+		static Ref<Asset> GetAsset(const std::string_view& key);
 
 		static bool IsAssetRegistered(const AssetHandle& handle);
 
@@ -30,11 +31,18 @@ namespace flaw {
 		static Ref<T> GetAsset(const AssetHandle& handle) {
 			return std::dynamic_pointer_cast<T>(GetAsset(handle));
 		}
+
+		template <typename T>
+		static Ref<T> GetAsset(const std::string_view& key) {
+			return std::dynamic_pointer_cast<T>(GetAsset(key));
+		}
 		
 		static AssetHandle GenerateNewAssetHandle();
 
 	private: 
-		static void RegisterDefaultGraphicsShader();
+		static void RegisterDefaultGraphicsShaders();
+		static void RegisterDefaultMaterials();
+		static void RegisterDefaultStaticMeshs();
 	};
 }
 

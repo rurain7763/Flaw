@@ -148,7 +148,6 @@ namespace flaw {
 	void DXStructuredBuffer::Unbind() {
 		if (_unbindFunc) {
 			_unbindFunc();
-			_unbindFunc = nullptr;
 		}
 	}
 

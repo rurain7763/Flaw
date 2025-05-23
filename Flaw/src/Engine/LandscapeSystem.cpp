@@ -17,6 +17,8 @@ namespace flaw {
 		_landscapeShader->AddInputElement<float>("TANGENT", 3);
 		_landscapeShader->AddInputElement<float>("NORMAL", 3);
 		_landscapeShader->AddInputElement<float>("BINORMAL", 3);
+		_landscapeShader->AddInputElement<int>("BONEINDICES", 4);
+		_landscapeShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_landscapeShader->CreateInputLayout();
 	}
 

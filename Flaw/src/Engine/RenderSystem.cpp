@@ -9,7 +9,6 @@
 #include "LandscapeSystem.h"
 #include "AnimationSystem.h"
 #include "ShadowSystem.h"
-#include "PrimitiveManager.h"
 
 // TODO: remove this
 #include "Renderer2D.h"
@@ -83,6 +82,11 @@ namespace flaw {
 			return _geometryPass->GetRenderTargetTex(GeometryAlbedo);
 		};
 
+		decalPassDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		decalPassDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
+			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		};
+
 		_decalPass = Graphics::CreateRenderPass(decalPassDesc);
 
 		// light MRT
@@ -107,6 +111,11 @@ namespace flaw {
 		lightMRTDesc.renderTargets[LightingShadow].texture = Graphics::CreateTexture2D(texDesc);
 		lightMRTDesc.renderTargets[LightingShadow].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
+		lightMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		lightMRTDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
+			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		};
+
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
 
@@ -115,7 +124,6 @@ namespace flaw {
 		_globalCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
 		_lightCB = Graphics::CreateConstantBuffer(sizeof(LightConstants));
 		_materialCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
-
 		_directionalLightUniformCB = Graphics::CreateConstantBuffer(sizeof(DirectionalLightUniforms));
 	}
 
@@ -234,13 +242,13 @@ namespace flaw {
 			break;
 		}
 
-		for (auto&& [entity, transform, pointLight] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
-			PointLight light;
-			light.color = pointLight.color;
-			light.intensity = pointLight.intensity;
-			light.position = transform.GetWorldPosition();
-			light.range = pointLight.range;
-			_pointLights.push_back(std::move(light));
+		for (auto&& [entity, transform, pointLightComp] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
+			_pointLights.emplace_back(PointLight{
+				pointLightComp.color,
+				pointLightComp.intensity,
+				transform.GetWorldPosition(),
+				pointLightComp.range
+			});
 		}
 
 		for (auto&& [entity, transform, spotLight] : enttRegistry.view<TransformComponent, SpotLightComponent>().each()) {
@@ -258,9 +266,6 @@ namespace flaw {
 		_lightConstants.numPointLights = std::min((uint32_t)_pointLights.size(), MaxPointLights);
 		_lightConstants.numSpotLights = std::min((uint32_t)_spotLights.size(), MaxSpotLights);
 		_lightCB->Update(&_lightConstants, sizeof(LightConstants));
-
-		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
-		_spotLightSB->Update(_spotLights.data(), sizeof(SpotLight) * _lightConstants.numSpotLights);
 	}
 
 	void RenderSystem::GatherDecals() {
@@ -309,6 +314,30 @@ namespace flaw {
 			stage.renderQueue.Open();
 
 			// submit mesh
+			for (auto&& [entity, transform, staticMeshCom] : _scene.GetRegistry().view<TransformComponent, StaticMeshComponent>().each()) {
+				auto meshAsset = AssetManager::GetAsset<StaticMeshAsset>(staticMeshCom.mesh);
+				if (meshAsset == nullptr) {
+					continue;
+				}
+
+				Ref<Mesh> mesh = meshAsset->GetMesh();
+
+				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
+				auto& boundingSphere = mesh->GetBoundingSphere();
+				if (camera.isPerspective && !camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
+					continue;
+				}
+
+				for (int32_t i = 0; i < mesh->GetMeshSegmentCount(); ++i) {
+					auto& materialHandle = staticMeshCom.materials[i];
+					auto materialAsset = AssetManager::GetAsset<MaterialAsset>(materialHandle);
+					if (!materialAsset) {
+						continue;
+					}
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial());
+				}
+			}
+
 			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
@@ -319,7 +348,6 @@ namespace flaw {
 
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
 				auto& boundingSphere = mesh->GetBoundingSphere();
-
 				if (camera.isPerspective && !camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
 					continue;
 				}
@@ -367,7 +395,7 @@ namespace flaw {
 	}
 
 	void RenderSystem::RenderGeometry(CameraRenderStage& stage) {
-		_geometryPass->Bind();
+		_geometryPass->Bind(true, false);
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
@@ -485,7 +513,7 @@ namespace flaw {
 		}
 
 		// NOTE: because of decal albedo render target referenced the geometry albedo render target texture, we should not clear clear it
-		_decalPass->Bind(false);
+		_decalPass->Bind(true, false);
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
@@ -552,7 +580,7 @@ namespace flaw {
 	}
 
 	void RenderSystem::RenderDefferdLighting(CameraRenderStage& stage) {
-		_lightingPass->Bind();
+		_lightingPass->Bind(true, false);
 
 		auto& enttRegistry = _scene.GetRegistry();
 		auto& shadowSys = _scene.GetShadowSystem();
@@ -564,9 +592,6 @@ namespace flaw {
 		static Ref<GraphicsShader> g_directionalLightShader;
 		static Ref<VertexBuffer> g_fullscreenQuadVB;
 		static Ref<IndexBuffer> g_fullscreenQuadIB;
-		static Ref<GraphicsShader> g_pointLightShader;
-		static Ref<VertexBuffer> g_sphereVB;
-		static Ref<IndexBuffer> g_sphereIB;
 
 		if (!init) {
 			QuadVertex quadVertices[4] = {
@@ -599,17 +624,6 @@ namespace flaw {
 			g_directionalLightShader->AddInputElement<float>("TEXCOORD", 2);
 			g_directionalLightShader->CreateInputLayout();
 
-			// sphere
-			Ref<Mesh> sphereMesh = PrimitiveManager::GetSphereMesh();
-			g_sphereVB = sphereMesh->GetGPUVertexBuffer();
-			g_sphereIB = sphereMesh->GetGPUIndexBuffer();
-
-			g_pointLightShader = Graphics::CreateGraphicsShader("Resources/Shaders/lighting3d_point.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-			g_pointLightShader->AddInputElement<float>("POSITION", 3);
-			g_pointLightShader->CreateInputLayout();
-
-			// cone
-			
 			init = true;
 		}
 
@@ -653,28 +667,44 @@ namespace flaw {
 		}
 
 		// render point light
-		cmdQueue.Begin();
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		Ref<Mesh> sphereMesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_sphere_mesh")->GetMesh();
+		auto pointLightShader = AssetManager::GetAsset<GraphicsShaderAsset>("lighting3d_point")->GetShader();
 
-		pipeline->SetShader(g_pointLightShader);
+		pipeline->SetShader(pointLightShader);
 		pipeline->SetFillMode(FillMode::Solid);
 		pipeline->SetCullMode(CullMode::Front);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
+		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
+
+		cmdQueue.Begin();
 		cmdQueue.SetPipeline(pipeline);
-		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
-		cmdQueue.SetConstantBuffer(_lightCB, 2);
-		cmdQueue.SetStructuredBuffer(_pointLightSB, 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
-		cmdQueue.SetVertexBuffer(g_sphereVB);
-		cmdQueue.DrawIndexedInstanced(g_sphereIB, g_sphereIB->IndexCount(), _lightConstants.numPointLights);
+		cmdQueue.SetStructuredBuffer(_pointLightSB, 2);
+		cmdQueue.SetVertexBuffer(sphereMesh->GetGPUVertexBuffer());
+		cmdQueue.DrawIndexedInstanced(sphereMesh->GetGPUIndexBuffer(), sphereMesh->GetGPUIndexBuffer()->IndexCount(), _lightConstants.numPointLights);
 		cmdQueue.End();
 
 		cmdQueue.Execute();
 
-		// TODO: render spot light
+		// render spot light
+		Ref<Mesh> coneMesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cone_mesh")->GetMesh();
+		auto spotLightShader = AssetManager::GetAsset<GraphicsShaderAsset>("lighting3d_spot")->GetShader();
+
+		pipeline->SetShader(spotLightShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetCullMode(CullMode::Front);
+		pipeline->SetDepthTest(DepthTest::Disabled, false);
+
+		_spotLightSB->Update(_spotLights.data(), sizeof(SpotLight)* _lightConstants.numSpotLights);
+
+		cmdQueue.Begin();
+		cmdQueue.SetPipeline(pipeline);
+		cmdQueue.SetStructuredBuffer(_spotLightSB, 2);
+		cmdQueue.SetVertexBuffer(coneMesh->GetGPUVertexBuffer());
+		cmdQueue.DrawIndexedInstanced(coneMesh->GetGPUIndexBuffer(), coneMesh->GetGPUIndexBuffer()->IndexCount(), _lightConstants.numSpotLights);
+		cmdQueue.End();
+
+		cmdQueue.Execute();
 
 		_lightingPass->Unbind();
 	}
@@ -741,16 +771,15 @@ namespace flaw {
 			init = true;
 		}
 
-		cmdQueue.Begin();
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-
 		pipeline->SetShader(g_std3dFinalizeShader);
 		pipeline->SetFillMode(FillMode::Solid);
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Always, false);
 
+		cmdQueue.Begin();
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
-
+		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 0);
