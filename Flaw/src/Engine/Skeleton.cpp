@@ -137,4 +137,33 @@ namespace flaw {
 			return _nodes[nodeIndex].transformMatrix;
 		}, out);
 	}
+
+	void Skeleton::GetBlendedAnimationMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const {
+		const float timeSec1 = animation1->GetDurationSec() * normalizedTime;
+		const float timeSec2 = animation2->GetDurationSec() * normalizedTime;
+
+		ComputeTransformationMatricesInHierachy([this, &animation1, &animation2, &normalizedTime, &blendFactor, &timeSec1, &timeSec2](int32_t nodeIndex) {
+			int32_t animationNodeIndex1 = animation1->GetNodeIndex(_nodes[nodeIndex].name);
+			int32_t animationNodeIndex2 = animation2->GetNodeIndex(_nodes[nodeIndex].name);
+
+			if (animationNodeIndex1 != -1 && animationNodeIndex2 != -1) {
+				const auto& animationNode1 = animation1->GetAnimationNodeAt(animationNodeIndex1);
+				const auto& animationNode2 = animation2->GetAnimationNodeAt(animationNodeIndex2);
+
+				const vec3 position = mix(animationNode1.InterpolatePosition(timeSec1), animationNode2.InterpolatePosition(timeSec2), blendFactor);
+				const quat rotation = normalize(slerp(animationNode1.InterpolateRotation(timeSec1), animationNode2.InterpolateRotation(timeSec2), blendFactor));
+				const vec3 scale = mix(animationNode1.InterpolateScale(timeSec1), animationNode2.InterpolateScale(timeSec2), blendFactor);
+
+				return ModelMatrix(position, rotation, scale);
+			}
+			else if (animationNodeIndex1 != -1) {
+				return animation1->GetAnimationNodeAt(animationNodeIndex1).GetTransformMatrix(timeSec1);
+			}
+			else if (animationNodeIndex2 != -1) {
+				return animation2->GetAnimationNodeAt(animationNodeIndex2).GetTransformMatrix(timeSec2);
+			}
+
+			return _nodes[nodeIndex].transformMatrix;
+		}, out);
+	}
 }

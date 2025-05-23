@@ -31,72 +31,6 @@ namespace flaw {
 		);
 	}
 
-	// TODO: 이 코드는 다른 곳으로 이동해야 함
-	static void ShowScrollingText(const char* label, const char* text, ImVec2 boxSize, float scrollSpeed = 30.0f) {
-		ImGui::BeginGroup();
-
-		ImVec2 pos = ImGui::GetCursorScreenPos();
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		ImGuiID id = window->GetID(label);
-		ImVec2 textSize = ImGui::CalcTextSize(text);
-
-		float itemHeight = textSize.y;
-		ImVec2 textRegionSize = ImVec2(boxSize.x, itemHeight);
-
-		// Invisible button to detect hover
-		ImGui::InvisibleButton(label, textRegionSize);
-		bool isHovered = ImGui::IsItemHovered();
-
-		float availableWidth = textRegionSize.x;
-		float overflow = textSize.x - availableWidth;
-
-		float scrollOffset = 0.0f;
-
-		if (overflow > 0.0f) {
-			static std::unordered_map<ImGuiID, float> scrollOffsets;
-			static std::unordered_map<ImGuiID, double> lastResetTime;
-
-			double currentTime = ImGui::GetTime();
-
-			if (!isHovered) {
-				// Reset animation when not hovered
-				scrollOffsets[id] = 0.0f;
-				lastResetTime[id] = currentTime;
-			}
-			else {
-				const float pauseDuration = 3.0f; // Pause duration at the end of the scroll
-
-				float totalScrollTime = overflow / scrollSpeed;
-				float elapsed = (float)(currentTime - lastResetTime[id]);
-
-				float cycleTime = totalScrollTime + pauseDuration;
-				float t = fmodf(elapsed, cycleTime);
-
-				if (t < totalScrollTime) {
-					scrollOffset = t * scrollSpeed;
-				}
-				else {
-					scrollOffset = overflow; // pause at end
-				}
-
-				scrollOffsets[id] = scrollOffset;
-			}
-
-			scrollOffset = scrollOffsets[id];
-		}
-
-		// Clip and draw
-		ImGui::SetCursorScreenPos(pos);
-		ImGui::PushClipRect(pos, ImVec2(pos.x + textRegionSize.x, pos.y + textRegionSize.y), true);
-		ImGui::SetCursorScreenPos(ImVec2(pos.x - scrollOffset, pos.y));
-		ImGui::TextUnformatted(text);
-		ImGui::PopClipRect();
-
-		ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + textRegionSize.y));
-		ImGui::EndGroup();
-	}
-
 	void ContentBrowserEditor::OnRender() {
 		ImGui::Begin("Content Browser");
 
@@ -168,7 +102,7 @@ namespace flaw {
 				}
 
 				ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + iconSize);
-				ShowScrollingText(("##" + folderName + "ScrollingText").c_str(), folderName.c_str(), {iconSize, 24.0f}, 30.0f);
+				EditorHelper::ShowScrollingText(("##" + folderName + "ScrollingText").c_str(), folderName.c_str(), {iconSize, 24.0f}, 30.0f);
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
 			}
@@ -223,7 +157,7 @@ namespace flaw {
 				}
 
 				ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + iconSize);
-				ShowScrollingText(("##" + filename + "ScrollingText").c_str(), filename.c_str(), {iconSize, 24.0f}, 30.0f);
+				EditorHelper::ShowScrollingText(("##" + filename + "ScrollingText").c_str(), filename.c_str(), {iconSize, 24.0f}, 30.0f);
 				ImGui::PopTextWrapPos();
 				ImGui::EndGroup();
 			}

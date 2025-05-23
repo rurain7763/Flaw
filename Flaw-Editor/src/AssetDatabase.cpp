@@ -37,7 +37,6 @@ namespace flaw {
 						else if (!path.has_extension()) {
 							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), true); });
 						}
-						Log::Info("AssetDatabase auto refreshed!");
 						break;
 					}
 				}
@@ -77,6 +76,8 @@ namespace flaw {
 				++it;
 			}
 		}
+
+		Log::Info("AssetDatabase refreshed!");
 	}
 
 	void AssetDatabase::RegisterAssetsInFolder(const char* folderPath, bool recursive) {

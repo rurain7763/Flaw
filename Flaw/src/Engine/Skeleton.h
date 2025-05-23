@@ -41,14 +41,12 @@ namespace flaw {
 		SkeletalAnimationNode() = default;
 		SkeletalAnimationNode(const std::string& nodeName, const std::vector<SkeletalAnimationNodeKey<vec3>>& positionKeys, const std::vector<SkeletalAnimationNodeKey<vec4>>& rotationKeys, const std::vector<SkeletalAnimationNodeKey<vec3>>& scaleKeys);
 
-		mat4 GetTransformMatrix(float time) const;
-
-		const std::string& GetNodeName() const { return _nodeName; }
-
-	private:
 		vec3 InterpolatePosition(float time) const;
 		quat InterpolateRotation(float time) const;
 		vec3 InterpolateScale(float time) const;
+		mat4 GetTransformMatrix(float time) const;
+
+		const std::string& GetNodeName() const { return _nodeName; }
 
 	private:
 		friend struct Serializer<SkeletalAnimationNode>;
@@ -154,7 +152,9 @@ namespace flaw {
 		const std::unordered_map<std::string, SkeletonBoneNode>& GetBoneMap() const { return _boneMap; }
 
 		Ref<StructuredBuffer> GetBindingPosGPUBuffer() const { return _bindPosGPUBuffer; }
+
 		void GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const;
+		void GetBlendedAnimationMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const;
 
 	private:
 		void ComputeTransformationMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const;

@@ -57,8 +57,14 @@ namespace flaw {
 
 			// TODO: temporary animation
 			skeletalAnimData->_boneMatricesSB = skeletalAnimData->_bindingPosMatrices;
-			for (AssetHandle animationHandle : skeletonAsset->GetAnimationHandles()) {
-				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandle);
+			const auto& animationHandles = skeletonAsset->GetAnimationHandles();
+			if (animationHandles.empty()) {
+				continue;
+			}
+
+#if false
+			if (animationHandles.size() >= 1) {
+				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[0]);
 				if (animationAsset == nullptr) {
 					continue;
 				}
@@ -77,9 +83,35 @@ namespace flaw {
 				});
 
 				skeletalAnimData->_boneMatricesSB = skeletalAnimData->_animationMatricesSB;
-
-				break;
 			}
+#else
+			if (animationHandles.size() >= 2) {
+				auto animationAsset1 = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[0]);
+				auto animationAsset2 = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[1]);
+
+				if (animationAsset1 == nullptr || animationAsset2 == nullptr) {
+					continue;
+				}
+
+				Ref<SkeletalAnimation> animation1 = animationAsset1->GetAnimation();
+				Ref<SkeletalAnimation> animation2 = animationAsset2->GetAnimation();
+
+				skeletalAnimData->_animationTime += Time::DeltaTime();
+				if (skeletalAnimData->_animationTime > animation1->GetDurationSec()) {
+					skeletalAnimData->_animationTime = 0.0f;
+				}
+
+				float normalizedTime = skeletalAnimData->_animationTime / animation1->GetDurationSec();
+
+				_app.AddAsyncTask([animation1, animation2, skeleton, skeletalAnimData, normalizedTime, blendFactor = skeletalMeshComp.blendFactor]() {
+					std::lock_guard<std::mutex> lock(skeletalAnimData->_mutex);
+					skeleton->GetBlendedAnimationMatrices(animation1, animation2, normalizedTime, blendFactor, skeletalAnimData->_animationMatrices);
+					skeletalAnimData->_animationMatricesDirty = true;
+				});
+
+				skeletalAnimData->_boneMatricesSB = skeletalAnimData->_animationMatricesSB;
+			}
+#endif
 		}
 	}
 }

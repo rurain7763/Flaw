@@ -263,6 +263,14 @@ namespace flaw {
 					}
 					ImGui::EndDragDropTarget();
 				}
+
+				// TODO: 임시 테스트
+				ImGui::Text("Blend Factor");
+				if (ImGui::DragFloat("Blend Factor", &meshRendererComp.blendFactor, 0.1f, 0.0, 1.0)) {
+					meshRendererComp.blendFactor = glm::clamp(meshRendererComp.blendFactor, 0.f, 1.f);
+				}
+
+				ImGui::Checkbox("Cast Shadow", &meshRendererComp.castShadow);
 			});
 
 			DrawComponent<SkyLightComponent>(_selectedEntt, [](SkyLightComponent& skyLightComp) {
