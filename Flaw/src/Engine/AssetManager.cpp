@@ -79,14 +79,14 @@ namespace flaw {
 			desc.depthTest = DepthTest::LessEqual;
 			desc.depthWrite = true;
 		}));
-		RegisterKey("default_material_geometry", handle);
+		RegisterKey("default_material_std3d_geometry", handle);
 	}
 
 	void AssetManager::RegisterDefaultStaticMeshs() {
 		AssetHandle handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
 			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
-			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
 		RegisterKey("default_static_cone_mesh", handle);
@@ -94,7 +94,7 @@ namespace flaw {
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
 			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
-			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
 		RegisterKey("default_static_cube_mesh", handle);
@@ -102,7 +102,7 @@ namespace flaw {
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
 			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
-			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_geometry"));
+			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
 		RegisterKey("default_static_sphere_mesh", handle);
