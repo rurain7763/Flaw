@@ -42,6 +42,7 @@ namespace flaw{
 
 	private:
 		Application& _app;
+		EventDispatcher& _eventDispatcher;
 
 		HANDLE _changeHandle;
 

@@ -44,8 +44,5 @@ namespace flaw {
 
 		virtual AssetType GetAssetType() const = 0;
 		virtual bool IsLoaded() const = 0;
-
-	private:
-		AssetHandle _handle;
 	};
 }

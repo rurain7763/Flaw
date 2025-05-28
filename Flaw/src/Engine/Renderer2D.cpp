@@ -182,7 +182,6 @@ namespace flaw {
 		g_lineVB->Update(g_lineVertices.data(), sizeof(LineVertex), g_lineVertices.size());
 		g_textVB->Update(g_textVertices.data(), sizeof(QuadVertex), g_textVertices.size());
 
-		commandQueue.Begin();
 		commandQueue.SetConstantBuffer(g_vpCB, 0);
 		commandQueue.SetConstantBuffer(g_globalCB, 1);
 
@@ -222,8 +221,6 @@ namespace flaw {
 			commandQueue.DrawIndexed(g_ib, g_textIndexCount);
 		}
 		
-		commandQueue.End();
-
 		commandQueue.Execute();
 	}
 

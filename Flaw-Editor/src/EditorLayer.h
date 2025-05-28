@@ -12,6 +12,8 @@
 #include "Editor/LogEditor.h"
 
 namespace flaw {
+	class Editor;
+
 	class EditorLayer : public Layer {
 	public:
 		EditorLayer(Application& app);
@@ -19,6 +21,8 @@ namespace flaw {
 		void OnAttatch() override;
 		void OnDetach() override;
 		void OnUpdate() override;
+
+		void RegisterEditor(const std::string& name, const Ref<Editor>& editor);
 
 		void SetTheme(EditorTheme theme);
 
@@ -67,6 +71,8 @@ namespace flaw {
 		std::string _currentScenePath;
 
 		EditorMode _editorMode;
+
+		std::unordered_map<std::string, Ref<Editor>> _editors;
 	};
 }
 

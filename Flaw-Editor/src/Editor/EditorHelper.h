@@ -17,7 +17,7 @@ namespace flaw {
 			ImGui::PopStyleColor(3);
 		}
 
-		static bool DrawImputText(const char* label, std::string& value) {
+		static bool DrawInputText(const char* label, std::string& value) {
 			bool dirty = false;
 			ImGui::PushID(label);
 			ImGui::Text(label);
@@ -208,6 +208,19 @@ namespace flaw {
 
 			ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + textRegionSize.y));
 			ImGui::EndGroup();
+		}
+
+		static void DrawAssetPayloadTarget(const char* label, const std::function<void(const char*)>& onFileDropped) {
+			ImGui::Text("%s", label);
+			
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH");
+				if (payload) {
+					const char* filePath = (const char*)payload->Data;
+					onFileDropped(filePath);
+				}
+				ImGui::EndDragDropTarget();
+			}
 		}
 	};
 }

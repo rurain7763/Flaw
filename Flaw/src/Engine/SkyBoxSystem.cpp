@@ -70,17 +70,14 @@ namespace flaw {
 		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
 		mainPass->Bind(false, false);
 
-		cmdQueue.Begin();
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-
 		// set pipeline
 		pipeline->SetShader(_skyBoxMaterial->shader);
 		pipeline->SetFillMode(FillMode::Solid);
 		pipeline->SetCullMode(_skyBoxMaterial->cullMode);
 		pipeline->SetDepthTest(_skyBoxMaterial->depthTest, _skyBoxMaterial->depthWrite);
 
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
-
 		cmdQueue.SetConstantBuffer(vpCB, 0);
 		cmdQueue.SetConstantBuffer(globalCB, 1);
 		cmdQueue.SetConstantBuffer(lightCB, 2);
@@ -90,22 +87,22 @@ namespace flaw {
 
 		materialConstants.reservedTextureBitMask = 0;
 		if (_skyBoxMaterial->albedoTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialConstants::Albedo;
+			materialConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
 			cmdQueue.SetTexture(_skyBoxMaterial->albedoTexture, ReservedTextureStartSlot);
 		}
 
 		if (_skyBoxMaterial->normalTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialConstants::Normal;
+			materialConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
 			cmdQueue.SetTexture(_skyBoxMaterial->normalTexture, ReservedTextureStartSlot + 1);
 		}
 
 		if (_skyBoxMaterial->emissiveTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialConstants::Emissive;
+			materialConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
 			cmdQueue.SetTexture(_skyBoxMaterial->emissiveTexture, ReservedTextureStartSlot + 2);
 		}
 
 		if (_skyBoxMaterial->heightTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialConstants::Height;
+			materialConstants.reservedTextureBitMask |= MaterialTextureType::Height;
 			cmdQueue.SetTexture(_skyBoxMaterial->heightTexture, ReservedTextureStartSlot + 3);
 		}
 
@@ -128,8 +125,6 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(materialCB, 3);
 		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
-
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 	}

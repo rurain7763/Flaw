@@ -11,8 +11,8 @@
 
 namespace flaw {
 	constexpr uint32_t ReservedTextureStartSlot = 50;
-	constexpr uint32_t CubeTextureStartSlot = 54;
-	constexpr uint32_t TextureArrayStartSlot = 58;
+	constexpr uint32_t CubeTextureStartSlot = 57;
+	constexpr uint32_t TextureArrayStartSlot = 61;
 
 	enum class GraphicsType {
 		DX11
@@ -101,13 +101,6 @@ namespace flaw {
 	};
 
 	struct MaterialConstants {
-		enum TextureType {
-			Albedo = 0x1,
-			Normal = 0x2,
-			Emissive = 0x4,
-			Height = 0x8,
-		};
-
 		uint32_t reservedTextureBitMask = 0;
 		uint32_t cubeTextureBitMask = 0;
 		uint32_t textureArrayBitMask = 0;

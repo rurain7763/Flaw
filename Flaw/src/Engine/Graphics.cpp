@@ -243,8 +243,6 @@ namespace flaw {
 
 		auto& cmdQueue = g_graphicsContext->GetCommandQueue();
 
-		cmdQueue.Begin();
-
 		g_computePipeline->SetShader(g_raycastShader);
 
 		cmdQueue.SetComputePipeline(g_computePipeline);
@@ -252,8 +250,6 @@ namespace flaw {
 		cmdQueue.SetComputeStructuredBuffer(g_raycastTriSB, BindFlag::ShaderResource, 0);
 		cmdQueue.SetComputeStructuredBuffer(g_raycastResultSB, BindFlag::UnorderedAccess, 0);
 		cmdQueue.Dispatch(CalculateDispatchGroupCount(1024, candidateTris.size()), 1, 1);
-
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 

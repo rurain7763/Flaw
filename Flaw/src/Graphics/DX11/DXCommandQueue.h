@@ -28,7 +28,6 @@ namespace flaw {
 		void SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) override;
 		void SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) override;
 		void SetTexture(const Ref<Texture>& texture, uint32_t slot) override;
-		void SetTextures(const Ref<Texture>* textures, uint32_t count, uint32_t startSlot) override;
 
 		void Draw(uint32_t vertexCount, uint32_t vertexOffset = 0) override;
 		void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset = 0, uint32_t vertexOffset = 0) override;
@@ -40,17 +39,15 @@ namespace flaw {
 		void SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) override;
 		void Dispatch(uint32_t x, uint32_t y, uint32_t z) override;
 
-		void ResetTexture(const uint32_t slot) override;
-		void ResetAllTextures() override;
-
-		void Begin() override;
-		void End() override;
 		void Execute() override;
+
+	private:
+		void ResetTexture(const uint32_t slot);
+		void ResetAllTextures();
 
 	private:
 		DXContext& _context;
 
-		bool _open = false;
 		std::queue<std::function<void()>> _commands;
 	};
 }

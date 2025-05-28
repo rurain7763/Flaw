@@ -107,8 +107,6 @@ namespace flaw {
 			for (const auto& [entt, shadowMap] : _shadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
 
-				cmdQueue.Begin();
-
 				pipeline->SetShader(entry.material->shader);
 				pipeline->SetFillMode(FillMode::Solid);
 				pipeline->SetCullMode(entry.material->cullMode);
@@ -120,7 +118,7 @@ namespace flaw {
 				cmdQueue.SetConstantBuffer(_shadowUniformsCB, 0);
 
 				cmdQueue.SetStructuredBuffer(batchedTransformSB, 0);
-				cmdQueue.End();
+
 				cmdQueue.Execute();
 
 				// instancing draw
@@ -130,11 +128,9 @@ namespace flaw {
 
 					batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
-					cmdQueue.Begin();
 					cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 					cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 					cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
-					cmdQueue.End();
 					cmdQueue.Execute();
 				}
 

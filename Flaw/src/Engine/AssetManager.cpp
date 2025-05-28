@@ -31,7 +31,7 @@ namespace flaw {
 			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
 			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
 		}));
-		RegisterKey("std3d_geometry", handle);
+		RegisterKey("std3d_geometry_static", handle);
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<GraphicsShaderAsset>([](GraphicsShaderAsset::Descriptor& desc) {
@@ -73,7 +73,7 @@ namespace flaw {
 	void AssetManager::RegisterDefaultMaterials() {
 		AssetHandle handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<MaterialAsset>([](MaterialAsset::Descriptor& desc) {
-			desc.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry");
+			desc.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry_static");
 			desc.renderMode = RenderMode::Opaque;
 			desc.cullMode = CullMode::Back;
 			desc.depthTest = DepthTest::LessEqual;

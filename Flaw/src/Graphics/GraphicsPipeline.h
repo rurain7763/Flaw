@@ -17,6 +17,7 @@ namespace flaw {
 		virtual void Bind() = 0;
 
 		inline void SetShader(const Ref<GraphicsShader>& shader) { _shader = shader; }
+		inline const Ref<GraphicsShader>& GetShader() const { return _shader; }
 
 	protected:
 		Ref<GraphicsShader> _shader;

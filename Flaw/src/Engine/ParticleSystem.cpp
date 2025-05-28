@@ -68,7 +68,6 @@ namespace flaw {
 
 			compResources.particleUniformBuffer->Update(&_particleUniform, sizeof(ParticleUniform));
 
-			cmdQueue.Begin();
 			cmdQueue.SetComputePipeline(_computePipeline);
 			cmdQueue.SetComputeConstantBuffer(globalConstantsCB, 1);
 			cmdQueue.SetComputeStructuredBuffer(compResources.particleUniformBuffer, BindFlag::UnorderedAccess, 0);
@@ -77,8 +76,6 @@ namespace flaw {
 			const uint32_t threadCount = 32;
 			cmdQueue.Dispatch((particleComp.maxParticles + threadCount - 1) / threadCount, 1, 1);
 			
-			cmdQueue.End();
-
 			cmdQueue.Execute();
 		}
 	}
@@ -278,7 +275,6 @@ namespace flaw {
 		auto& registry = _scene.GetRegistry();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
-		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::PointList);
 		cmdQueue.SetPipeline(_graphicsPipeline);
 		cmdQueue.SetConstantBuffer(vpMatricesCB, 0);
@@ -299,9 +295,6 @@ namespace flaw {
 
 			cmdQueue.DrawIndexedInstanced(_indexBuffer, 1, particleComp.maxParticles);
 		}
-
-		cmdQueue.ResetAllTextures();
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 	}

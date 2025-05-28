@@ -1,6 +1,7 @@
 #include "ContentBrowserEditor.h"
 #include "AssetDatabase.h"
 #include "EditorHelper.h"
+#include "EditorEvents.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -9,6 +10,7 @@
 namespace flaw {
 	ContentBrowserEditor::ContentBrowserEditor(Application& app)
 		: _app(app)
+		, _eventDispatcher(app.GetEventDispatcher())
 	{
 		_currentDirectory = AssetDatabase::GetContentsDirectory();
 
@@ -148,6 +150,10 @@ namespace flaw {
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.generic_u8string().c_str());
+
+					if (ImGui::IsMouseDoubleClicked(0)) {
+						_eventDispatcher.Dispatch<OnDoubleClickAssetFileEvent>(path.generic_string().c_str());
+					}
 				}
 
 				if (ImGui::BeginDragDropSource()) {
@@ -180,6 +186,28 @@ namespace flaw {
 #ifdef _WIN32
 				ShellExecuteW(NULL, L"open", openPath.wstring().c_str(), NULL, NULL, SW_SHOW);
 #endif
+			}
+			ImGui::EndPopup();
+		}
+
+		// Context Menu for Content Browser
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1)) {
+			ImGui::OpenPopup("ContentBrowserContextMenu");
+		}
+
+		if (ImGui::BeginPopup("ContentBrowserContextMenu")) {
+			if (ImGui::BeginMenu("New Asset")) {
+				if (ImGui::MenuItem("Material")) {
+					MaterialCreateSettings settings;
+					settings.destPath = _currentDirectory.generic_string() + "/NewMaterial.asset";
+					settings.renderMode = RenderMode::Opaque;
+					settings.cullMode = CullMode::Back;
+					settings.depthTest = DepthTest::Less;
+					settings.depthWrite = true;
+					AssetDatabase::CreateAsset(&settings);
+				}
+
+				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();
 		}
@@ -357,7 +385,7 @@ namespace flaw {
 			static std::string fileName;
 			static std::vector<std::filesystem::path> imagePaths;
 
-			EditorHelper::DrawImputText("File Name", fileName);
+			EditorHelper::DrawInputText("File Name", fileName);
 
 			for (int32_t i = 0; i < imagePaths.size(); ++i) {
 				ImGui::Text("%s", imagePaths[i].filename().generic_u8string().c_str());

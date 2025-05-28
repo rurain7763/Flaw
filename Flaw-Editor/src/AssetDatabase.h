@@ -67,6 +67,11 @@ namespace flaw {
 		AssetHandle shaderHandle;
 		AssetHandle albedoTexture;
 		AssetHandle normalTexture;
+		AssetHandle emissiveTexture;
+		AssetHandle heightTexture;
+		AssetHandle metallicTexture;
+		AssetHandle roughnessTexture;
+		AssetHandle ambientOcclusionTexture;
 
 		MaterialCreateSettings() {
 			type = Type::Material;
@@ -200,6 +205,7 @@ namespace flaw {
 		static const std::filesystem::path& GetContentsDirectory();
 
 		static AssetHandle CreateAsset(const AssetCreateSettings* settings);
+		static void RecreateAsset(const char* assetFile, const AssetCreateSettings* settings);
 
 		static bool ImportAsset(const AssetImportSettings* importSettings);
 
@@ -209,11 +215,12 @@ namespace flaw {
 		static Ref<Asset> CreateAssetInstance(AssetType assetType, const std::filesystem::path& path, int32_t dataOffset);
 
 		static AssetHandle CreateAssetFile(const char* path, AssetType assetType, std::function<void(SerializationArchive&)> serializeFunc);
+		static AssetHandle RecreateAssetFile(const char* path, AssetType assetType, std::function<void(SerializationArchive&)> serializeFunc);
 
-		static AssetHandle CreateTexture2D(const Texture2DCreateSettings* settings);
-		static AssetHandle CreateMaterial(const MaterialCreateSettings* settings);
-		static AssetHandle CreateSkeleton(const SkeletonCreateSettings* settings);
-		static AssetHandle CreateSkeletalAnimation(const SkeletalAnimationCreateSettings* settings);
+		static void FillSerializationArchive(SerializationArchive& archive, const Texture2DCreateSettings* settings);
+		static void FillSerializationArchive(SerializationArchive& archive, const MaterialCreateSettings* settings);
+		static void FillSerializationArchive(SerializationArchive& archive, const SkeletonCreateSettings* settings);
+		static void FillSerializationArchive(SerializationArchive& archive, const SkeletalAnimationCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);

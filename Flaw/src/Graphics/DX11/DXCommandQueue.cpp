@@ -6,30 +6,32 @@
 #include "DXType.h"
 
 namespace flaw {
+	static std::unordered_map<uint32_t, Ref<Texture>> g_bindedTextures;
+	static std::unordered_map<uint32_t, Ref<StructuredBuffer>> g_bindedStructuredBuffers;
+
 	DXCommandQueue::DXCommandQueue(DXContext& context)
 		: _context(context)
 	{
 	}
 
 	void DXCommandQueue::SetPrimitiveTopology(PrimitiveTopology primitiveTopology) {
-		FASSERT(_open, "DXCommandQueue::SetPrimitiveTopology failed: Command queue is not open");
 		_commands.push([this, primitiveTopology]() { 
 			_context.DeviceContext()->IASetPrimitiveTopology(ConvertToD3D11Topology(primitiveTopology));
 		});
 	}
 
 	void DXCommandQueue::SetPipeline(const Ref<GraphicsPipeline>& pipeline) {
-		FASSERT(_open, "DXCommandQueue::SetPipeline failed: Command queue is not open");
-		_commands.push([pipeline]() { pipeline->Bind(); });
+		_commands.push([this, pipeline]() { 
+			ResetAllTextures();
+			pipeline->Bind(); 
+		});
 	}
 
 	void DXCommandQueue::SetVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) {
-		FASSERT(_open, "DXCommandQueue::SetVertexBuffer failed: Command queue is not open");
 		_commands.push([vertexBuffer]() { vertexBuffer->Bind(); });
 	}
 
 	void DXCommandQueue::SetConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetConstantBuffer failed: Command queue is not open");
 		_commands.push([constantBuffer, slot]() { 
 			constantBuffer->Unbind();
 			constantBuffer->BindToGraphicsShader(slot); 
@@ -37,38 +39,26 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetStructuredBuffer failed: Command queue is not open");
-		_commands.push([buffer, slot]() {
-			buffer->Unbind();
+		_commands.push([this, buffer, slot]() {
+			ResetTexture(slot);
 			buffer->BindToGraphicsShader(slot);
+			g_bindedStructuredBuffers[slot] = buffer;
 		});
 	}
 
 	void DXCommandQueue::SetTexture(const Ref<Texture>& texture, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetTexture failed: Command queue is not open");
-		_commands.push([texture, slot]() { 
-			texture->Unbind();
+		_commands.push([this, texture, slot]() { 
+			ResetTexture(slot);
 			texture->BindToGraphicsShader(slot);
-		});
-	}
-
-	void DXCommandQueue::SetTextures(const Ref<Texture>* textures, uint32_t count, uint32_t startSlot) {
-		FASSERT(_open, "DXCommandQueue::SetTextures failed: Command queue is not open");
-		_commands.push([this, textures, count, startSlot]() {
-			for (uint32_t i = 0; i < count; ++i) {
-				textures[i]->Unbind();
-				textures[i]->BindToGraphicsShader(startSlot + i);
-			}
+			g_bindedTextures[slot] = texture;
 		});
 	}
 
 	void DXCommandQueue::Draw(uint32_t vertexCount, uint32_t vertexOffset) {
-		FASSERT(_open, "DXCommandQueue::Draw failed: Command queue is not open");
 		_commands.push([this, vertexCount, vertexOffset]() { _context.DeviceContext()->Draw(vertexCount, vertexOffset); });
 	}
 
 	void DXCommandQueue::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset) {
-		FASSERT(_open, "DXCommandQueue::DrawIndexed failed: Command queue is not open");
 		_commands.push([this, indexBuffer, indexCount, indexOffset, vertexOffset]() {
 			indexBuffer->Bind();
 			_context.DeviceContext()->DrawIndexed(indexCount, indexOffset, vertexOffset);
@@ -76,7 +66,6 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::DrawIndexedInstanced(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset) {
-		FASSERT(_open, "DXCommandQueue::DrawIndexedInstanced failed: Command queue is not open");
 		_commands.push([this, indexBuffer, indexCount, instanceCount, indexOffset, vertexOffset]() {
 			indexBuffer->Bind();
 			_context.DeviceContext()->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, 0);
@@ -84,12 +73,10 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::SetComputePipeline(const Ref<ComputePipeline>& pipeline) {
-		FASSERT(_open, "DXCommandQueue::SetComputePipeline failed: Command queue is not open");
 		_commands.push([pipeline]() { pipeline->Bind(); });
 	}
 
 	void DXCommandQueue::SetComputeConstantBuffer(const Ref<ConstantBuffer>& constantBuffer, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetComputeConstantBuffer failed: Command queue is not open");
 		_commands.push([constantBuffer, slot]() { 
 			constantBuffer->Unbind();
 			constantBuffer->BindToComputeShader(slot); 
@@ -97,58 +84,49 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::SetComputeTexture(const Ref<Texture>& texture, BindFlag bindFlag, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetComputeTexture failed: Command queue is not open");
-		_commands.push([texture, bindFlag, slot]() { 
-			texture->Unbind();
+		_commands.push([this, texture, bindFlag, slot]() { 
+			ResetTexture(slot);
 			texture->BindToComputeShader(bindFlag, slot); 
+			g_bindedTextures[slot] = texture;
 		});
 	}
 
 	void DXCommandQueue::SetComputeStructuredBuffer(const Ref<StructuredBuffer>& buffer, BindFlag bindFlag, uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::SetComputeStructuredBuffer failed: Command queue is not open");
-		_commands.push([buffer, bindFlag, slot]() { 
-			buffer->Unbind();
+		_commands.push([this, buffer, bindFlag, slot]() { 
+			ResetTexture(slot);
 			buffer->BindToComputeShader(bindFlag, slot); 
+			g_bindedStructuredBuffers[slot] = buffer;
 		});
 	}
 
 	void DXCommandQueue::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
-		FASSERT(_open, "DXCommandQueue::Dispatch failed: Command queue is not open");
 		_commands.push([this, x, y, z]() { _context.DeviceContext()->Dispatch(x, y, z); });
 	}
 
 	void DXCommandQueue::ResetTexture(const uint32_t slot) {
-		FASSERT(_open, "DXCommandQueue::ResetTexture failed: Command queue is not open");
-		_commands.push([this, slot]() {
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context.DeviceContext()->PSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->VSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->GSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->HSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->DSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->CSSetShaderResources(slot, 1, &nullSRV);
-		});
+		auto bindedTextureIt = g_bindedTextures.find(slot);
+		if (bindedTextureIt != g_bindedTextures.end()) {
+			bindedTextureIt->second->Unbind();
+			g_bindedTextures.erase(bindedTextureIt);
+		}
+
+		auto bindedStructuredBufferIt = g_bindedStructuredBuffers.find(slot);
+		if (bindedStructuredBufferIt != g_bindedStructuredBuffers.end()) {
+			bindedStructuredBufferIt->second->Unbind();
+			g_bindedStructuredBuffers.erase(bindedStructuredBufferIt);
+		}
 	}
 
 	void DXCommandQueue::ResetAllTextures() {
-		FASSERT(_open, "DXCommandQueue::ResetAllTextures failed: Command queue is not open");
-		_commands.push([this]() {
-			ID3D11ShaderResourceView* nullSRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = { nullptr };
-			_context.DeviceContext()->PSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-			_context.DeviceContext()->VSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-			_context.DeviceContext()->GSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-			_context.DeviceContext()->HSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-			_context.DeviceContext()->DSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-			_context.DeviceContext()->CSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullSRVs);
-		});
-	}
+		for (auto& [slot, texture] : g_bindedTextures) {
+			texture->Unbind();
+		}
+		g_bindedTextures.clear();
 
-	void DXCommandQueue::Begin() {
-		_open = true;
-	}
-
-	void DXCommandQueue::End() {
-		_open = false;
+		for (auto& [slot, buffer] : g_bindedStructuredBuffers) {
+			buffer->Unbind();
+		}
+		g_bindedStructuredBuffers.clear();
 	}
 
 	void DXCommandQueue::Execute() {

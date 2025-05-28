@@ -57,6 +57,12 @@ namespace flaw {
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
+		objMRTDesc.renderTargets[GeometryMaterial].blendMode = BlendMode::Disabled;
+		objMRTDesc.renderTargets[GeometryMaterial].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryMaterial].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryEmissive].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryEmissive].texture = Graphics::CreateTexture2D(texDesc);
 		objMRTDesc.renderTargets[GeometryEmissive].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -95,15 +101,9 @@ namespace flaw {
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
-		lightMRTDesc.renderTargets[LightingDiffuse].blendMode = BlendMode::Additive;
-		lightMRTDesc.renderTargets[LightingDiffuse].texture = Graphics::CreateTexture2D(texDesc);
-		lightMRTDesc.renderTargets[LightingDiffuse].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
-		texDesc.format = PixelFormat::RGBA32F;
-		lightMRTDesc.renderTargets[LightingSpecular].blendMode = BlendMode::Additive;
-		lightMRTDesc.renderTargets[LightingSpecular].texture = Graphics::CreateTexture2D(texDesc);
-		lightMRTDesc.renderTargets[LightingSpecular].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		lightMRTDesc.renderTargets[LightingRadiance].blendMode = BlendMode::Additive;
+		lightMRTDesc.renderTargets[LightingRadiance].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingRadiance].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
@@ -394,6 +394,54 @@ namespace flaw {
 		}
 	}
 
+	void RenderSystem::UpdateMateraialConstants(GraphicsCommandQueue& cmdQueue, const Ref<Material>& material) {
+		_materialConstants.reservedTextureBitMask = 0;
+		if (material->albedoTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
+			cmdQueue.SetTexture(material->albedoTexture, ReservedTextureStartSlot);
+		}
+		if (material->normalTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
+			cmdQueue.SetTexture(material->normalTexture, ReservedTextureStartSlot + 1);
+		}
+		if (material->emissiveTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
+			cmdQueue.SetTexture(material->emissiveTexture, ReservedTextureStartSlot + 2);
+		}
+		if (material->heightTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Height;
+			cmdQueue.SetTexture(material->heightTexture, ReservedTextureStartSlot + 3);
+		}
+		if (material->metallicTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Metallic;
+			cmdQueue.SetTexture(material->metallicTexture, ReservedTextureStartSlot + 4);
+		}
+		if (material->roughnessTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Roughness;
+			cmdQueue.SetTexture(material->roughnessTexture, ReservedTextureStartSlot + 5);
+		}
+		if (material->ambientOcclusionTexture) {
+			_materialConstants.reservedTextureBitMask |= MaterialTextureType::AmbientOcclusion;
+			cmdQueue.SetTexture(material->ambientOcclusionTexture, ReservedTextureStartSlot + 6);
+		}
+		for (int32_t i = 0; i < material->cubeTextures.size(); ++i) {
+			if (material->cubeTextures[i]) {
+				_materialConstants.cubeTextureBitMask |= (1 << i);
+				cmdQueue.SetTexture(material->cubeTextures[i], CubeTextureStartSlot + i);
+			}
+		}
+		for (int32_t i = 0; i < material->textureArrays.size(); ++i) {
+			if (material->textureArrays[i]) {
+				_materialConstants.textureArrayBitMask |= (1 << i);
+				cmdQueue.SetTexture(material->textureArrays[i], TextureArrayStartSlot + i);
+			}
+		}
+
+		std::memcpy(_materialConstants.intConstants, material->intConstants, sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4);
+
+		_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
+	}
+
 	void RenderSystem::RenderGeometry(CameraRenderStage& stage) {
 		_geometryPass->Bind(true, false);
 
@@ -406,8 +454,6 @@ namespace flaw {
 				break;
 			}
 
-			cmdQueue.Begin();
-
 			// set pipeline
 			pipeline->SetShader(entry.material->shader);
 			pipeline->SetFillMode(FillMode::Solid);
@@ -415,58 +461,12 @@ namespace flaw {
 			pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
 
 			cmdQueue.SetPipeline(pipeline);
-
 			cmdQueue.SetConstantBuffer(_vpCB, 0);
 			cmdQueue.SetConstantBuffer(_globalCB, 1);
 			cmdQueue.SetConstantBuffer(_lightCB, 2);
-
-			// set material properties
-			_materialConstants.reservedTextureBitMask = 0;
-			if (entry.material->albedoTexture) {
-				_materialConstants.reservedTextureBitMask |= MaterialConstants::Albedo;
-				cmdQueue.SetTexture(entry.material->albedoTexture, ReservedTextureStartSlot);
-			}
-
-			if (entry.material->normalTexture) {
-				_materialConstants.reservedTextureBitMask |= MaterialConstants::Normal;
-				cmdQueue.SetTexture(entry.material->normalTexture, ReservedTextureStartSlot + 1);
-			}
-
-			if (entry.material->emissiveTexture) {
-				_materialConstants.reservedTextureBitMask |= MaterialConstants::Emissive;
-				cmdQueue.SetTexture(entry.material->emissiveTexture, ReservedTextureStartSlot + 2);
-			}
-
-			if (entry.material->heightTexture) {
-				_materialConstants.reservedTextureBitMask |= MaterialConstants::Height;
-				cmdQueue.SetTexture(entry.material->heightTexture, ReservedTextureStartSlot + 3);
-			}
-
-			_materialConstants.cubeTextureBitMask = 0;
-			for (int32_t i = 0; i < entry.material->cubeTextures.size(); ++i) {
-				if (entry.material->cubeTextures[i]) {
-					_materialConstants.cubeTextureBitMask |= (1 << i);
-					cmdQueue.SetTexture(entry.material->cubeTextures[i], CubeTextureStartSlot + i);
-				}
-			}
-
-			_materialConstants.textureArrayBitMask = 0;
-			for (int32_t i = 0; i < entry.material->textureArrays.size(); ++i) {
-				if (entry.material->textureArrays[i]) {
-					_materialConstants.textureArrayBitMask |= (1 << i);
-					cmdQueue.SetTexture(entry.material->textureArrays[i], TextureArrayStartSlot + i);
-				}
-			}
-
-			std::memcpy(_materialConstants.intConstants, entry.material->intConstants, sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4);
-
-			_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
-
+			UpdateMateraialConstants(cmdQueue, entry.material);
 			cmdQueue.SetConstantBuffer(_materialCB, 3);
-
 			cmdQueue.SetStructuredBuffer(_batchedTransformSB, 0);
-			cmdQueue.End();
-
 			cmdQueue.Execute();
 
 			// instancing draw
@@ -476,11 +476,9 @@ namespace flaw {
 
 				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
-				cmdQueue.Begin();
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
-				cmdQueue.End();
 
 				cmdQueue.Execute();
 			}
@@ -492,12 +490,10 @@ namespace flaw {
 
 				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
-				cmdQueue.Begin();
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 				cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
-				cmdQueue.End();
 				cmdQueue.Execute();
 			}
 
@@ -554,7 +550,6 @@ namespace flaw {
 			init = true;
 		}
 
-		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 
 		pipeline->SetShader(g_decalShader);
@@ -569,10 +564,11 @@ namespace flaw {
 		cmdQueue.SetStructuredBuffer(_decalSB, 0);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 2);
-		cmdQueue.SetTextures((const Ref<Texture>*)_decalTextures.data(), _decalTextures.size(), 3);
+		for (int32_t i = 0; i < _decalTextures.size(); ++i) {
+			cmdQueue.SetTexture(_decalTextures[i], 3 + i);
+		}
 		cmdQueue.SetVertexBuffer(g_cubeVB);
 		cmdQueue.DrawIndexedInstanced(g_cubeIB, g_cubeIB->IndexCount(), _decals.size());
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 
@@ -633,7 +629,6 @@ namespace flaw {
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
-		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
@@ -642,8 +637,9 @@ namespace flaw {
 		cmdQueue.SetConstantBuffer(_directionalLightUniformCB, 3);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 3);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
-		cmdQueue.End();
 		cmdQueue.Execute();
 
 		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
@@ -658,10 +654,8 @@ namespace flaw {
 
 			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
-			cmdQueue.Begin();
-			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 2);
+			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 4);
 			cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
-			cmdQueue.End();
 
 			cmdQueue.Execute();
 		}
@@ -677,12 +671,17 @@ namespace flaw {
 
 		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
 
-		cmdQueue.Begin();
 		cmdQueue.SetPipeline(pipeline);
-		cmdQueue.SetStructuredBuffer(_pointLightSB, 2);
+		cmdQueue.SetConstantBuffer(_vpCB, 0);
+		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(_lightCB, 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 3);
+		cmdQueue.SetStructuredBuffer(_pointLightSB, 5);
 		cmdQueue.SetVertexBuffer(sphereMesh->GetGPUVertexBuffer());
 		cmdQueue.DrawIndexedInstanced(sphereMesh->GetGPUIndexBuffer(), sphereMesh->GetGPUIndexBuffer()->IndexCount(), _lightConstants.numPointLights);
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 
@@ -697,12 +696,17 @@ namespace flaw {
 
 		_spotLightSB->Update(_spotLights.data(), sizeof(SpotLight)* _lightConstants.numSpotLights);
 
-		cmdQueue.Begin();
 		cmdQueue.SetPipeline(pipeline);
-		cmdQueue.SetStructuredBuffer(_spotLightSB, 2);
+		cmdQueue.SetConstantBuffer(_vpCB, 0);
+		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(_lightCB, 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 3);
+		cmdQueue.SetStructuredBuffer(_spotLightSB, 5);
 		cmdQueue.SetVertexBuffer(coneMesh->GetGPUVertexBuffer());
 		cmdQueue.DrawIndexedInstanced(coneMesh->GetGPUIndexBuffer(), coneMesh->GetGPUIndexBuffer()->IndexCount(), _lightConstants.numSpotLights);
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 
@@ -776,21 +780,18 @@ namespace flaw {
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Always, false);
 
-		cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 1);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingDiffuse), 2);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingSpecular), 3);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 2);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingRadiance), 3);
 		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingShadow), 4);
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
-		cmdQueue.ResetAllTextures();
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 

@@ -93,6 +93,21 @@ namespace flaw {
 				}
 			}
 
+			if (ImGui::MenuItem("Create sphere")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Sphere";
+				AssetHandle sphereMeshAsseHandle = AssetManager::GetHandleByKey("default_static_sphere_mesh");
+				auto& meshAsset = AssetManager::GetAsset<StaticMeshAsset>(sphereMeshAsseHandle);
+				if (meshAsset) {
+					auto& meshComp = newEntity.AddComponent<StaticMeshComponent>();
+					meshComp.mesh = sphereMeshAsseHandle;
+					meshComp.materials.clear();
+					for (const auto& materialHandle : meshAsset->GetMaterialHandles()) {
+						meshComp.materials.push_back(materialHandle);
+					}
+				}
+			}
+
 			if (ImGui::MenuItem("Create cone")) {
 				Entity newEntity = _scene->CreateEntity();
 				newEntity.GetComponent<EntityComponent>().name = "New Cone";

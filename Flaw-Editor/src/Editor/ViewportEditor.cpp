@@ -300,13 +300,11 @@ namespace flaw {
 		mvp.projection = proj;
 		_mvpConstantBuffer->Update(&mvp, sizeof(MVPMatrices));
 
-        cmdQueue.Begin();
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(_outlineGraphicsPipeline);
 		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 		cmdQueue.SetConstantBuffer(_mvpConstantBuffer, 0);
 		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
-        cmdQueue.End();
 
         cmdQueue.Execute();
     }

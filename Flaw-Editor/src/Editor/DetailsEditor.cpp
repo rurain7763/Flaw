@@ -197,8 +197,10 @@ namespace flaw {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
 						AssetMetadata metadata;
 						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
+							if (metadata.type == AssetType::StaticMesh) {
+								auto asset = AssetManager::GetAsset<StaticMeshAsset>(metadata.handle);
 								staticMeshComp.mesh = metadata.handle;
+								staticMeshComp.materials = asset->GetMaterialHandles();
 							}
 						}
 					}

@@ -254,6 +254,10 @@ namespace flaw {
 					archive >> desc.shaderHandle;
 					archive >> desc.albedoTexture;
 					archive >> desc.normalTexture;
+					archive >> desc.emissiveTexture;
+					archive >> desc.metallicTexture;
+					archive >> desc.roughnessTexture;
+					archive >> desc.ambientOcclusionTexture;
 				}
 			);
 			break;
@@ -279,6 +283,19 @@ namespace flaw {
 					archive >> desc.name;
 					archive >> desc.durationSec;
 					archive >> desc.animationNodes;
+				}
+			);
+			break;
+		case AssetType::StaticMesh:
+			asset = CreateRef<StaticMeshAsset>(
+				[path, dataOffset](StaticMeshAsset::Descriptor& desc) {
+					std::vector<int8_t> data;
+					FileSystem::ReadFile(path.generic_string().c_str(), data);
+					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
+					archive >> desc.segments;
+					archive >> desc.materials;
+					archive >> desc.vertices;
+					archive >> desc.indices;
 				}
 			);
 			break;
@@ -328,63 +345,103 @@ namespace flaw {
 		return meta.handle;
 	}
 
+	AssetHandle AssetDatabase::RecreateAssetFile(const char* path, AssetType assetType, std::function<void(SerializationArchive&)> serializeFunc) {
+		std::vector<int8_t> fileData;
+		if (!FileSystem::ReadFile(path, fileData)) {
+			return AssetHandle();
+		}
+
+		SerializationArchive archive(fileData.data(), fileData.size());
+
+		AssetMetadata metadata;
+		archive >> metadata;
+
+		SerializationArchive newArchive;
+		newArchive << metadata;
+		serializeFunc(newArchive);
+
+		if (!FileSystem::WriteFile(path, newArchive.Data(), newArchive.RemainingSize())) {
+			Log::Error("Failed to write asset file: %s", path);
+			return AssetHandle();
+		}
+
+		return metadata.handle;
+	}
+
 	AssetHandle AssetDatabase::CreateAsset(const AssetCreateSettings* settings) {
 		if (settings->type == AssetCreateSettings::Type::Texture2D) {
-			return CreateTexture2D((Texture2DCreateSettings*)settings);
+			return CreateAssetFile(settings->destPath.c_str(), AssetType::Texture2D, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (Texture2DCreateSettings*)settings); });
 		}
 		else if (settings->type == AssetCreateSettings::Type::Material) {
-			return CreateMaterial((MaterialCreateSettings*)settings);
+			return CreateAssetFile(settings->destPath.c_str(), AssetType::Material, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (MaterialCreateSettings*)settings); });
 		}
 		else if (settings->type == AssetCreateSettings::Type::Skeleton) {
-			return CreateSkeleton((SkeletonCreateSettings*)settings);
+			return CreateAssetFile(settings->destPath.c_str(), AssetType::Skeleton, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletonCreateSettings*)settings); });
+		}
+		else if (settings->type == AssetCreateSettings::Type::SkeletalAnimation) {
+			return CreateAssetFile(settings->destPath.c_str(), AssetType::SkeletalAnimation, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletalAnimationCreateSettings*)settings); });
 		}
 
 		return AssetHandle();
 	}
 
-	AssetHandle AssetDatabase::CreateTexture2D(const Texture2DCreateSettings* settings) {
-		return CreateAssetFile(settings->destPath.c_str(), AssetType::Texture2D, [&](SerializationArchive& archive) {
-			archive << settings->format;
-			archive << settings->width;
-			archive << settings->height;
-			archive << Texture2D::Wrap::ClampToEdge;
-			archive << Texture2D::Wrap::ClampToEdge;
-			archive << Texture2D::Filter::Linear;
-			archive << Texture2D::Filter::Linear;
-			archive << settings->usageFlags;
-			archive << settings->accessFlags;
-			archive << settings->bindFlags;
-			archive << settings->data;
-		});
+	void AssetDatabase::RecreateAsset(const char* assetFile, const AssetCreateSettings* settings) {
+		if (settings->type == AssetCreateSettings::Type::Texture2D) {
+			RecreateAssetFile(assetFile, AssetType::Texture2D, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (Texture2DCreateSettings*)settings); });
+		}
+		else if (settings->type == AssetCreateSettings::Type::Material) {
+			RecreateAssetFile(assetFile, AssetType::Material, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (MaterialCreateSettings*)settings); });
+		}
+		else if (settings->type == AssetCreateSettings::Type::Skeleton) {
+			RecreateAssetFile(assetFile, AssetType::Skeleton, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletonCreateSettings*)settings); });
+		}
+		else if (settings->type == AssetCreateSettings::Type::SkeletalAnimation) {
+			RecreateAssetFile(assetFile, AssetType::SkeletalAnimation, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletalAnimationCreateSettings*)settings); });
+		}
+
+		AssetMetadata metadata = g_assetMetadataMap[assetFile];
+		AssetManager::UnloadAsset(metadata.handle);
 	}
 
-	AssetHandle AssetDatabase::CreateMaterial(const MaterialCreateSettings* settings) {
-		return CreateAssetFile(settings->destPath.c_str(), AssetType::Material, [&](SerializationArchive& archive) {
-			archive << settings->renderMode;
-			archive << settings->cullMode;
-			archive << settings->depthTest;
-			archive << settings->depthWrite;
-			archive << settings->shaderHandle;
-			archive << settings->albedoTexture;
-			archive << settings->normalTexture;
-		});
+	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const Texture2DCreateSettings* settings) {
+		archive << settings->format;
+		archive << settings->width;
+		archive << settings->height;
+		archive << Texture2D::Wrap::ClampToEdge; // U
+		archive << Texture2D::Wrap::ClampToEdge; // V
+		archive << Texture2D::Filter::Linear; // Min filter
+		archive << Texture2D::Filter::Linear; // Mag filter
+		archive << settings->usageFlags;
+		archive << settings->accessFlags;
+		archive << settings->bindFlags;
+		archive << settings->data;
 	}
 
-	AssetHandle AssetDatabase::CreateSkeleton(const SkeletonCreateSettings* settings) {
-		return CreateAssetFile(settings->destPath.c_str(), AssetType::Skeleton, [&](SerializationArchive& archive) {
-			archive << settings->globalInvMatrix;
-			archive << settings->nodes;
-			archive << settings->boneMap;
-			archive << settings->animationHandles;
-		});
+	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const MaterialCreateSettings* settings) {
+		archive << settings->renderMode;
+		archive << settings->cullMode;
+		archive << settings->depthTest;
+		archive << settings->depthWrite;
+		archive << settings->shaderHandle;
+		archive << settings->albedoTexture;
+		archive << settings->normalTexture;
+		archive << settings->emissiveTexture;
+		archive << settings->metallicTexture;
+		archive << settings->roughnessTexture;
+		archive << settings->ambientOcclusionTexture;
 	}
 
-	AssetHandle AssetDatabase::CreateSkeletalAnimation(const SkeletalAnimationCreateSettings* settings) {
-		return CreateAssetFile(settings->destPath.c_str(), AssetType::SkeletalAnimation, [&](SerializationArchive& archive) {
-			archive << settings->name;
-			archive << settings->durationSec;
-			archive << settings->animationNodes;
-		});
+	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const SkeletonCreateSettings* settings) {
+		archive << settings->globalInvMatrix;
+		archive << settings->nodes;
+		archive << settings->boneMap;
+		archive << settings->animationHandles;
+	}
+
+	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const SkeletalAnimationCreateSettings* settings) {
+		archive << settings->name;
+		archive << settings->durationSec;
+		archive << settings->animationNodes;
 	}
 
 	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {
@@ -510,58 +567,77 @@ namespace flaw {
 		}
 
 		AssetHandle ret;
-		if (model.HasSkeleton()) {
-			std::filesystem::path destPath = settings->destPath;
-			std::string fileNamePrefix = destPath.stem().generic_string();
+
+		bool isSkeletal = model.HasSkeleton();
+
+		std::filesystem::path destPath = settings->destPath;
+		std::string fileNamePrefix = destPath.stem().generic_string();
+
+		std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
+		std::vector<AssetHandle> loadedMaterials;
+		for (const auto& material : model.GetMaterials()) {
+			MaterialCreateSettings matSet = {};
+			matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material.asset").generic_string();
+			matSet.shaderHandle = isSkeletal ? AssetManager::GetHandleByKey("std3d_geometry_skeletal") : AssetManager::GetHandleByKey("std3d_geometry_static");
+			matSet.renderMode = RenderMode::Opaque;
+			matSet.cullMode = CullMode::Back;
+			matSet.depthTest = DepthTest::Less;
+			matSet.depthWrite = true;
+
+			std::vector<std::pair<std::string, Ref<Image>>> images = {
+				{"Diffuse", material.diffuse},
+				{"Normal", material.normal},
+				{"Emissive", material.emissive},
+				{"Metallic", material.metallic},
+				{"Roughness", material.roughness},
+				{"AmbientOcclusion", material.ambientOcclusion}
+			};
+
+			for (const auto& [kindStr, image] : images) {
+				if (image) {
+					if (loadedImages.find(image) == loadedImages.end()) {
+						Texture2DCreateSettings textureSettings = {};
+						textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
+						textureSettings.format = PixelFormat::RGBA8;
+						textureSettings.width = image->Width();
+						textureSettings.height = image->Height();
+						textureSettings.usageFlags = UsageFlag::Static;
+						textureSettings.bindFlags = BindFlag::ShaderResource;
+						textureSettings.accessFlags = 0;
+						textureSettings.data = image->Data();
+
+						loadedImages[image] = CreateAsset(&textureSettings);
+					}
+
+					if (kindStr == "Diffuse") {
+						matSet.albedoTexture = loadedImages[image];
+					}
+					else if (kindStr == "Normal") {
+						matSet.normalTexture = loadedImages[image];
+					}
+					else if (kindStr == "Emissive") {
+						matSet.emissiveTexture = loadedImages[image];
+					}
+					else if (kindStr == "Metallic") {
+						matSet.metallicTexture = loadedImages[image];
+					}
+					else if (kindStr == "Roughness") {
+						matSet.roughnessTexture = loadedImages[image];
+					}
+					else if (kindStr == "AmbientOcclusion") {
+						matSet.ambientOcclusionTexture = loadedImages[image];
+					}
+				}
+			}
+
+			loadedMaterials.push_back(CreateAsset(&matSet));
+		}
+
+		if (isSkeletal) {
 			destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
 
 			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
-				std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
-				std::vector<AssetHandle> loadedMaterials;
-				for (const auto& material : model.GetMaterials()) {
-					MaterialCreateSettings matSet = {};
-					matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material.asset").generic_string();
-					matSet.shaderHandle = AssetManager::GetHandleByKey("std3d_geometry_skeletal");
-					matSet.renderMode = RenderMode::Opaque;
-					matSet.cullMode = CullMode::Back;
-					matSet.depthTest = DepthTest::Less;
-					matSet.depthWrite = true;
-
-					std::vector<std::pair<std::string, Ref<Image>>> images = {
-						{"Diffuse", material.diffuse},
-						{"Normal", material.normal},
-						{"Specular", material.specular},
-						{"Emissive", material.emissive}
-					};
-
-					for (const auto& [kindStr, image] : images) {
-						if (image) {
-							if (loadedImages.find(image) == loadedImages.end()) {
-								Texture2DCreateSettings textureSettings = {};
-								textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
-								textureSettings.format = PixelFormat::RGBA8;
-								textureSettings.width = image->Width();
-								textureSettings.height = image->Height();
-								textureSettings.usageFlags = UsageFlag::Static;
-								textureSettings.bindFlags = BindFlag::ShaderResource;
-								textureSettings.accessFlags = 0;
-								textureSettings.data = image->Data();
-
-								loadedImages[image] = CreateTexture2D(&textureSettings);
-							}
-
-							if (kindStr == "Diffuse") {
-								matSet.albedoTexture = loadedImages[image];
-							}
-							else if (kindStr == "Normal") {
-								matSet.normalTexture = loadedImages[image];
-							}
-						}
-					}
-
-					loadedMaterials.push_back(CreateMaterial(&matSet));
-				}
-
+				
 				const ModelSkeleton& modelSkeleton = model.GetSkeleton();
 
 				std::vector<MeshSegment> segments;
@@ -617,11 +693,47 @@ namespace flaw {
 						
 						return SkeletalAnimationNode(boneAnim.name, positionKeys, rotationKeys, scaleKeys);
 					});
-					skeletonSettings.animationHandles.push_back(CreateSkeletalAnimation(&animSettings));
+					skeletonSettings.animationHandles.push_back(CreateAsset(&animSettings));
 				}
 
 				archive << segments;
-				archive << CreateSkeleton(&skeletonSettings);
+				archive << CreateAsset(&skeletonSettings);
+				archive << materials;
+				archive << vertices;
+				archive << model.GetIndices();
+			});
+		}
+		else {
+			destPath.replace_filename(fileNamePrefix + "_StaticMesh.asset");
+
+			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::StaticMesh, [&](SerializationArchive& archive) {
+				std::vector<MeshSegment> segments;
+				std::vector<AssetHandle> materials;
+				std::vector<Vertex3D> vertices;
+				for (const auto& mesh : model.GetMeshs()) {
+					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
+					materials.push_back(loadedMaterials[mesh.materialIndex]);
+
+					for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
+						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
+						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
+
+						Vertex3D vertex3D = {};
+						vertex3D.position = vertex.position;
+						vertex3D.texcoord = vertex.texCoord;
+						vertex3D.tangent = vertex.tangent;
+						vertex3D.normal = vertex.normal;
+						vertex3D.binormal = vertex.bitangent;
+						for (int32_t j = 0; j < 4; ++j) {
+							vertex3D.boneIndices[j] = vertexBoneData.boneIndices[j];
+							vertex3D.boneWeights[j] = vertexBoneData.boneWeight[j];
+						}
+
+						vertices.push_back(vertex3D);
+					}
+				}
+
+				archive << segments;
 				archive << materials;
 				archive << vertices;
 				archive << model.GetIndices();

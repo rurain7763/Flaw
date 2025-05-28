@@ -167,8 +167,6 @@ namespace flaw {
 		mainPass->SetBlendMode(0, BlendMode::Alpha, false);
 		mainPass->Bind(false, false);
 
-		cmdQueue.Begin();
-
 		mainPipeline->SetShader(_landscapeBrushShader);
 		mainPipeline->SetFillMode(FillMode::Solid);
 		mainPipeline->SetCullMode(CullMode::Back);
@@ -180,7 +178,6 @@ namespace flaw {
 		cmdQueue.SetTexture(heightMapTex, 0);
 		cmdQueue.SetVertexBuffer(landscape.mesh->GetGPUVertexBuffer());
 		cmdQueue.DrawIndexed(landscape.mesh->GetGPUIndexBuffer(), landscape.mesh->GetGPUIndexBuffer()->IndexCount());
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 	}
@@ -203,8 +200,6 @@ namespace flaw {
 
 		mat4 invTransform = glm::inverse(transComp.worldTransform);
 
-		cmdQueue.Begin();
-
 		LandscapeRaycastUniform landscapeRaycastUniform = {};
 		landscapeRaycastUniform.rayOrigin = invTransform * vec4(ray.origin, 1.0f);
 		landscapeRaycastUniform.rayDirection = invTransform * vec4(ray.direction, 0.0f);
@@ -226,8 +221,6 @@ namespace flaw {
 		cmdQueue.SetComputeTexture(heightMapTex, BindFlag::ShaderResource, 1);
 		cmdQueue.SetComputeStructuredBuffer(_landscapeRaycastResultSB, BindFlag::UnorderedAccess, 0);
 		cmdQueue.Dispatch(CalculateDispatchGroupCount(1024, landscape.mesh->GetBVHTriangles().size()), 1, 1);
-
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 
@@ -270,8 +263,6 @@ namespace flaw {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& mainPipeline = Graphics::GetMainComputePipeline();
 
-		cmdQueue.Begin();
-
 		LandscapeUniform landscapeUniform = {};
 		landscapeUniform.deltaTime = Time::DeltaTime();
 		landscapeUniform.brushType = (uint32_t)_brushType;
@@ -292,13 +283,9 @@ namespace flaw {
 				cmdQueue.SetComputeTexture(_brushTextureAsset->GetTexture(), BindFlag::ShaderResource, 0);
 			}
 		}
-		else {
-			cmdQueue.ResetTexture(0);
-		}
 
 		cmdQueue.SetComputeTexture(texture, BindFlag::UnorderedAccess, 0);
 		cmdQueue.Dispatch(CalculateDispatchGroupCount(32, texture->GetWidth()), CalculateDispatchGroupCount(32, texture->GetHeight()), 1);
-		cmdQueue.End();
 
 		cmdQueue.Execute();
 	}

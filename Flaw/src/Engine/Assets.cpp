@@ -153,6 +153,11 @@ namespace flaw {
 
 		_material = CreateRef<Material>();
 
+		_material->renderMode = desc.renderMode;
+		_material->cullMode = desc.cullMode;
+		_material->depthTest = desc.depthTest;
+		_material->depthWrite = desc.depthWrite;
+
 		auto graphicsShaderAsset = AssetManager::GetAsset<GraphicsShaderAsset>(desc.shaderHandle);
 		if (graphicsShaderAsset) {
 			_material->shader = graphicsShaderAsset->GetShader();
@@ -166,6 +171,26 @@ namespace flaw {
 		auto normalTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.normalTexture);
 		if (normalTextureAsset) {
 			_material->normalTexture = normalTextureAsset->GetTexture();
+		}
+
+		auto emissiveTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.emissiveTexture);
+		if (emissiveTextureAsset) {
+			_material->emissiveTexture = emissiveTextureAsset->GetTexture();
+		}
+
+		auto metallicTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.metallicTexture);
+		if (metallicTextureAsset) {
+			_material->metallicTexture = metallicTextureAsset->GetTexture();
+		}
+
+		auto roughnessTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.roughnessTexture);
+		if (roughnessTextureAsset) {
+			_material->roughnessTexture = roughnessTextureAsset->GetTexture();
+		}
+
+		auto ambientOcclusionTextureAsset = AssetManager::GetAsset<Texture2DAsset>(desc.ambientOcclusionTexture);
+		if (ambientOcclusionTextureAsset) {
+			_material->ambientOcclusionTexture = ambientOcclusionTextureAsset->GetTexture();
 		}
 	}
 

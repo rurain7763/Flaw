@@ -253,6 +253,10 @@ namespace flaw {
 			AssetHandle shaderHandle;
 			AssetHandle albedoTexture;
 			AssetHandle normalTexture;
+			AssetHandle emissiveTexture;
+			AssetHandle metallicTexture;
+			AssetHandle roughnessTexture;
+			AssetHandle ambientOcclusionTexture;
 		};
 
 		MaterialAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}

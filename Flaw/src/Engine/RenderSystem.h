@@ -35,6 +35,8 @@ namespace flaw {
 		void GatherDecals();
 		void GatherCameraStages(std::map<uint32_t, Camera>& cameras);
 
+		void UpdateMateraialConstants(GraphicsCommandQueue& cmdQueue, const Ref<Material>& material);
+
 		void RenderGeometry(CameraRenderStage& stage);
 		void RenderDecal(CameraRenderStage& stage);
 		void RenderDefferdLighting(CameraRenderStage& stage);
@@ -55,14 +57,14 @@ namespace flaw {
 			GeometryPosition = 0,
 			GeometryNormal,
 			GeometryAlbedo,
+			GeometryMaterial,
 			GeometryEmissive,
 			GeometryRTCount,
 
 			DecalAlbedo = 0,
 			DecalRTCount,
 
-			LightingDiffuse = 0,
-			LightingSpecular,
+			LightingRadiance = 0,
 			LightingShadow,
 			LightingRTCount
 		};

@@ -38,4 +38,13 @@ namespace flaw {
 		{
 		}
 	};
+
+	struct OnDoubleClickAssetFileEvent {
+		std::string assetFilePath;
+
+		OnDoubleClickAssetFileEvent(const std::string& filePath)
+			: assetFilePath(filePath)
+		{
+		}
+	};
 }

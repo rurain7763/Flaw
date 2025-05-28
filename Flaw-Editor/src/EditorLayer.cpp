@@ -1,6 +1,9 @@
 #include "EditorLayer.h"
 #include "EditorEvents.h"
+#include "Editor/Editor.h"
 #include "Editor/EditorHelper.h"
+#include "AssetDatabase.h"
+#include "Editor/MaterialEditor.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -25,6 +28,24 @@ namespace flaw {
     }
 
     void EditorLayer::OnAttatch() {
+        _app.GetEventDispatcher().Register<OnDoubleClickAssetFileEvent>([this](const OnDoubleClickAssetFileEvent& evn) {
+            AssetMetadata metadata;
+            if (!AssetDatabase::GetAssetMetadata(evn.assetFilePath.c_str(), metadata)) {
+                return;
+            }
+
+            std::string label;
+            Ref<Editor> editor;
+            if (metadata.type == AssetType::Material) {
+                label = "Material Editor: " + std::to_string(metadata.handle);
+                editor = CreateRef<MaterialEditor>(_app, label, evn.assetFilePath.c_str());
+            }
+
+            if (editor) {
+                RegisterEditor(label.c_str(), editor);
+            }
+        }, PID(this));
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -68,6 +89,8 @@ namespace flaw {
     }
 
     void EditorLayer::OnDetach() {
+		_app.GetEventDispatcher().Unregister<OnDoubleClickAssetFileEvent>(PID(this));
+
 	    ImGui_ImplDX11_Shutdown();
 	    ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -213,6 +236,16 @@ namespace flaw {
 		// NOTE: Renderer2D::End() called in ViewportEditor::OnRender()
 		_viewportEditor.OnRender();
 
+        for (auto it = _editors.begin(); it != _editors.end();) {
+            if (it->second->IsOpen()) {
+                it->second->OnRender();
+				++it;
+            }
+            else {
+				it = _editors.erase(it);
+            }
+        }
+
 	    ImGui::Render();
 
 	    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -224,6 +257,16 @@ namespace flaw {
 	    }
 
 		_graphicsContext.Present();
+    }
+
+    void EditorLayer::RegisterEditor(const std::string& name, const Ref<Editor>& editor) {
+		auto it = _editors.find(name);
+        if (it != _editors.end()) {
+			Log::Error("EditorLayer: Editor with name '{}' already exists!", name);
+            return;
+        }
+
+		_editors[name] = editor;
     }
 
     void EditorLayer::SetTheme(EditorTheme theme) {
