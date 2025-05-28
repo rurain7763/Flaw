@@ -22,11 +22,6 @@ namespace flaw {
 		DXTexture2D(DXContext& context, const Descriptor& descriptor);
 		DXTexture2D(DXContext& context, const ComPtr<ID3D11Texture2D>& texture, const PixelFormat format, const uint32_t bindFlags);
 
-		void BindToGraphicsShader(const uint32_t slot) override;
-		void BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) override;
-
-		void Unbind() override;
-
 		void Fetch(void* outData, const uint32_t size) const override;
 
 		void CopyTo(Ref<Texture2D>& target) const override;
@@ -41,6 +36,7 @@ namespace flaw {
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
 		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
+		ComPtr<ID3D11UnorderedAccessView> GetUnorderedAccessView() const { return _uav; }
 		ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return _rtv; }
 		ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const { return _dsv; }
 
@@ -62,8 +58,6 @@ namespace flaw {
 		ComPtr<ID3D11ShaderResourceView> _srv;
 		ComPtr<ID3D11UnorderedAccessView> _uav;
 
-		std::function<void()> _unbindFunc;
-
 		PixelFormat _format;
 		UsageFlag _usage;
 		uint32_t _acessFlags;
@@ -76,11 +70,6 @@ namespace flaw {
 	class DXTexture2DArray : public Texture2DArray {
 	public:
 		DXTexture2DArray(DXContext& context, const Descriptor& descriptor);
-
-		void BindToGraphicsShader(const uint32_t slot) override;
-		void BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) override;
-
-		void Unbind() override;
 
 		void FetchAll(void* outData) const override;
 
@@ -95,6 +84,8 @@ namespace flaw {
 		uint32_t GetArraySize() const override { return _arraySize; }
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
+		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
+		ComPtr<ID3D11UnorderedAccessView> GetUnorderedAccessView() const { return _uav; }
 
 	private:
 		bool SetTexturesUniformAndValidCheck(const std::vector<Ref<Texture2D>>& textures);
@@ -114,8 +105,6 @@ namespace flaw {
 		ComPtr<ID3D11ShaderResourceView> _srv;
 		ComPtr<ID3D11UnorderedAccessView> _uav;
 
-		std::function<void()> _unbindFunc;
-
 		PixelFormat _format;
 		UsageFlag _usage;
 		uint32_t _acessFlags;
@@ -131,10 +120,8 @@ namespace flaw {
 	public:
 		DXTextureCube(DXContext& context, const Descriptor& descriptor);
 
-		void BindToGraphicsShader(const uint32_t slot) override;
-		void BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) override;
-
-		void Unbind() override;
+		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
+		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
 
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
@@ -147,8 +134,6 @@ namespace flaw {
 		ComPtr<ID3D11Texture2D> _texture;
 
 		ComPtr<ID3D11ShaderResourceView> _srv;
-
-		std::function<void()> _unbindFunc;
 
 		PixelFormat _format;
 	};

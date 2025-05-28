@@ -112,42 +112,6 @@ namespace flaw {
 		return true;
 	}
 
-	void DXTextureCube::BindToGraphicsShader(const uint32_t slot) {
-		if (!_srv) {
-			Log::Warn("ShaderResourceView is nullptr");
-			return;
-		}
-
-		_context.DeviceContext()->PSSetShaderResources(slot, 1, _srv.GetAddressOf());
-
-		_unbindFunc = [this, slot]() {
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context.DeviceContext()->PSSetShaderResources(slot, 1, &nullSRV);
-			_unbindFunc = nullptr;
-		};
-	}
-
-	void DXTextureCube::BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) {
-		if (!_srv) {
-			Log::Warn("ShaderResourceView is nullptr");
-			return;
-		}
-
-		_context.DeviceContext()->CSSetShaderResources(slot, 1, _srv.GetAddressOf());
-
-		_unbindFunc = [this, slot]() {
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context.DeviceContext()->CSSetShaderResources(slot, 1, &nullSRV);
-			_unbindFunc = nullptr;
-		};
-	}
-
-	void DXTextureCube::Unbind() {
-		if (_unbindFunc) {
-			_unbindFunc();
-		}
-	}
-
 	bool DXTextureCube::CreateShaderResourceView(const PixelFormat format) {
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Format = ConvertToDXGIFormat(format);

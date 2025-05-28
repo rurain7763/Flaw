@@ -129,8 +129,7 @@ namespace flaw {
 
 		ModelType GetModelType() const { return _type; }
 
-		const std::vector<ModelMaterial>& GetMaterials() const { return _materials; }
-		const ModelMaterial& GetMaterialAt(uint32_t index) const { return _materials[index]; }
+		const ModelMaterial& GetMaterialAt(uint32_t index) const { return _materials.at(index); }
 		const ModelSkeleton& GetSkeleton() const { return _skeleton; }
 		const std::vector<ModelVertex>& GetVertices() const { return _vertices; }
 		const ModelVertex& GetVertexAt(uint32_t index) const { return _vertices[index]; }
@@ -147,9 +146,9 @@ namespace flaw {
 
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
-		void ParseMaterial(const aiScene* scene, const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
 		void ParseSkeleton(ModelSkeleton& result, const aiNode* current, int32_t parentIndex);
-		void ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
+		void ParseMesh(const aiScene* scene, const std::filesystem::path& basePath, const aiMesh* mesh, ModelMesh& modelMesh);
+		void ParseMaterial(const aiScene* scene, const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material);
 		void ParseBones(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh);
 		void ParseAnimation(const aiScene* scene, const aiAnimation* animation, ModelSkeletalAnimation& skeletalAnim);
 
@@ -161,7 +160,7 @@ namespace flaw {
 		mat4 _globalInvMatrix = mat4(1.0f);
 
 		std::unordered_map<std::filesystem::path, Ref<Image>> _images;
-		std::vector<ModelMaterial> _materials;
+		std::unordered_map<uint32_t, ModelMaterial> _materials;
 
 		std::vector<ModelVertex> _vertices;
 		std::vector<ModelVertexBoneData> _vertexBoneData;

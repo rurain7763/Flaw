@@ -69,16 +69,10 @@ namespace flaw {
 
 		ParseSkeleton(_skeleton, scene->mRootNode, -1);
 
-		_materials.resize(scene->mNumMaterials);
-		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
-			const aiMaterial* material = scene->mMaterials[i];
-			ParseMaterial(scene, basePath, material, _materials[i]);
-		}
-
 		_meshes.resize(scene->mNumMeshes);
 		for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
 			const aiMesh* mesh = scene->mMeshes[i];
-			ParseMesh(scene, mesh, _meshes[i]);
+			ParseMesh(scene, basePath, mesh, _meshes[i]);
 		}
 
 		_skeletalAnimations.resize(scene->mNumAnimations);
@@ -196,7 +190,7 @@ namespace flaw {
 		return img;
 	}
 
-	void Model::ParseMesh(const aiScene* scene, const aiMesh* mesh, ModelMesh& modelMesh) {
+	void Model::ParseMesh(const aiScene* scene, const std::filesystem::path& basePath, const aiMesh* mesh, ModelMesh& modelMesh) {
 		modelMesh.vertexStart = static_cast<uint32_t>(_vertices.size());
 		modelMesh.vertexCount = mesh->mNumVertices;
 		modelMesh.indexStart = static_cast<uint32_t>(_indices.size());
@@ -222,6 +216,11 @@ namespace flaw {
 			for (int32_t j = 0; j < face.mNumIndices; ++j) {
 				_indices.push_back(face.mIndices[j]);
 			}
+		}
+
+		if (_materials.find(mesh->mMaterialIndex) == _materials.end()) {
+			const aiMaterial* aiMaterial = scene->mMaterials[mesh->mMaterialIndex];
+			ParseMaterial(scene, basePath, aiMaterial, _materials[mesh->mMaterialIndex]);
 		}
 
 		if (mesh->HasBones()) {

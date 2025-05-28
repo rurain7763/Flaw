@@ -574,8 +574,16 @@ namespace flaw {
 		std::string fileNamePrefix = destPath.stem().generic_string();
 
 		std::unordered_map<Ref<Image>, AssetHandle> loadedImages;
-		std::vector<AssetHandle> loadedMaterials;
-		for (const auto& material : model.GetMaterials()) {
+		std::unordered_map<uint32_t, AssetHandle> loadedMaterials;
+
+		std::function<AssetHandle(const ModelMesh&)> getMaterialFunc = [&](const ModelMesh& mesh) -> AssetHandle {
+			auto it = loadedMaterials.find(mesh.materialIndex);
+			if (it != loadedMaterials.end()) {
+				return it->second;
+			}
+
+			ModelMaterial material = model.GetMaterialAt(mesh.materialIndex);
+
 			MaterialCreateSettings matSet = {};
 			matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material.asset").generic_string();
 			matSet.shaderHandle = isSkeletal ? AssetManager::GetHandleByKey("std3d_geometry_skeletal") : AssetManager::GetHandleByKey("std3d_geometry_static");
@@ -594,50 +602,53 @@ namespace flaw {
 			};
 
 			for (const auto& [kindStr, image] : images) {
-				if (image) {
-					if (loadedImages.find(image) == loadedImages.end()) {
-						Texture2DCreateSettings textureSettings = {};
-						textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
-						textureSettings.format = PixelFormat::RGBA8;
-						textureSettings.width = image->Width();
-						textureSettings.height = image->Height();
-						textureSettings.usageFlags = UsageFlag::Static;
-						textureSettings.bindFlags = BindFlag::ShaderResource;
-						textureSettings.accessFlags = 0;
-						textureSettings.data = image->Data();
+				if (!image) {
+					continue;
+				}
 
-						loadedImages[image] = CreateAsset(&textureSettings);
-					}
+				if (loadedImages.find(image) == loadedImages.end()) {
+					Texture2DCreateSettings textureSettings = {};
+					textureSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + kindStr + ".asset").generic_string();
+					textureSettings.format = PixelFormat::RGBA8;
+					textureSettings.width = image->Width();
+					textureSettings.height = image->Height();
+					textureSettings.usageFlags = UsageFlag::Static;
+					textureSettings.bindFlags = BindFlag::ShaderResource;
+					textureSettings.accessFlags = 0;
+					textureSettings.data = image->Data();
 
-					if (kindStr == "Diffuse") {
-						matSet.albedoTexture = loadedImages[image];
-					}
-					else if (kindStr == "Normal") {
-						matSet.normalTexture = loadedImages[image];
-					}
-					else if (kindStr == "Emissive") {
-						matSet.emissiveTexture = loadedImages[image];
-					}
-					else if (kindStr == "Metallic") {
-						matSet.metallicTexture = loadedImages[image];
-					}
-					else if (kindStr == "Roughness") {
-						matSet.roughnessTexture = loadedImages[image];
-					}
-					else if (kindStr == "AmbientOcclusion") {
-						matSet.ambientOcclusionTexture = loadedImages[image];
-					}
+					loadedImages[image] = CreateAsset(&textureSettings);
+				}
+
+				if (kindStr == "Diffuse") {
+					matSet.albedoTexture = loadedImages[image];
+				}
+				else if (kindStr == "Normal") {
+					matSet.normalTexture = loadedImages[image];
+				}
+				else if (kindStr == "Emissive") {
+					matSet.emissiveTexture = loadedImages[image];
+				}
+				else if (kindStr == "Metallic") {
+					matSet.metallicTexture = loadedImages[image];
+				}
+				else if (kindStr == "Roughness") {
+					matSet.roughnessTexture = loadedImages[image];
+				}
+				else if (kindStr == "AmbientOcclusion") {
+					matSet.ambientOcclusionTexture = loadedImages[image];
 				}
 			}
 
-			loadedMaterials.push_back(CreateAsset(&matSet));
-		}
+			loadedMaterials.emplace(mesh.materialIndex, CreateAsset(&matSet));
+
+			return loadedMaterials.at(mesh.materialIndex);
+		};
 
 		if (isSkeletal) {
 			destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
 
 			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
-				
 				const ModelSkeleton& modelSkeleton = model.GetSkeleton();
 
 				std::vector<MeshSegment> segments;
@@ -645,7 +656,7 @@ namespace flaw {
 				std::vector<Vertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
-					materials.push_back(loadedMaterials[mesh.materialIndex]);
+					materials.push_back(getMaterialFunc(mesh));
 
 					for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
@@ -712,7 +723,7 @@ namespace flaw {
 				std::vector<Vertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
-					materials.push_back(loadedMaterials[mesh.materialIndex]);
+					materials.push_back(getMaterialFunc(mesh));
 
 					for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);

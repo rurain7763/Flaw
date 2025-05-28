@@ -26,11 +26,9 @@ namespace flaw {
 		void Update(const void* data, uint32_t size) override;
 		void Fetch(void* data, uint32_t size) override;
 
-		void BindToGraphicsShader(const uint32_t slot) override;
-		void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) override;
-
-		void Unbind() override;
-
+		ComPtr<ID3D11Buffer> GetNativeBuffer() const { return _buffer; }
+		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
+		ComPtr<ID3D11UnorderedAccessView> GetUnorderedAccessView() const { return _uav; }
 		uint32_t Size() const override { return _size; }
 
 	private:

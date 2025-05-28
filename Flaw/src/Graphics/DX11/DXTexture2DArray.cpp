@@ -101,66 +101,6 @@ namespace flaw {
 		return true;
 	}
 
-	void DXTexture2DArray::BindToGraphicsShader(const uint32_t slot) {
-		if (!_srv) {
-			Log::Warn("ShaderResourceView is nullptr");
-			return;
-		}
-
-		_context.DeviceContext()->VSSetShaderResources(slot, 1, _srv.GetAddressOf());
-		_context.DeviceContext()->DSSetShaderResources(slot, 1, _srv.GetAddressOf());
-		_context.DeviceContext()->HSSetShaderResources(slot, 1, _srv.GetAddressOf());
-		_context.DeviceContext()->GSSetShaderResources(slot, 1, _srv.GetAddressOf());
-		_context.DeviceContext()->PSSetShaderResources(slot, 1, _srv.GetAddressOf());
-
-		_unbindFunc = [this, slot]() {
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context.DeviceContext()->VSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->DSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->HSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->GSSetShaderResources(slot, 1, &nullSRV);
-			_context.DeviceContext()->PSSetShaderResources(slot, 1, &nullSRV);
-			_unbindFunc = nullptr;
-			};
-	}
-
-	void DXTexture2DArray::BindToComputeShader(const BindFlag bindFlags, const uint32_t slot) {
-		if (bindFlags & BindFlag::ShaderResource) {
-			if (!_srv) {
-				Log::Warn("ShaderResourceView is nullptr");
-				return;
-			}
-
-			_context.DeviceContext()->CSSetShaderResources(slot, 1, _srv.GetAddressOf());
-
-			_unbindFunc = [this, slot]() {
-				ID3D11ShaderResourceView* nullSRV = nullptr;
-				_context.DeviceContext()->CSSetShaderResources(slot, 1, &nullSRV);
-				_unbindFunc = nullptr;
-				};
-		}
-		else if (bindFlags & BindFlag::UnorderedAccess) {
-			if (!_uav) {
-				Log::Warn("UnorderedAccessView is nullptr");
-				return;
-			}
-
-			_context.DeviceContext()->CSSetUnorderedAccessViews(slot, 1, _uav.GetAddressOf(), nullptr);
-
-			_unbindFunc = [this, slot]() {
-				ID3D11UnorderedAccessView* nullUAV = nullptr;
-				_context.DeviceContext()->CSSetUnorderedAccessViews(slot, 1, &nullUAV, nullptr);
-				_unbindFunc = nullptr;
-				};
-		}
-	}
-
-	void DXTexture2DArray::Unbind() {
-		if (_unbindFunc) {
-			_unbindFunc();
-		}
-	}
-
 	void DXTexture2DArray::FetchAll(void* outData) const {
 		uint8_t* dstPtr = reinterpret_cast<uint8_t*>(outData);
 

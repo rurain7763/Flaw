@@ -81,11 +81,6 @@ namespace flaw {
 		virtual void Update(const void* data, uint32_t size) = 0;
 		virtual void Fetch(void* data, uint32_t size) = 0;
 
-		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
-		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
-
-		virtual void Unbind() = 0;
-
 		virtual uint32_t Size() const = 0;
 	};
 }

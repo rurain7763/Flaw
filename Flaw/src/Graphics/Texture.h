@@ -7,11 +7,6 @@ namespace flaw {
 	class Texture {
 	public:
 		virtual ~Texture() = default;
-
-		virtual void BindToGraphicsShader(const uint32_t slot) = 0;
-		virtual void BindToComputeShader(const BindFlag bindFlag, const uint32_t slot) = 0;
-
-		virtual void Unbind() = 0;
 	};
 
 	class Texture2D : public Texture {
