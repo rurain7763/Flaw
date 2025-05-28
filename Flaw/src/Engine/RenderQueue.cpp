@@ -114,6 +114,14 @@ namespace flaw {
 		}
 	}
 
+	void RenderQueue::Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material, const Ref<StructuredBuffer>& boneMatrices) {
+		int32_t segmentIdx = 0;
+		for (auto& segment : mesh->GetMeshSegments()) {
+			Push(mesh, segmentIdx, worldMat, material, boneMatrices);
+			segmentIdx++;
+		}
+	}
+
 	void RenderQueue::Pop() {
 		FASSERT(_currentRenderMode != RenderMode::Count, "RenderQueue is empty");
 		if (++_currentRenderEntry == _currentRenderEntryEnd) {

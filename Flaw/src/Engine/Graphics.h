@@ -96,8 +96,7 @@ namespace flaw {
 		float ambientIntensity;
 
 		uint32_t numPointLights;
-		uint32_t numSpotLights;
-		uint32_t padding[2];
+		uint32_t padding[3];
 	};
 
 	struct MaterialConstants {

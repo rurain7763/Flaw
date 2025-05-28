@@ -102,6 +102,11 @@ namespace flaw {
 			const uint8_t* data;
 			PixelFormat format;
 			uint32_t width, height;
+
+			UsageFlag usage;
+			uint32_t access;
+
+			uint32_t bindFlags;
 		};
 
 		TextureCube() = default;

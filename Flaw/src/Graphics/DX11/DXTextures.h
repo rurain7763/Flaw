@@ -121,11 +121,15 @@ namespace flaw {
 		DXTextureCube(DXContext& context, const Descriptor& descriptor);
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
+		ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return _rtv; }
+		ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const { return _dsv; }
 		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
 
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
 
+		bool CreateRenderTargetView(const PixelFormat format);
+		bool CreateDepthStencilView(const PixelFormat format);
 		bool CreateShaderResourceView(const PixelFormat format);
 
 	private:
@@ -133,6 +137,8 @@ namespace flaw {
 
 		ComPtr<ID3D11Texture2D> _texture;
 
+		ComPtr<ID3D11RenderTargetView> _rtv;
+		ComPtr<ID3D11DepthStencilView> _dsv;
 		ComPtr<ID3D11ShaderResourceView> _srv;
 
 		PixelFormat _format;

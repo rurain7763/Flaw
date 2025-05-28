@@ -14,7 +14,12 @@ namespace flaw {
 		mat4 projection;
 	};
 
-	struct ShadowMap {
+	struct DirectionalLightShadowMap {
+		ShadowUniforms uniforms;
+		Ref<GraphicsRenderPass> renderPass;
+	};
+
+	struct SpotLightShadowMap {
 		ShadowUniforms uniforms;
 		Ref<GraphicsRenderPass> renderPass;
 	};
@@ -29,19 +34,27 @@ namespace flaw {
 		void Update();
 		void Render(Ref<StructuredBuffer>& batchedTransformSB);
 
-		ShadowMap& GetShadowMap(const uint32_t& uuid) { return _shadowMaps[uuid]; }
+		DirectionalLightShadowMap& GetDirectionalLightShadowMap(const uint32_t& id) { return _directionalShadowMaps[id]; }
+		SpotLightShadowMap& GetSpotLightShadowMap(const uint32_t& id) { return _spotLightShadowMaps[id]; }
+
+	private:
+		Ref<GraphicsRenderPass> CreateShadowMapRenderPass();
+		
+		void DrawRenderEntry(const RenderEntry& entry, const ShadowUniforms& shadowUniforms, Ref<StructuredBuffer>& batchedTransformSB);
 
 	private:
 		constexpr static uint32_t ShadowMapSize = 2048;
 
 		Scene& _scene;
 
-		Ref<Material> _shadowMapMaterial;
+		Ref<Material> _shadowMapStaticMaterial;
+		Ref<Material> _shadowMapSkeletalMaterial;
 
 		Ref<ConstantBuffer> _shadowUniformsCB;
 
 		RenderQueue _shadowMapRenderQueue;
 
-		std::unordered_map<uint32_t, ShadowMap> _shadowMaps;
+		std::unordered_map<uint32_t, DirectionalLightShadowMap> _directionalShadowMaps;
+		std::unordered_map<uint32_t, SpotLightShadowMap> _spotLightShadowMaps;
 	};
 }

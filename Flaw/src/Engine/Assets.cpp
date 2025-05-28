@@ -63,6 +63,9 @@ namespace flaw {
 		texDesc.height = desc.height;
 		texDesc.layout = desc.layout;
 		texDesc.data = desc.data.data();
+		texDesc.usage = UsageFlag::Static;
+		texDesc.bindFlags = BindFlag::ShaderResource;
+		texDesc.access = 0;
 
 		_texture = Graphics::CreateTextureCube(texDesc);
 	}

@@ -92,14 +92,27 @@ namespace flaw {
 			float padding[3];
 		};
 
+		struct SpotLightUniforms {
+			mat4 view;
+			mat4 projection;
+
+			vec4 lightColor;
+			vec4 lightPosition;
+			vec4 lightDirection;
+			float lightIntensity;
+			float lightRange;
+
+			float innerAngle;
+			float outerAngle;
+		};
+
 		Ref<ConstantBuffer> _directionalLightUniformCB;
+		Ref<ConstantBuffer> _spotLightUniformCB;
 		Ref<StructuredBuffer> _pointLightSB;
-		Ref<StructuredBuffer> _spotLightSB;
 		Ref<StructuredBuffer> _decalSB;
 
 		LightConstants _lightConstants;
 		std::vector<PointLight> _pointLights;
-		std::vector<SpotLight> _spotLights;
 
 		std::vector<Decal> _decals;
 		std::map<Ref<Texture2D>, uint32_t> _decalTextureIndexMap;

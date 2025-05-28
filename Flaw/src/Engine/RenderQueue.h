@@ -84,6 +84,7 @@ namespace flaw {
 		void Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material);
 		void Push(const Ref<Mesh>& mesh, int segmentIndex, const mat4& worldMat, const Ref<Material>& material, const Ref<StructuredBuffer>& boneMatrices);
 		void Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material);
+		void Push(const Ref<Mesh>& mesh, const mat4& worldMat, const Ref<Material>& material, const Ref<StructuredBuffer>& boneMatrices);
 		void Pop();
 
 		bool Empty();
