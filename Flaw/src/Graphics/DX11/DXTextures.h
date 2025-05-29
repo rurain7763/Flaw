@@ -27,6 +27,11 @@ namespace flaw {
 		void CopyTo(Ref<Texture2D>& target) const override;
 		void CopyToSub(Ref<Texture2D>& target, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) const override;
 
+		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
+		UnorderedAccessView GetUnorderedAccessView() const override { return _uav.Get(); }
+		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
+		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
 		PixelFormat GetPixelFormat() const override { return _format; }
@@ -35,10 +40,6 @@ namespace flaw {
 		uint32_t GetAccessFlags() const override { return _acessFlags; }
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
-		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
-		ComPtr<ID3D11UnorderedAccessView> GetUnorderedAccessView() const { return _uav; }
-		ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return _rtv; }
-		ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const { return _dsv; }
 
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
@@ -75,6 +76,11 @@ namespace flaw {
 
 		void CopyTo(Ref<Texture2DArray>& target) const override;
 
+		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
+		UnorderedAccessView GetUnorderedAccessView() const override { return _uav.Get(); }
+		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
+		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
 		PixelFormat GetPixelFormat() const override { return _format; }
@@ -84,8 +90,6 @@ namespace flaw {
 		uint32_t GetArraySize() const override { return _arraySize; }
 
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
-		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
-		ComPtr<ID3D11UnorderedAccessView> GetUnorderedAccessView() const { return _uav; }
 
 	private:
 		bool SetTexturesUniformAndValidCheck(const std::vector<Ref<Texture2D>>& textures);
@@ -96,6 +100,8 @@ namespace flaw {
 		
 		bool CreateShaderResourceView(const PixelFormat format);
 		bool CreateUnorderedAccessView(const PixelFormat format);
+		bool CreateRenderTargetView(const PixelFormat format);
+		bool CreateDepthStencilView(const PixelFormat format);
 
 	private:
 		DXContext& _context;
@@ -104,6 +110,8 @@ namespace flaw {
 
 		ComPtr<ID3D11ShaderResourceView> _srv;
 		ComPtr<ID3D11UnorderedAccessView> _uav;
+		ComPtr<ID3D11RenderTargetView> _rtv;
+		ComPtr<ID3D11DepthStencilView> _dsv;
 
 		PixelFormat _format;
 		UsageFlag _usage;
@@ -120,10 +128,19 @@ namespace flaw {
 	public:
 		DXTextureCube(DXContext& context, const Descriptor& descriptor);
 
+		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
+		UnorderedAccessView GetUnorderedAccessView() const override { return nullptr; } // UnorderedAccessView is not supported for cube textures now
+		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
+		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+
+		uint32_t GetWidth() const override { return _width; }
+		uint32_t GetHeight() const override { return _height; }
+		PixelFormat GetPixelFormat() const override { return _format; }
+		UsageFlag GetUsage() const override { return _usage; }
+		uint32_t GetBindFlags() const override { return _bindFlags; }
+		uint32_t GetAccessFlags() const override { return _acessFlags; }
+
 		ComPtr<ID3D11Texture2D> GetNativeTexture() const { return _texture; }
-		ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return _rtv; }
-		ComPtr<ID3D11DepthStencilView> GetDepthStencilView() const { return _dsv; }
-		ComPtr<ID3D11ShaderResourceView> GetShaderResourceView() const { return _srv; }
 
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
@@ -142,5 +159,11 @@ namespace flaw {
 		ComPtr<ID3D11ShaderResourceView> _srv;
 
 		PixelFormat _format;
+		UsageFlag _usage;
+		uint32_t _acessFlags;
+		uint32_t _bindFlags;
+
+		uint32_t _width;
+		uint32_t _height;
 	};
 }

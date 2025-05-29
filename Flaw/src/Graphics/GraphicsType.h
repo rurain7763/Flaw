@@ -1,6 +1,11 @@
 #pragma once
 
 namespace flaw {
+	using ShaderResourceView = void*;
+	using UnorderedAccessView = void*;
+	using RenderTargetView = void*;
+	using DepthStencilView = void*;
+
 	enum class RenderDomain {
 		Opaque,
 		Masked,

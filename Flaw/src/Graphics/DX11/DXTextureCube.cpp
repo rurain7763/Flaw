@@ -127,6 +127,11 @@ namespace flaw {
 		}
 
 		_format = descriptor.format;
+		_usage = descriptor.usage;
+		_acessFlags = descriptor.access;
+		_bindFlags = descriptor.bindFlags;
+		_width = descriptor.width;
+		_height = descriptor.height;
 
 		return true;
 	}

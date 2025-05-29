@@ -93,7 +93,7 @@ namespace flaw {
 
         Renderer2D::End();
 
-		auto renderTargetTex = Graphics::GetMainRenderPass()->GetRenderTargetTex(0);
+		auto renderTargetTex = std::static_pointer_cast<Texture2D>(Graphics::GetMainRenderPass()->GetRenderTargetTex(0));
         renderTargetTex->CopyTo(_captureRenderTargetTexture);
 
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
@@ -126,7 +126,7 @@ namespace flaw {
             }
         }
         
-        ImGui::Image((ImTextureID)dxTexture->GetShaderResourceView().Get(), currentSize);
+        ImGui::Image((ImTextureID)dxTexture->GetShaderResourceView(), currentSize);
 
         // NOTE: 기즈모 드로우
         if (_selectionEnabled && _selectedEntt) {
@@ -204,7 +204,7 @@ namespace flaw {
 
     uint32_t ViewportEditor::MousePicking(int32_t x, int32_t y) {
 		auto mainMrt = Graphics::GetMainRenderPass();
-		auto idRenderTargetTex = mainMrt->GetRenderTargetTex(1);
+		auto idRenderTargetTex = std::static_pointer_cast<Texture2D>(mainMrt->GetRenderTargetTex(1));
 
 		if (x < 0 || x >= idRenderTargetTex->GetWidth() || y < 0 || y >= idRenderTargetTex->GetHeight()) {
             return std::numeric_limits<int32_t>().max();

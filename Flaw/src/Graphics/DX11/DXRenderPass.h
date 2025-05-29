@@ -32,13 +32,16 @@ namespace flaw {
 
 		void SetBlendMode(int32_t slot, BlendMode blendMode, bool alphaToCoverage) override;
 
-		Ref<Texture2D> GetRenderTargetTex(int32_t slot) override;
-		Ref<Texture2D> GetDepthStencilTex() override;
+		Ref<Texture> GetRenderTargetTex(int32_t slot) override;
+		Ref<Texture> GetDepthStencilTex() override;
 
 		void ClearAllRenderTargets() override;
 		void ClearDepthStencil() override;
 
 	private:
+		void SetRenderTargetViewsAndViewports();
+		void SetDepthStencilView();
+
 		void CreateBlendState();
 
 	private:
@@ -47,7 +50,11 @@ namespace flaw {
 		DXContext& _context;
 
 		std::vector<GraphicsRenderTarget> _renderTargets;
+		std::vector<ID3D11RenderTargetView*> _rtvs;
+		std::vector<D3D11_VIEWPORT> _viewports;
+
 		GraphicsDepthStencil _depthStencil;
+		ID3D11DepthStencilView* _dsv;
 
 		ComPtr<ID3D11BlendState> _blendState;
 	};

@@ -7,6 +7,18 @@ namespace flaw {
 	class Texture {
 	public:
 		virtual ~Texture() = default;
+
+		virtual ShaderResourceView GetShaderResourceView() const = 0;
+		virtual UnorderedAccessView GetUnorderedAccessView() const = 0;
+		virtual RenderTargetView GetRenderTargetView() const = 0;
+		virtual DepthStencilView GetDepthStencilView() const = 0;
+
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
+		virtual PixelFormat GetPixelFormat() const = 0;
+		virtual UsageFlag GetUsage() const = 0;
+		virtual uint32_t GetBindFlags() const = 0;
+		virtual uint32_t GetAccessFlags() const = 0;
 	};
 
 	class Texture2D : public Texture {
@@ -46,13 +58,6 @@ namespace flaw {
 
 		virtual void CopyTo(Ref<Texture2D>& target) const = 0;
 		virtual void CopyToSub(Ref<Texture2D>& target, uint32_t x, uint32_t y, uint32_t width, uint32_t height) const = 0;
-
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual PixelFormat GetPixelFormat() const = 0;
-		virtual UsageFlag GetUsage() const = 0;
-		virtual uint32_t GetBindFlags() const = 0;
-		virtual uint32_t GetAccessFlags() const = 0;
 	};
 
 	class Texture2DArray : public Texture {
@@ -81,12 +86,6 @@ namespace flaw {
 
 		virtual void CopyTo(Ref<Texture2DArray>& target) const = 0;
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual PixelFormat GetPixelFormat() const = 0;
-		virtual UsageFlag GetUsage() const = 0;
-		virtual uint32_t GetBindFlags() const = 0;
-		virtual uint32_t GetAccessFlags() const = 0;
 		virtual uint32_t GetArraySize() const = 0;
 	};
 

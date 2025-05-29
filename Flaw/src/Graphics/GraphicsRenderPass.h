@@ -12,15 +12,16 @@ namespace flaw {
 		BlendMode blendMode = BlendMode::Default;
 		bool alphaToCoverage = false;
 
-		Ref<Texture2D> texture;
+		Ref<Texture> texture;
+		float viewportX, viewportY, viewportWidth, viewportHeight;
 		std::array<float, 4> clearValue;
-		std::function<Ref<Texture2D>(Ref<Texture2D>& current, int32_t width, int32_t height)> resizeFunc;
-		std::function<void(float& x, float& y, float& width, float& height)> viewportFunc;
+
+		std::function<void(GraphicsRenderTarget& current, int32_t width, int32_t height)> resizeFunc;
 	};
 
 	struct GraphicsDepthStencil {
-		Ref<Texture2D> texture;
-		std::function<Ref<Texture2D>(Ref<Texture2D>& current, int32_t width, int32_t height)> resizeFunc;
+		Ref<Texture> texture;
+		std::function<void(GraphicsDepthStencil& current, int32_t width, int32_t height)> resizeFunc;
 	};
 
 	class GraphicsRenderPass {
@@ -42,8 +43,8 @@ namespace flaw {
 
 		virtual void SetBlendMode(int32_t slot, BlendMode blendMode, bool alphaToCoverage) = 0;
 
-		virtual Ref<Texture2D> GetRenderTargetTex(int32_t slot) = 0;
-		virtual Ref<Texture2D> GetDepthStencilTex() = 0;
+		virtual Ref<Texture> GetRenderTargetTex(int32_t slot) = 0;
+		virtual Ref<Texture> GetDepthStencilTex() = 0;
 
 		virtual void ClearAllRenderTargets() = 0;
 		virtual void ClearDepthStencil() = 0;

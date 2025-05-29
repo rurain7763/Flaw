@@ -7,10 +7,10 @@
 #include "DXType.h"
 
 namespace flaw {
-	static std::unordered_map<uint32_t, ComPtr<ID3D11ShaderResourceView>> g_graphicsTRegistries;
+	static std::unordered_map<uint32_t, ID3D11ShaderResourceView*> g_graphicsTRegistries;
 
-	static std::unordered_map<uint32_t, ComPtr<ID3D11ShaderResourceView>> g_computeTRegistries;
-	static std::unordered_map<uint32_t, ComPtr<ID3D11UnorderedAccessView>> g_computeURegistries;
+	static std::unordered_map<uint32_t, ID3D11ShaderResourceView*> g_computeTRegistries;
+	static std::unordered_map<uint32_t, ID3D11UnorderedAccessView*> g_computeURegistries;
 
 	DXCommandQueue::DXCommandQueue(DXContext& context)
 		: _context(context)
@@ -58,19 +58,20 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::BindToGraphicsTRegistry(uint32_t slot, const ComPtr<ID3D11ShaderResourceView>& srv) {
+	void DXCommandQueue::BindToGraphicsTRegistry(uint32_t slot, ID3D11ShaderResourceView* srv) {
 		auto it = g_graphicsTRegistries.find(slot);
 		if (it != g_graphicsTRegistries.end() && it->second == srv) {
 			return; // Already bound
 		}
 
-		_context.DeviceContext()->VSSetShaderResources(slot, 1, srv.GetAddressOf());
-		_context.DeviceContext()->PSSetShaderResources(slot, 1, srv.GetAddressOf());
-		_context.DeviceContext()->GSSetShaderResources(slot, 1, srv.GetAddressOf());
-		_context.DeviceContext()->HSSetShaderResources(slot, 1, srv.GetAddressOf());
-		_context.DeviceContext()->DSSetShaderResources(slot, 1, srv.GetAddressOf());
+		auto& registry = g_graphicsTRegistries[slot];
+		registry = srv;
 
-		g_graphicsTRegistries[slot] = srv;
+		_context.DeviceContext()->VSSetShaderResources(slot, 1, &registry);
+		_context.DeviceContext()->PSSetShaderResources(slot, 1, &registry);
+		_context.DeviceContext()->GSSetShaderResources(slot, 1, &registry);
+		_context.DeviceContext()->HSSetShaderResources(slot, 1, &registry);
+		_context.DeviceContext()->DSSetShaderResources(slot, 1, &registry);
 	}
 
 	void DXCommandQueue::SetStructuredBuffer(const Ref<StructuredBuffer>& buffer, uint32_t slot) {
@@ -82,11 +83,11 @@ namespace flaw {
 				return;
 			}
 
-			BindToGraphicsTRegistry(slot, srv);
+			BindToGraphicsTRegistry(slot, srv.Get());
 		});
 	}
 
-	void DXCommandQueue::SetTexture(const Ref<Texture2D>& texture, uint32_t slot) {
+	void DXCommandQueue::SetTexture(const Ref<Texture>& texture, uint32_t slot) {
 		_commands.push([this, texture, slot]() { 
 			auto dxTexture = std::static_pointer_cast<DXTexture2D>(texture);
 			auto srv = dxTexture->GetShaderResourceView();
@@ -95,33 +96,7 @@ namespace flaw {
 				return;
 			}
 
-			BindToGraphicsTRegistry(slot, srv);
-		});
-	}
-
-	void DXCommandQueue::SetTexture(const Ref<Texture2DArray>& texture, uint32_t slot) {
-		_commands.push([this, texture, slot]() {
-			auto dxTexture = std::static_pointer_cast<DXTexture2DArray>(texture);
-			auto srv = dxTexture->GetShaderResourceView();
-			if (!srv) {
-				Log::Error("ShaderResourceView is nullptr for texture array at slot %d", slot);
-				return;
-			}
-
-			BindToGraphicsTRegistry(slot, srv);
-		});
-	}
-
-	void DXCommandQueue::SetTexture(const Ref<TextureCube>& texture, uint32_t slot) {
-		_commands.push([this, texture, slot]() {
-			auto dxTexture = std::static_pointer_cast<DXTextureCube>(texture);
-			auto srv = dxTexture->GetShaderResourceView();
-			if (!srv) {
-				Log::Error("ShaderResourceView is nullptr for texture cube at slot %d", slot);
-				return;
-			}
-
-			BindToGraphicsTRegistry(slot, srv);
+			BindToGraphicsTRegistry(slot, static_cast<ID3D11ShaderResourceView*>(srv));
 		});
 	}
 
@@ -157,29 +132,31 @@ namespace flaw {
 		});
 	}
 
-	void DXCommandQueue::BindToComputeTRegistry(uint32_t slot, const ComPtr<ID3D11ShaderResourceView>& srv) {
+	void DXCommandQueue::BindToComputeTRegistry(uint32_t slot, ID3D11ShaderResourceView* srv) {
 		auto it = g_computeTRegistries.find(slot);
 		if (it != g_computeTRegistries.end() && it->second == srv) {
 			return;
 		}
 
-		_context.DeviceContext()->CSSetShaderResources(slot, 1, srv.GetAddressOf());
+		auto& registry = g_computeTRegistries[slot];
+		registry = srv;
 
-		g_computeTRegistries[slot] = srv;
+		_context.DeviceContext()->CSSetShaderResources(slot, 1, &registry);
 	}
 
-	void DXCommandQueue::BindToComputeURegistry(uint32_t slot, const ComPtr<ID3D11UnorderedAccessView>& uav) {
+	void DXCommandQueue::BindToComputeURegistry(uint32_t slot, ID3D11UnorderedAccessView* uav) {
 		auto it = g_computeURegistries.find(slot);
 		if (it != g_computeURegistries.end() && it->second == uav) {
 			return;
 		}
 
-		_context.DeviceContext()->CSSetUnorderedAccessViews(slot, 1, uav.GetAddressOf(), nullptr);
+		auto& registry = g_computeURegistries[slot];
+		registry = uav;
 
-		g_computeURegistries[slot] = uav;
+		_context.DeviceContext()->CSSetUnorderedAccessViews(slot, 1, &registry, nullptr);
 	}
 
-	void DXCommandQueue::SetComputeTexture(const Ref<Texture2D>& texture, BindFlag bindFlag, uint32_t slot) {
+	void DXCommandQueue::SetComputeTexture(const Ref<Texture>& texture, BindFlag bindFlag, uint32_t slot) {
 		_commands.push([this, texture, bindFlag, slot]() { 
 			auto dxTexture = std::static_pointer_cast<DXTexture2D>(texture);
 
@@ -190,7 +167,7 @@ namespace flaw {
 					return;
 				}
 
-				BindToComputeTRegistry(slot, srv);
+				BindToComputeTRegistry(slot, static_cast<ID3D11ShaderResourceView*>(srv));
 			}
 			else if (bindFlag & BindFlag::UnorderedAccess) {
 				auto uav = dxTexture->GetUnorderedAccessView();
@@ -199,49 +176,7 @@ namespace flaw {
 					return;
 				}
 
-				BindToComputeURegistry(slot, uav);
-			}
-		});
-	}
-
-	void DXCommandQueue::SetComputeTexture(const Ref<Texture2DArray>& texture, BindFlag bindFlag, uint32_t slot) {
-		_commands.push([this, texture, bindFlag, slot]() {
-			auto dxTexture = std::static_pointer_cast<DXTexture2DArray>(texture);
-			if (bindFlag & BindFlag::ShaderResource) {
-				auto srv = dxTexture->GetShaderResourceView();
-				if (!srv) {
-					Log::Error("ShaderResourceView is nullptr for texture array at slot %d", slot);
-					return;
-				}
-
-				BindToComputeTRegistry(slot, srv);
-			}
-			else if (bindFlag & BindFlag::UnorderedAccess) {
-				auto uav = dxTexture->GetUnorderedAccessView();
-				if (!uav) {
-					Log::Error("UnorderedAccessView is nullptr for texture array at slot %d", slot);
-					return;
-				}
-
-				BindToComputeURegistry(slot, uav);
-			}
-		});
-	}
-
-	void DXCommandQueue::SetComputeTexture(const Ref<TextureCube>& texture, BindFlag bindFlag, uint32_t slot) {
-		_commands.push([this, texture, bindFlag, slot]() {
-			auto dxTexture = std::static_pointer_cast<DXTextureCube>(texture);
-			if (bindFlag & BindFlag::ShaderResource) {
-				auto srv = dxTexture->GetShaderResourceView();
-				if (!srv) {
-					Log::Error("ShaderResourceView is nullptr for texture cube at slot %d", slot);
-					return;
-				}
-
-				BindToComputeTRegistry(slot, srv);
-			}
-			else if (bindFlag & BindFlag::UnorderedAccess) {
-				Log::Error("UnorderedAccessView is not supported for texture cube");
+				BindToComputeURegistry(slot, static_cast<ID3D11UnorderedAccessView*>(uav));
 			}
 		});
 	}
@@ -256,7 +191,7 @@ namespace flaw {
 					return;
 				}
 
-				BindToComputeTRegistry(slot, srv);
+				BindToComputeTRegistry(slot, srv.Get());
 			}
 			else if (bindFlag & BindFlag::UnorderedAccess) {
 				auto uav = dxSBuffer->GetUnorderedAccessView();
@@ -265,7 +200,7 @@ namespace flaw {
 					return;
 				}
 
-				BindToComputeURegistry(slot, uav);
+				BindToComputeURegistry(slot, uav.Get());
 			}
 		});
 	}

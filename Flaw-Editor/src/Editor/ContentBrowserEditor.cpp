@@ -59,7 +59,7 @@ namespace flaw {
 
 			ImGui::BeginGroup();
 			ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-			ImGui::ImageButton("..", (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
+			ImGui::ImageButton("..", (ImTextureID)dxTexture->GetShaderResourceView(), { iconSize, iconSize });
 			ImGui::PopStyleColor();
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("%s", _currentDirectory.parent_path().generic_u8string().c_str());
@@ -88,7 +88,7 @@ namespace flaw {
 
 				ImGui::BeginGroup(); // 그룹화하여 아이콘과 텍스트 정렬
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				ImGui::ImageButton(folderName.c_str(), (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
+				ImGui::ImageButton(folderName.c_str(), (ImTextureID)dxTexture->GetShaderResourceView(), { iconSize, iconSize });
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.generic_u8string().c_str()); // 전체 경로 툴팁 표시
@@ -146,7 +146,7 @@ namespace flaw {
 
 				ImGui::BeginGroup();
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				ImGui::ImageButton(filename.c_str(), (ImTextureID)dxTexture->GetShaderResourceView().Get(), { iconSize, iconSize });
+				ImGui::ImageButton(filename.c_str(), (ImTextureID)dxTexture->GetShaderResourceView(), { iconSize, iconSize });
 				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.generic_u8string().c_str());

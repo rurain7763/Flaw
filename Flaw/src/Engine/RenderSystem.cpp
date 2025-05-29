@@ -41,35 +41,115 @@ namespace flaw {
 		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryPosition].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryPosition].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryPosition].viewportX = 0;
+		objMRTDesc.renderTargets[GeometryPosition].viewportY = 0;
+		objMRTDesc.renderTargets[GeometryPosition].viewportWidth = width;
+		objMRTDesc.renderTargets[GeometryPosition].viewportHeight = height;
 		objMRTDesc.renderTargets[GeometryPosition].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryPosition].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryNormal].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryNormal].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryNormal].viewportX = 0;
+		objMRTDesc.renderTargets[GeometryNormal].viewportY = 0;
+		objMRTDesc.renderTargets[GeometryNormal].viewportWidth = width;
+		objMRTDesc.renderTargets[GeometryNormal].viewportHeight = height;
 		objMRTDesc.renderTargets[GeometryNormal].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryNormal].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryAlbedo].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryAlbedo].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryAlbedo].viewportX = 0;
+		objMRTDesc.renderTargets[GeometryAlbedo].viewportY = 0;
+		objMRTDesc.renderTargets[GeometryAlbedo].viewportWidth = width;
+		objMRTDesc.renderTargets[GeometryAlbedo].viewportHeight = height;
 		objMRTDesc.renderTargets[GeometryAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryAlbedo].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryMaterial].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryMaterial].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryMaterial].viewportX = 0;
+		objMRTDesc.renderTargets[GeometryMaterial].viewportY = 0;
+		objMRTDesc.renderTargets[GeometryMaterial].viewportWidth = width;
+		objMRTDesc.renderTargets[GeometryMaterial].viewportHeight = height;
 		objMRTDesc.renderTargets[GeometryMaterial].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryMaterial].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
 		objMRTDesc.renderTargets[GeometryEmissive].blendMode = BlendMode::Disabled;
 		objMRTDesc.renderTargets[GeometryEmissive].texture = Graphics::CreateTexture2D(texDesc);
+		objMRTDesc.renderTargets[GeometryEmissive].viewportX = 0;
+		objMRTDesc.renderTargets[GeometryEmissive].viewportY = 0;
+		objMRTDesc.renderTargets[GeometryEmissive].viewportWidth = width;
+		objMRTDesc.renderTargets[GeometryEmissive].viewportHeight = height;
 		objMRTDesc.renderTargets[GeometryEmissive].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		objMRTDesc.renderTargets[GeometryEmissive].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		objMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		objMRTDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
-			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		objMRTDesc.depthStencil.resizeFunc = [](GraphicsDepthStencil& current, int32_t width, int32_t height) {
+			current.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		};
 
 		_geometryPass = Graphics::CreateRenderPass(objMRTDesc);
@@ -83,14 +163,20 @@ namespace flaw {
 		decalPassDesc.renderTargets[DecalAlbedo].blendMode = BlendMode::Alpha;
 		decalPassDesc.renderTargets[DecalAlbedo].alphaToCoverage = true;
 		decalPassDesc.renderTargets[DecalAlbedo].texture = _geometryPass->GetRenderTargetTex(GeometryAlbedo);
+		decalPassDesc.renderTargets[DecalAlbedo].viewportX = 0;
+		decalPassDesc.renderTargets[DecalAlbedo].viewportY = 0;
+		decalPassDesc.renderTargets[DecalAlbedo].viewportWidth = width;
+		decalPassDesc.renderTargets[DecalAlbedo].viewportHeight = height;
 		decalPassDesc.renderTargets[DecalAlbedo].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
-		decalPassDesc.renderTargets[DecalAlbedo].resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
-			return _geometryPass->GetRenderTargetTex(GeometryAlbedo);
+		decalPassDesc.renderTargets[DecalAlbedo].resizeFunc = [this](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			current.texture = _geometryPass->GetRenderTargetTex(GeometryAlbedo);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
 		};
 
 		decalPassDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		decalPassDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
-			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		decalPassDesc.depthStencil.resizeFunc = [](GraphicsDepthStencil& current, int32_t width, int32_t height) {
+			current.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		};
 
 		_decalPass = Graphics::CreateRenderPass(decalPassDesc);
@@ -103,17 +189,49 @@ namespace flaw {
 		texDesc.format = PixelFormat::RGBA32F;
 		lightMRTDesc.renderTargets[LightingRadiance].blendMode = BlendMode::Additive;
 		lightMRTDesc.renderTargets[LightingRadiance].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingRadiance].viewportX = 0;
+		lightMRTDesc.renderTargets[LightingRadiance].viewportY = 0;
+		lightMRTDesc.renderTargets[LightingRadiance].viewportWidth = width;
+		lightMRTDesc.renderTargets[LightingRadiance].viewportHeight = height;
 		lightMRTDesc.renderTargets[LightingRadiance].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		lightMRTDesc.renderTargets[LightingRadiance].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::RGBA32F;
 		lightMRTDesc.renderTargets[LightingShadow].blendMode = BlendMode::Additive;
 		lightMRTDesc.renderTargets[LightingShadow].texture = Graphics::CreateTexture2D(texDesc);
+		lightMRTDesc.renderTargets[LightingShadow].viewportX = 0;
+		lightMRTDesc.renderTargets[LightingShadow].viewportY = 0;
+		lightMRTDesc.renderTargets[LightingShadow].viewportWidth = width;
+		lightMRTDesc.renderTargets[LightingShadow].viewportHeight = height;
 		lightMRTDesc.renderTargets[LightingShadow].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		lightMRTDesc.renderTargets[LightingShadow].resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+			desc.format = PixelFormat::RGBA32F;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		lightMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		lightMRTDesc.depthStencil.resizeFunc = [](Ref<Texture2D>& current, int32_t width, int32_t height) {
-			return Graphics::GetMainRenderPass()->GetDepthStencilTex();
+		lightMRTDesc.depthStencil.resizeFunc = [](GraphicsDepthStencil& current, int32_t width, int32_t height) {
+			current.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
 		};
 
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);

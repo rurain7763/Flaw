@@ -9,6 +9,11 @@ namespace flaw {
 	DXRenderPass::DXRenderPass(DXContext& context, const Descriptor& desc)
 		: _context(context) 
 	{
+		if (desc.renderTargets.empty()) {
+			Log::Error("DXMultiRenderTarget::DXMultiRenderTarget: No render targets provided.");
+			return;
+		}
+
 		if (desc.renderTargets.size() > MaxRenderTargets) {
 			Log::Error("DXMultiRenderTarget::DXMultiRenderTarget: Too many render targets. Max is %d.", MaxRenderTargets);
 			return;
@@ -17,11 +22,42 @@ namespace flaw {
 		_renderTargets = desc.renderTargets;
 		_depthStencil = desc.depthStencil;
 
+		SetRenderTargetViewsAndViewports();
+		SetDepthStencilView();
 		CreateBlendState();
 	}
 
 	DXRenderPass::~DXRenderPass() {
 		Unbind();
+	}
+
+	void DXRenderPass::SetRenderTargetViewsAndViewports() {
+		_rtvs.resize(_renderTargets.size());
+		_viewports.resize(_renderTargets.size());
+		for (int32_t i = 0; i < _renderTargets.size(); ++i) {		
+			auto& renderTarget = _renderTargets[i];
+			auto& rtv = _rtvs[i];
+			auto& viewport = _viewports[i];
+
+			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView());
+
+			viewport.TopLeftX = renderTarget.viewportX;
+			viewport.TopLeftY = renderTarget.viewportY;
+			viewport.Width = renderTarget.viewportWidth;
+			viewport.Height = renderTarget.viewportHeight;
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
+		}
+	}
+
+	void DXRenderPass::SetDepthStencilView() {
+		auto& depthStencil = _depthStencil;
+
+		if (!_depthStencil.texture) {
+			return;
+		}
+
+		_dsv = static_cast<ID3D11DepthStencilView*>(depthStencil.texture->GetDepthStencilView());
 	}
 
 	void DXRenderPass::Bind(bool clearColor, bool clearDepthStencil) {
@@ -40,35 +76,8 @@ namespace flaw {
 
 		_context.SetRenderPass(this);
 
-		std::vector<ID3D11RenderTargetView*> rtvArray(_renderTargets.size());
-		std::vector<D3D11_VIEWPORT> viewports(_renderTargets.size());
-		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
-			auto& renderTarget = _renderTargets[i];
-			
-			rtvArray[i] = std::static_pointer_cast<DXTexture2D>(renderTarget.texture)->GetRenderTargetView().Get();
-
-			auto& viewPort = viewports[i];
-			if (renderTarget.viewportFunc) {
-				renderTarget.viewportFunc(viewPort.TopLeftX, viewPort.TopLeftY, viewPort.Width, viewPort.Height);
-			}
-			else {
-				viewPort.TopLeftX = 0;
-				viewPort.TopLeftY = 0;
-				viewPort.Width = static_cast<float>(renderTarget.texture->GetWidth());
-				viewPort.Height = static_cast<float>(renderTarget.texture->GetHeight());
-			}
-
-			viewPort.MinDepth = 0.0f;
-			viewPort.MaxDepth = 1.0f;
-		}
-
-		ComPtr<ID3D11DepthStencilView> depthStencilView = nullptr;
-		if (_depthStencil.texture) {
-			depthStencilView = std::static_pointer_cast<DXTexture2D>(_depthStencil.texture)->GetDepthStencilView().Get();
-		}
-
-		_context.DeviceContext()->OMSetRenderTargets(static_cast<UINT>(rtvArray.size()), rtvArray.data(), depthStencilView.Get());
-		_context.DeviceContext()->RSSetViewports(static_cast<UINT>(viewports.size()), viewports.data());
+		_context.DeviceContext()->OMSetRenderTargets(static_cast<UINT>(_rtvs.size()), _rtvs.data(), _dsv);
+		_context.DeviceContext()->RSSetViewports(static_cast<UINT>(_viewports.size()), _viewports.data());
 		_context.DeviceContext()->OMSetBlendState(_blendState.Get(), nullptr, 0xffffffff);
 	}
 
@@ -84,52 +93,39 @@ namespace flaw {
 		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
 			auto& renderTarget = _renderTargets[i];
 
-			if (renderTarget.texture == nullptr) {
-				continue;
-			}
-
 			if (renderTarget.texture->GetWidth() == width && renderTarget.texture->GetHeight() == height) {
 				continue;
 			}
 
-			if (renderTarget.resizeFunc) {
-				renderTarget.texture = renderTarget.resizeFunc(renderTarget.texture, width, height);
+			if (!renderTarget.resizeFunc) {
+				continue;
 			}
-			else {
-				Texture2D::Descriptor texDesc = {};
-				texDesc.width = width;
-				texDesc.height = height;
-				texDesc.format = renderTarget.texture->GetPixelFormat();
-				texDesc.usage = renderTarget.texture->GetUsage();
-				texDesc.bindFlags = renderTarget.texture->GetBindFlags();
 
-				renderTarget.texture.reset();
-				renderTarget.texture = _context.CreateTexture2D(texDesc);
-			}
-		}
+			renderTarget.resizeFunc(renderTarget, width, height);
 
-		if (_depthStencil.texture == nullptr) {
-			return;
+			auto& rtv = _rtvs[i];
+			auto& viewport = _viewports[i];
+
+			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView());
+
+			viewport.TopLeftX = renderTarget.viewportX;
+			viewport.TopLeftY = renderTarget.viewportY;
+			viewport.Width = renderTarget.viewportWidth;
+			viewport.Height = renderTarget.viewportHeight;
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
 		}
 
 		if (_depthStencil.texture->GetWidth() == width && _depthStencil.texture->GetHeight() == height) {
 			return;
 		}
 
-		if (_depthStencil.resizeFunc) {
-			_depthStencil.texture = _depthStencil.resizeFunc(_depthStencil.texture, width, height);
+		if (!_depthStencil.resizeFunc) {
+			return;
 		}
-		else {
-			Texture2D::Descriptor depthTexDesc = {};
-			depthTexDesc.width = width;
-			depthTexDesc.height = height;
-			depthTexDesc.format = _depthStencil.texture->GetPixelFormat();
-			depthTexDesc.usage = _depthStencil.texture->GetUsage();
-			depthTexDesc.bindFlags = _depthStencil.texture->GetBindFlags();
 
-			_depthStencil.texture.reset();
-			_depthStencil.texture = _context.CreateTexture2D(depthTexDesc);
-		}
+		_depthStencil.resizeFunc(_depthStencil, width, height);
+		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView());
 	}
 
 	void DXRenderPass::PushRenderTarget(const GraphicsRenderTarget& renderTarget) {
@@ -138,7 +134,9 @@ namespace flaw {
 			return;
 		}
 		_renderTargets.push_back(renderTarget);
-
+		
+		SetRenderTargetViewsAndViewports();
+		SetDepthStencilView();
 		CreateBlendState();
 	}
 
@@ -149,6 +147,8 @@ namespace flaw {
 		}
 		_renderTargets.pop_back();
 
+		SetRenderTargetViewsAndViewports();
+		SetDepthStencilView();
 		CreateBlendState();
 	}
 
@@ -167,26 +167,24 @@ namespace flaw {
 		CreateBlendState();
 	}
 
-	Ref<Texture2D> DXRenderPass::GetRenderTargetTex(int32_t slot) {
+	Ref<Texture> DXRenderPass::GetRenderTargetTex(int32_t slot) {
 		FASSERT(slot >= 0 && slot < _renderTargets.size(), "Invalid render target slot");
 		return _renderTargets[slot].texture;
 	}
 
-	Ref<Texture2D> DXRenderPass::GetDepthStencilTex() {
+	Ref<Texture> DXRenderPass::GetDepthStencilTex() {
 		return _depthStencil.texture;
 	}
 
 	void DXRenderPass::ClearAllRenderTargets() {
-		for (int32_t i = 0; i < _renderTargets.size(); ++i) {
-			auto dxTexture = std::static_pointer_cast<DXTexture2D>(_renderTargets[i].texture);
-			_context.DeviceContext()->ClearRenderTargetView(dxTexture->GetRenderTargetView().Get(), _renderTargets[i].clearValue.data());
+		for (int32_t i = 0; i < _rtvs.size(); ++i) {
+			_context.DeviceContext()->ClearRenderTargetView(_rtvs[i], _renderTargets[i].clearValue.data());
 		}
 	}
 
 	void DXRenderPass::ClearDepthStencil() {
-		if (_depthStencil.texture) {
-			auto dxTexture = std::static_pointer_cast<DXTexture2D>(_depthStencil.texture);
-			_context.DeviceContext()->ClearDepthStencilView(dxTexture->GetDepthStencilView().Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		if (_dsv) {
+			_context.DeviceContext()->ClearDepthStencilView(_dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		}
 	}
 

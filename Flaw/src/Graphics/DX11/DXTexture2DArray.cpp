@@ -32,6 +32,20 @@ namespace flaw {
 			}
 		}
 
+		if (_bindFlags & BindFlag::RenderTarget) {
+			if (!CreateRenderTargetView(_format)) {
+				Log::Error("CreateRenderTargetView failed");
+				return;
+			}
+		}
+
+		if (_bindFlags & BindFlag::DepthStencil) {
+			if (!CreateDepthStencilView(_format)) {
+				Log::Error("CreateDepthStencilView failed");
+				return;
+			}
+		}
+
 		if (_bindFlags & BindFlag::ShaderResource) {
 			if (!CreateShaderResourceView(_format)) {
 				Log::Error("CreateShaderResourceView failed");
@@ -211,6 +225,36 @@ namespace flaw {
 			if (FAILED(_context.Device()->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf()))) {
 				return false;
 			}
+		}
+
+		return true;
+	}
+
+	bool DXTexture2DArray::CreateRenderTargetView(const PixelFormat format) {
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = ConvertToDXGIFormat(format);
+		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+		rtvDesc.Texture2DArray.ArraySize = _arraySize;
+		rtvDesc.Texture2DArray.FirstArraySlice = 0;
+		rtvDesc.Texture2DArray.MipSlice = 0;
+
+		if (FAILED(_context.Device()->CreateRenderTargetView(_texture.Get(), &rtvDesc, _rtv.GetAddressOf()))) {
+			return false;
+		}
+
+		return true;
+	}
+
+	bool DXTexture2DArray::CreateDepthStencilView(const PixelFormat format) {
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = ConvertToDXGIFormat(format);
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+		dsvDesc.Texture2DArray.ArraySize = _arraySize;
+		dsvDesc.Texture2DArray.FirstArraySlice = 0;
+		dsvDesc.Texture2DArray.MipSlice = 0;
+
+		if (FAILED(_context.Device()->CreateDepthStencilView(_texture.Get(), &dsvDesc, _dsv.GetAddressOf()))) {
+			return false;
 		}
 
 		return true;

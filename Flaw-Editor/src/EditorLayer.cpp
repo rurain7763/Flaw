@@ -504,7 +504,7 @@ namespace flaw {
 
 		if (ImGui::ImageButton(
             "##SceneStateButton",
-            (ImTextureID)dxTexture->GetShaderResourceView().Get(), 
+            (ImTextureID)dxTexture->GetShaderResourceView(), 
             buttonSizeEach))
         {
 			if (_sceneState == SceneState::Edit) {
@@ -526,7 +526,7 @@ namespace flaw {
 			Ref<DXTexture2D> pauseTexture = std::static_pointer_cast<DXTexture2D>(_pauseButtonTex);
 			if (ImGui::ImageButton(
 				"##PauseButton",
-				(ImTextureID)pauseTexture->GetShaderResourceView().Get(),
+				(ImTextureID)pauseTexture->GetShaderResourceView(),
 				buttonSizeEach))
 			{
                 OnScenePause();

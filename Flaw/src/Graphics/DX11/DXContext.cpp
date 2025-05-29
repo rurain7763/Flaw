@@ -197,12 +197,16 @@ namespace flaw {
 			return -1;
 		}
 
-		GraphicsRenderPass::Descriptor mrtDesc = {};
-		mrtDesc.renderTargets.resize(1);
-		mrtDesc.renderTargets[0].texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
-		mrtDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
-		mrtDesc.renderTargets[0].resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
-			current.reset();
+		GraphicsRenderPass::Descriptor mainRenderPass = {};
+		mainRenderPass.renderTargets.resize(1);
+		mainRenderPass.renderTargets[0].texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
+		mainRenderPass.renderTargets[0].viewportX = 0;
+		mainRenderPass.renderTargets[0].viewportY = 0;
+		mainRenderPass.renderTargets[0].viewportWidth = _renderWidth;
+		mainRenderPass.renderTargets[0].viewportHeight = _renderHeight;
+		mainRenderPass.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
+		mainRenderPass.renderTargets[0].resizeFunc = [this](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			current.texture.reset();
 
 			if (FAILED(_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))) {
 				throw std::runtime_error("ResizeBuffers failed");
@@ -213,7 +217,9 @@ namespace flaw {
 				throw std::runtime_error("GetBuffer failed");
 			}
 
-			return CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
+			current.texture = CreateRef<DXTexture2D>(*this, backBuffer, PixelFormat::RGBA8, BindFlag::RenderTarget);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
 		};
 
 		Texture2D::Descriptor descDepth = {};
@@ -223,8 +229,8 @@ namespace flaw {
 		descDepth.usage = UsageFlag::Static;
 		descDepth.bindFlags = BindFlag::DepthStencil;
 
-		mrtDesc.depthStencil.texture = CreateRef<DXTexture2D>(*this, descDepth);
-		mrtDesc.depthStencil.resizeFunc = [this](Ref<Texture2D>& current, int32_t width, int32_t height) {
+		mainRenderPass.depthStencil.texture = CreateRef<DXTexture2D>(*this, descDepth);
+		mainRenderPass.depthStencil.resizeFunc = [this](GraphicsDepthStencil& current, int32_t width, int32_t height) {
 			Texture2D::Descriptor desc = {};
 			desc.format = PixelFormat::D24S8_UINT;
 			desc.width = width;
@@ -232,10 +238,10 @@ namespace flaw {
 			desc.usage = UsageFlag::Static;
 			desc.bindFlags = BindFlag::DepthStencil;
 
-			return CreateTexture2D(desc);
+			current.texture = CreateTexture2D(desc);
 		};
 
-		_mainRenderPass = CreateRef<DXRenderPass>(*this, mrtDesc);
+		_mainRenderPass = CreateRef<DXRenderPass>(*this, mainRenderPass);
 
 		return 0;
 	}

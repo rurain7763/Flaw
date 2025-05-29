@@ -94,7 +94,23 @@ namespace flaw {
 		GraphicsRenderTarget renderTarget = {};
 		renderTarget.blendMode = BlendMode::Disabled;
 		renderTarget.texture = g_graphicsContext->CreateTexture2D(desc);
+		renderTarget.viewportX = 0;
+		renderTarget.viewportY = 0;
+		renderTarget.viewportWidth = width;
+		renderTarget.viewportHeight = height;
 		renderTarget.clearValue = { (float)std::numeric_limits<int32_t>().max(), 0.0f, 0.0f, 0.0f };
+		renderTarget.resizeFunc = [](GraphicsRenderTarget& current, int32_t width, int32_t height) {
+			Texture2D::Descriptor desc = {};
+			desc.width = width;
+			desc.height = height;
+			desc.format = PixelFormat::R32_UINT;
+			desc.usage = UsageFlag::Static;
+			desc.bindFlags = BindFlag::RenderTarget;
+
+			current.texture = Graphics::CreateTexture2D(desc);
+			current.viewportWidth = width;
+			current.viewportHeight = height;
+		};
 
 		mainMrt->PushRenderTarget(renderTarget);
 	}
