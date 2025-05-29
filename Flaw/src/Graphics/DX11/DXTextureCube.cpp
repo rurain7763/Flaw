@@ -31,11 +31,6 @@ namespace flaw {
 	}
 
 	bool DXTextureCube::CreateTexture(const Descriptor& descriptor) {
-		if (!descriptor.data) {
-			Log::Error("DXTextureCube::CreateTexture: data is null");
-			return false;
-		}
-
 		uint32_t faceWidth = descriptor.width;
 		uint32_t faceHeight = descriptor.height;
 

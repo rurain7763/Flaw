@@ -244,6 +244,7 @@ namespace flaw {
 		_materialCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
 		_directionalLightUniformCB = Graphics::CreateConstantBuffer(sizeof(DirectionalLightUniforms));
 		_spotLightUniformCB = Graphics::CreateConstantBuffer(sizeof(SpotLightUniforms));
+		_pointLightUniformCB = Graphics::CreateConstantBuffer(sizeof(PointLightUniforms));
 	}
 
 	void RenderSystem::CreateStructuredBuffers() {
@@ -254,13 +255,6 @@ namespace flaw {
 		sbDesc.bindFlags = BindFlag::ShaderResource;
 		sbDesc.accessFlags = AccessFlag::Write;
 		_batchedTransformSB = Graphics::CreateStructuredBuffer(sbDesc);
-
-		// Create a structured buffer for point lights
-		sbDesc.elmSize = sizeof(PointLight);
-		sbDesc.count = MaxPointLights;
-		sbDesc.accessFlags = AccessFlag::Write;
-		sbDesc.bindFlags = BindFlag::ShaderResource;
-		_pointLightSB = Graphics::CreateStructuredBuffer(sbDesc);
 
 		// Create a structured buffer for decals
 		sbDesc.elmSize = sizeof(Decal);
@@ -337,7 +331,6 @@ namespace flaw {
 		auto& shadowSystem = _scene.GetShadowSystem();
 
 		_lightConstants = {};
-		_pointLights.clear();
 
 		for (auto&& [entity, transform, skyLightComp] : enttRegistry.view<TransformComponent, SkyLightComponent>().each()) {
 			// Skylight's 하나만 존재해야 함
@@ -346,16 +339,6 @@ namespace flaw {
 			break;
 		}
 
-		for (auto&& [entity, transform, pointLightComp] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
-			_pointLights.emplace_back(PointLight{
-				pointLightComp.color,
-				pointLightComp.intensity,
-				transform.GetWorldPosition(),
-				pointLightComp.range
-			});
-		}
-
-		_lightConstants.numPointLights = std::min((uint32_t)_pointLights.size(), MaxPointLights);
 		_lightCB->Update(&_lightConstants, sizeof(LightConstants));
 	}
 
@@ -737,17 +720,15 @@ namespace flaw {
 			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap((uint32_t)entity);
 			
 			DirectionalLightUniforms uniforms = {};
-			uniforms.view = shadowMap.uniforms.view;
-			uniforms.projection = shadowMap.uniforms.projection;
+			uniforms.view = shadowMap._lightVPMatrix.view;
+			uniforms.projection = shadowMap._lightVPMatrix.projection;
 			uniforms.lightColor = vec4(directionalLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightIntensity = directionalLightComp.intensity;
-
 			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
 			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 4);
 			cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
-
 			cmdQueue.Execute();
 		}
 
@@ -760,21 +741,32 @@ namespace flaw {
 		pipeline->SetCullMode(CullMode::Front);
 		pipeline->SetDepthTest(DepthTest::Disabled, false);
 
-		_pointLightSB->Update(_pointLights.data(), sizeof(PointLight) * _lightConstants.numPointLights);
-
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
+		cmdQueue.SetConstantBuffer(_pointLightUniformCB, 3);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 2);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 3);
-		cmdQueue.SetStructuredBuffer(_pointLightSB, 5);
 		cmdQueue.SetVertexBuffer(sphereMesh->GetGPUVertexBuffer());
-		cmdQueue.DrawIndexedInstanced(sphereMesh->GetGPUIndexBuffer(), sphereMesh->GetGPUIndexBuffer()->IndexCount(), _lightConstants.numPointLights);
-
 		cmdQueue.Execute();
+
+		for (auto&& [entity, transform, pointLightComp] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
+			auto& shadowMap = shadowSys.GetPointLightShadowMap((uint32_t)entity);
+
+			PointLightUniforms uniforms = {};
+			uniforms.lightColor = vec4(pointLightComp.color, 1.0);
+			uniforms.lightPosition = vec4(transform.GetWorldPosition(), 1.0f);
+			uniforms.lightIntensity = pointLightComp.intensity;
+			uniforms.lightRange = pointLightComp.range;
+			_pointLightUniformCB->Update(&uniforms, sizeof(PointLightUniforms));
+
+			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 4);
+			cmdQueue.DrawIndexed(sphereMesh->GetGPUIndexBuffer(), sphereMesh->GetGPUIndexBuffer()->IndexCount());
+			cmdQueue.Execute();
+		}
 
 		// render spot light
 		Ref<Mesh> coneMesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cone_mesh")->GetMesh();
@@ -801,8 +793,8 @@ namespace flaw {
 			auto& shadowmap = shadowSys.GetSpotLightShadowMap((uint32_t)entity);
 
 			SpotLightUniforms uniforms = {};
-			uniforms.view = shadowmap.uniforms.view;
-			uniforms.projection = shadowmap.uniforms.projection;
+			uniforms.view = shadowmap._lightVPMatrix.view;
+			uniforms.projection = shadowmap._lightVPMatrix.projection;
 			uniforms.lightColor = vec4(spotLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightPosition = vec4(transform.GetWorldPosition(), 1.0f);
@@ -810,7 +802,6 @@ namespace flaw {
 			uniforms.innerAngle = spotLightComp.inner;
 			uniforms.outerAngle = spotLightComp.outer;
 			uniforms.lightRange = spotLightComp.range;
-			
 			_spotLightUniformCB->Update(&uniforms, sizeof(SpotLightUniforms));
 
 			cmdQueue.SetTexture(shadowmap.renderPass->GetRenderTargetTex(0), 4);

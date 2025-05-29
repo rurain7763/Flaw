@@ -55,6 +55,19 @@ namespace flaw {
 		inline vec3 GetWorldUp() {
 			return normalize(cross(GetWorldFront(), GetWorldRight()));
 		}
+
+		inline void GetWorldAxis(vec3& front, vec3& right, vec3& up) {
+			front = GetWorldFront();
+
+			if (abs(front.y) < 1.0 - glm::epsilon<float>()) {
+				right = normalize(cross(Up, front));
+			}
+			else {
+				right = normalize(cross(Right, front));
+			}
+
+			up = normalize(cross(front, right));
+		}
 	};
 
 	struct SpriteRendererComponent {

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "DXConstantBuffer.h"
-
 #include "DXContext.h"
 #include "Log/Log.h"
 
@@ -12,7 +11,7 @@ namespace flaw {
 	}
 
 	void DXConstantBuffer::Initialize(uint32_t size) {
-		assert(size % 16 == 0 && size <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16, "Invalid constant buffer size");
+		assert(size % 16 == 0 && size <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16);
 
 		_size = size;
 		

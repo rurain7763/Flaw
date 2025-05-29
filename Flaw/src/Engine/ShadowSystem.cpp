@@ -10,7 +10,7 @@ namespace flaw {
 	ShadowSystem::ShadowSystem(Scene& scene)
 		: _scene(scene)
 	{
-		Ref<GraphicsShader> shadowMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/shadowmap_skeletal.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		Ref<GraphicsShader> shadowMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/shadowmap_skeletal.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
 		shadowMapShader->AddInputElement<float>("POSITION", 3);
 		shadowMapShader->AddInputElement<float>("TEXCOORD", 2);
 		shadowMapShader->AddInputElement<float>("TANGENT", 3);
@@ -23,11 +23,11 @@ namespace flaw {
 		_shadowMapSkeletalMaterial = CreateRef<Material>();
 		_shadowMapSkeletalMaterial->shader = shadowMapShader;
 		_shadowMapSkeletalMaterial->renderMode = RenderMode::Opaque;
-		_shadowMapSkeletalMaterial->cullMode = CullMode::Back;
+		_shadowMapSkeletalMaterial->cullMode = CullMode::None;
 		_shadowMapSkeletalMaterial->depthTest = DepthTest::Less;
 		_shadowMapSkeletalMaterial->depthWrite = true;
 
-		shadowMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/shadowmap.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		shadowMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/shadowmap.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
 		shadowMapShader->AddInputElement<float>("POSITION", 3);
 		shadowMapShader->AddInputElement<float>("TEXCOORD", 2);
 		shadowMapShader->AddInputElement<float>("TANGENT", 3);
@@ -40,14 +40,22 @@ namespace flaw {
 		_shadowMapStaticMaterial = CreateRef<Material>();
 		_shadowMapStaticMaterial->shader = shadowMapShader;
 		_shadowMapStaticMaterial->renderMode = RenderMode::Opaque;
-		_shadowMapStaticMaterial->cullMode = CullMode::Back;
+		_shadowMapStaticMaterial->cullMode = CullMode::None;
 		_shadowMapStaticMaterial->depthTest = DepthTest::Less;
 		_shadowMapStaticMaterial->depthWrite = true;
 
 		_shadowUniformsCB = Graphics::CreateConstantBuffer(sizeof(ShadowUniforms));
+
+		StructuredBuffer::Descriptor sbDesc = {};
+		sbDesc.elmSize = sizeof(LightVPMatrix);
+		sbDesc.count = MaxLightVPCount;
+		sbDesc.bindFlags = BindFlag::ShaderResource;
+		sbDesc.accessFlags = AccessFlag::Write;
+
+		_lightVPMatricesSB = Graphics::CreateStructuredBuffer(sbDesc);
 	}
 
-	Ref<GraphicsRenderPass> ShadowSystem::CreateShadowMapRenderPass() {
+	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass() {
 		Texture2D::Descriptor texDesc = {};
 		texDesc.width = ShadowMapSize;
 		texDesc.height = ShadowMapSize;
@@ -72,21 +80,77 @@ namespace flaw {
 		return Graphics::CreateRenderPass(shadowMapDesc);
 	}
 
+	Ref<GraphicsRenderPass> ShadowSystem::CreateSpotLightShadowMapRenderPass() {
+		Texture2D::Descriptor texDesc = {};
+		texDesc.width = ShadowMapSize;
+		texDesc.height = ShadowMapSize;
+		texDesc.usage = UsageFlag::Static;
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::R32F;
+
+		GraphicsRenderPass::Descriptor shadowMapDesc = {};
+		shadowMapDesc.renderTargets.resize(1);
+		shadowMapDesc.renderTargets[0].blendMode = BlendMode::Disabled;
+		shadowMapDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
+		shadowMapDesc.renderTargets[0].viewportX = 0;
+		shadowMapDesc.renderTargets[0].viewportY = 0;
+		shadowMapDesc.renderTargets[0].viewportWidth = ShadowMapSize;
+		shadowMapDesc.renderTargets[0].viewportHeight = ShadowMapSize;
+		shadowMapDesc.renderTargets[0].clearValue = { 1.0f, 1.0f, 1.0f, 0.0f };
+
+		texDesc.bindFlags = BindFlag::DepthStencil;
+		texDesc.format = PixelFormat::D24S8_UINT;
+		shadowMapDesc.depthStencil.texture = Graphics::CreateTexture2D(texDesc);
+
+		return Graphics::CreateRenderPass(shadowMapDesc);
+	}
+
+	Ref<GraphicsRenderPass> ShadowSystem::CreatePointLightShadowMapRenderPass() {
+		TextureCube::Descriptor texDesc = {};
+		texDesc.width = ShadowMapSize;
+		texDesc.height = ShadowMapSize;
+		texDesc.usage = UsageFlag::Static;
+		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
+		texDesc.format = PixelFormat::R32F;
+
+		GraphicsRenderPass::Descriptor shadowMapDesc = {};
+		shadowMapDesc.renderTargets.resize(1);
+		shadowMapDesc.renderTargets[0].blendMode = BlendMode::Disabled;
+		shadowMapDesc.renderTargets[0].texture = Graphics::CreateTextureCube(texDesc);
+		shadowMapDesc.renderTargets[0].viewportX = 0;
+		shadowMapDesc.renderTargets[0].viewportY = 0;
+		shadowMapDesc.renderTargets[0].viewportWidth = ShadowMapSize;
+		shadowMapDesc.renderTargets[0].viewportHeight = ShadowMapSize;
+		shadowMapDesc.renderTargets[0].clearValue = { 1.0f, 1.0f, 1.0f, 0.0f };
+
+		texDesc.bindFlags = BindFlag::DepthStencil;
+		texDesc.format = PixelFormat::D24S8_UINT;
+		shadowMapDesc.depthStencil.texture = Graphics::CreateTextureCube(texDesc);
+
+		return Graphics::CreateRenderPass(shadowMapDesc);
+	}
+
 	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		if (registry.any_of<DirectionalLightComponent>(entity)) {
 			auto& shadowMap = _directionalShadowMaps[(uint32_t)entity];
-			shadowMap.renderPass = CreateShadowMapRenderPass();
+			shadowMap.renderPass = CreateDirectionalLightShadowMapRenderPass();
 		}
 
 		if (registry.any_of<SpotLightComponent>(entity)) {
 			auto& shadowMap = _spotLightShadowMaps[(uint32_t)entity];
-			shadowMap.renderPass = CreateShadowMapRenderPass();
+			shadowMap.renderPass = CreateSpotLightShadowMapRenderPass();
+		}
+
+		if (registry.any_of<PointLightComponent>(entity)) {
+			auto& shadowMap = _pointLightShadowMaps[(uint32_t)entity];
+			shadowMap.renderPass = CreatePointLightShadowMapRenderPass();
 		}
 	}
 
 	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
 		_directionalShadowMaps.erase((uint32_t)entity);
 		_spotLightShadowMaps.erase((uint32_t)entity);
+		_pointLightShadowMaps.erase((uint32_t)entity);
 	}
 
 	void ShadowSystem::Update() {
@@ -99,8 +163,8 @@ namespace flaw {
 			const float orthoHalfSize = (ShadowMapSize / 100.f) / 2.0f;
 			const vec3 origin = vec3(0.0f, 0.0f, 0.0f);
 
-			shadowMap.uniforms.view = LookAt(origin, transComp.GetWorldPosition() + transComp.GetWorldFront(), Up);
-			shadowMap.uniforms.projection = Orthographic(-orthoHalfSize, orthoHalfSize, -orthoHalfSize, orthoHalfSize, 0.1f, 10000.0f);
+			shadowMap._lightVPMatrix.view = LookAt(origin, transComp.GetWorldPosition() + transComp.GetWorldFront(), Up);
+			shadowMap._lightVPMatrix.projection = Orthographic(-orthoHalfSize, orthoHalfSize, -orthoHalfSize, orthoHalfSize, 0.1f, 500.0f);
 
 			shadowMap.renderPass->ClearAllRenderTargets();
 			shadowMap.renderPass->ClearDepthStencil();
@@ -109,8 +173,28 @@ namespace flaw {
 		for (auto&& [entity, transform, lightComp] : registry.view<TransformComponent, SpotLightComponent>().each()) {
 			auto& shadowMap = _spotLightShadowMaps[(uint32_t)entity];
 
-			shadowMap.uniforms.view = LookAt(transform.GetWorldPosition(), transform.GetWorldPosition() + transform.GetWorldFront(), Up);
-			shadowMap.uniforms.projection = Perspective(lightComp.outer * 2.0, 1.0f, 0.1f, 10000.0f);
+			shadowMap._lightVPMatrix.view = LookAt(transform.GetWorldPosition(), transform.GetWorldPosition() + transform.GetWorldFront(), Up);
+			shadowMap._lightVPMatrix.projection = Perspective(lightComp.outer * 2.0, 1.0f, 0.1f, lightComp.range);
+
+			shadowMap.renderPass->ClearAllRenderTargets();
+			shadowMap.renderPass->ClearDepthStencil();
+		}
+
+		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, PointLightComponent>().each()) {
+			auto& shadowMap = _pointLightShadowMaps[(uint32_t)entity];
+
+			const vec3 faceDirections[6] = {
+				Right, -Right, Up, -Up, Forward, -Forward
+			};
+
+			const vec3 upDirections[6] = {
+				Up, Up, -Forward, Forward, Up, Up
+			};
+
+			for (int i = 0; i < 6; ++i) {
+				shadowMap._lightVPMatrices[i].view = LookAt(transComp.GetWorldPosition(), transComp.GetWorldPosition() + faceDirections[i], upDirections[i]);
+				shadowMap._lightVPMatrices[i].projection = Perspective(glm::half_pi<float>(), 1.0f, 0.1f, lightComp.range);
+			}
 
 			shadowMap.renderPass->ClearAllRenderTargets();
 			shadowMap.renderPass->ClearDepthStencil();
@@ -160,19 +244,25 @@ namespace flaw {
 
 			for (const auto& [entt, shadowMap] : _directionalShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, shadowMap.uniforms, batchedTransformSB);
+				DrawRenderEntry(entry, batchedTransformSB, &shadowMap._lightVPMatrix, 1);
 				shadowMap.renderPass->Unbind();
 			}
 
 			for (const auto& [entt, shadowMap] : _spotLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, shadowMap.uniforms, batchedTransformSB);
+				DrawRenderEntry(entry, batchedTransformSB, &shadowMap._lightVPMatrix, 1);
+				shadowMap.renderPass->Unbind();
+			}
+
+			for (const auto& [entt, shadowMap] : _pointLightShadowMaps) {
+				shadowMap.renderPass->Bind(false, false);
+				DrawRenderEntry(entry, batchedTransformSB, shadowMap._lightVPMatrices.data(), 6);
 				shadowMap.renderPass->Unbind();
 			}
 		}
 	}
 
-	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, const ShadowUniforms& shadowUniforms, Ref<StructuredBuffer>& batchedTransformSB) {
+	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 		
@@ -181,12 +271,16 @@ namespace flaw {
 		pipeline->SetCullMode(entry.material->cullMode);
 		pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
 
-		cmdQueue.SetPipeline(pipeline);
+		ShadowUniforms shadowUniforms = {};
+		shadowUniforms.lightVPMatrixCount = lightVPMatrixCount;
 
 		_shadowUniformsCB->Update(&shadowUniforms, sizeof(ShadowUniforms));
-		cmdQueue.SetConstantBuffer(_shadowUniformsCB, 0);
+		_lightVPMatricesSB->Update(lightVPMatrices, lightVPMatrixCount * sizeof(LightVPMatrix));
 
+		cmdQueue.SetPipeline(pipeline);
+		cmdQueue.SetConstantBuffer(_shadowUniformsCB, 0);
 		cmdQueue.SetStructuredBuffer(batchedTransformSB, 0);
+		cmdQueue.SetStructuredBuffer(_lightVPMatricesSB, 1);
 
 		cmdQueue.Execute();
 
@@ -210,7 +304,7 @@ namespace flaw {
 			batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
 
 			cmdQueue.SetPrimitiveTopology(meshSegment.topology);
-			cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);
+			cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 2);
 			cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 			cmdQueue.DrawIndexedInstanced(mesh->GetGPUIndexBuffer(), meshSegment.indexCount, obj.instanceCount, meshSegment.indexStart, meshSegment.vertexStart);
 			cmdQueue.Execute();

@@ -94,9 +94,6 @@ namespace flaw {
 	struct LightConstants {
 		vec3 ambientColor;
 		float ambientIntensity;
-
-		uint32_t numPointLights;
-		uint32_t padding[3];
 	};
 
 	struct MaterialConstants {
