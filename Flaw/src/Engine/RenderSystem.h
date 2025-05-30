@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Graphics.h"
 #include "RenderQueue.h"
+#include "Camera.h"
 
 #include <map>
 #include <vector>
@@ -12,8 +13,10 @@ namespace flaw {
 
 	struct CameraRenderStage {
 		vec3 cameraPosition;
-		mat4 view;
-		mat4 projection;
+		mat4 viewMatrix;
+		mat4 projectionMatrix;
+		Frustum frustum;
+
 		RenderQueue renderQueue;
 	};
 
@@ -22,7 +25,7 @@ namespace flaw {
 		RenderSystem(Scene& scene);
 
 		void Update();
-		void Update(Camera& camera);
+		void Update(Ref<Camera> camera);
 
 		void Render();
 
@@ -31,9 +34,11 @@ namespace flaw {
 		void CreateConstantBuffers();
 		void CreateStructuredBuffers();
 
+		void UpdateSystems();
+
 		void GatherLights();
 		void GatherDecals();
-		void GatherCameraStages(std::map<uint32_t, Camera>& cameras);
+		void GatherRenderableObjects();
 
 		void UpdateMateraialConstants(GraphicsCommandQueue& cmdQueue, const Ref<Material>& material);
 
@@ -73,7 +78,7 @@ namespace flaw {
 		Ref<GraphicsRenderPass> _decalPass;
 		Ref<GraphicsRenderPass> _lightingPass;
 
-		std::vector<CameraRenderStage> _renderStages;
+		std::map<uint32_t, CameraRenderStage> _renderStages;
 
 		Ref<ConstantBuffer> _vpCB;
 		Ref<ConstantBuffer> _globalCB;

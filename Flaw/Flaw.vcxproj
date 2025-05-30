@@ -103,6 +103,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\AnimationSystem.h" />
+    <ClInclude Include="src\Engine\Camera.h" />
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\Debug\Instrumentor.h" />
@@ -215,6 +216,7 @@
     <ClCompile Include="src\Engine\ShadowSystem.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
+    <ClCompile Include="src\Engine\Camera.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />

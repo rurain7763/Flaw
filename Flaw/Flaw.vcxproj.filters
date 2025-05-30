@@ -317,6 +317,7 @@
     <ClInclude Include="src\Engine\AnimationSystem.h" />
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\ThreadPool.h" />
+    <ClInclude Include="src\Engine\Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -476,5 +477,6 @@
     <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
     <ClCompile Include="src\Utils\ThreadPool.cpp" />
+    <ClCompile Include="src\Engine\Camera.cpp" />
   </ItemGroup>
 </Project>

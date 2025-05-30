@@ -11,20 +11,15 @@ namespace flaw {
         void OnUpdateOrthographic(const vec2& moveDelta);
         void OnUpdate();
 
-		float GetFov() const { return _fov; }
+		Ref<Camera> GetCurrentCamera() const;
 
-		void SetAspectRatio(float aspectRatio) { this->_aspectRatio = aspectRatio; }
-		float GetAspectRatio() const { return _aspectRatio; }
+		void SetAspectRatio(float aspectRatio);
 
-		float GetNearClip() const { return _nearClip; }
-		float GetFarClip() const { return _farClip; }
+		mat4 GetViewMatrix() const;
+		mat4 GetProjectionMatrix() const;
 
 		const vec3& GetPosition() const { return _position; }
 		vec3 GetFront() const { return QRotate(_rotation, Forward); }
-
-		mat4 GetWorldMatrix() const;
-		mat4 GetViewMatrix() const;
-		mat4 GetProjectionMatrix() const;
 
 		bool IsMoving() const { return _moving; }
 		bool IsPerspective() const { return _perspective; }
@@ -32,17 +27,12 @@ namespace flaw {
     private:
         bool _perspective;
 
-		// perspective
-		float _fov;
+		Ref<PerspectiveCamera> _perspectiveCamera;
+		Ref<OrthographicCamera> _orthographicCamera;
 
 		// orthographic
 		float _zoomRate;
-		float _orthoSize;
 		float _zoomSpeed;
-
-		float _aspectRatio;
-		float _nearClip;
-		float _farClip;
 
 		vec3 _position;
 		vec3 _rotation;

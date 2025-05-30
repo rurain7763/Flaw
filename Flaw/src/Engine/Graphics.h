@@ -108,65 +108,6 @@ namespace flaw {
 		vec4 vec4Constants[4];
 	};
 
-	struct Camera {
-		bool isPerspective;
-		vec3 position;
-		mat4 view;
-		mat4 projection;
-		Frustum frustrum;
-
-		bool TestInFrustum(const vec3& boundingBoxMin, const vec3& boundingBoxMax, const mat4& modelMatrix) const {
-			// 8 corners of the AABB
-			vec3 corners[8] = {
-				{boundingBoxMin.x, boundingBoxMin.y, boundingBoxMin.z},
-				{boundingBoxMax.x, boundingBoxMin.y, boundingBoxMin.z},
-				{boundingBoxMax.x, boundingBoxMax.y, boundingBoxMin.z},
-				{boundingBoxMin.x, boundingBoxMax.y, boundingBoxMin.z},
-				{boundingBoxMin.x, boundingBoxMin.y, boundingBoxMax.z},
-				{boundingBoxMax.x, boundingBoxMin.y, boundingBoxMax.z},
-				{boundingBoxMax.x, boundingBoxMax.y, boundingBoxMax.z},
-				{boundingBoxMin.x, boundingBoxMax.y, boundingBoxMax.z}
-			};
-
-			// Transform all corners
-			std::vector<vec3> transformedCorners(8);
-			for (int i = 0; i < 8; ++i) {
-				transformedCorners[i] = modelMatrix * vec4(corners[i], 1.0f);
-			}
-
-			// Frustum test: if all 8 points are outside any one plane, it's outside
-			for (const auto& plane : frustrum.planes) {
-				int outsideCount = 0;
-				for (const auto& corner : transformedCorners) {
-					if (plane.Distance(corner) > 0.0f) {
-						++outsideCount;
-					}
-				}
-				if (outsideCount == 8) {
-					return false; // Culled
-				}
-			}
-
-			return true; // At least one point is inside all planes
-		}
-
-		bool TestInFrustum(const vec3& boundingSphereCenter, float boundingSphereRadius, const mat4& modelMatrix) const {
-			float maxScale = glm::compMax(vec3(length2(modelMatrix[0]), length2(modelMatrix[1]), length2(modelMatrix[2])));
-			maxScale = sqrt(maxScale);
-
-			const float scaledRadius = boundingSphereRadius * maxScale;
-			const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
-
-			for (const auto& plane : frustrum.planes) {
-				if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
-					return false;
-				}
-			}
-
-			return true;
-		}
-	};
-
 	struct SkyLight {
 		vec3 color = vec3(0.0f);
 		float intensity = 0.0f;

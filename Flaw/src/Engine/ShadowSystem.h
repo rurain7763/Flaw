@@ -5,9 +5,11 @@
 #include "Graphics.h"
 #include "Utils/UUID.h"
 #include "RenderQueue.h"
+#include "Camera.h"
 
 namespace flaw {
 	class Scene;
+	struct CameraRenderStage;
 
 	struct ShadowUniforms {
 		uint32_t lightVPMatrixCount = 0;
@@ -21,6 +23,7 @@ namespace flaw {
 	};
 
 	struct DirectionalLightShadowMap {
+		vec3 lightDirection;
 		LightVPMatrix _lightVPMatrix;
 		Ref<GraphicsRenderPass> renderPass;
 	};
@@ -43,7 +46,7 @@ namespace flaw {
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
 		void Update();
-		void Render(Ref<StructuredBuffer>& batchedTransformSB);
+		void Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB);
 
 		DirectionalLightShadowMap& GetDirectionalLightShadowMap(const uint32_t& id) { return _directionalShadowMaps[id]; }
 		SpotLightShadowMap& GetSpotLightShadowMap(const uint32_t& id) { return _spotLightShadowMaps[id]; }
@@ -53,7 +56,9 @@ namespace flaw {
 		Ref<GraphicsRenderPass> CreateDirectionalLightShadowMapRenderPass();
 		Ref<GraphicsRenderPass> CreateSpotLightShadowMapRenderPass();
 		Ref<GraphicsRenderPass> CreatePointLightShadowMapRenderPass();
-		
+
+		void CalcTightDirectionalLightMatrices(const Frustum& frustum, const vec3& lightDirection, mat4& outView, mat4& outProjection);
+
 		void DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount);
 
 	private:

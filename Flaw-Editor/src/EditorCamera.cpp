@@ -3,12 +3,8 @@
 namespace flaw {
 	EditorCamera::EditorCamera() 
 		: _perspective(true)
-		, _fov(glm::radians(45.0f))
 		, _zoomRate(1.0f)
-		, _orthoSize(1.0f)
 		, _zoomSpeed(0.1f)
-		, _nearClip(0.1f)
-		, _farClip(1000.0f)
 		, _position(0.0f, 0.0f, -5.0f)
 		, _rotation(0.0f)
     {
@@ -17,12 +13,23 @@ namespace flaw {
         int32_t width, height;
         Graphics::GetSize(width, height);
 
-        _aspectRatio = (float)width / (float)height;
+		const float nearClip = 0.1f;
+		const float farClip = 100.0f;
+		const float aspectRatio = (float)width / (float)height;
+
+		const float fovY = glm::radians(45.0f);
+		_perspectiveCamera = CreateRef<PerspectiveCamera>(_position, Forward, fovY, aspectRatio, nearClip, farClip);
+
+        const float orthoHeight = 1.0f;
+		const float orthoWidth = orthoHeight * aspectRatio;
+		_orthographicCamera = CreateRef<OrthographicCamera>(_position, Forward, -orthoWidth, orthoWidth, -orthoHeight, orthoHeight, nearClip, farClip);
 	}
 
     void EditorCamera::OnUpdatePerspective(const vec2& moveDelta) {
 		// TODO: 이동 속도를 조절할 수 있도록 해야함
         const float speed = 10.0f;
+
+        bool dirty = false;
 
         if (length2(moveDelta) > 0.0f) {
             vec3 forward = QRotate(_rotation, Forward);
@@ -31,6 +38,8 @@ namespace flaw {
 
             _position += vec3(right.x, right.y, right.z) * normalized.x * speed * Time::DeltaTime();
             _position += vec3(forward.x, forward.y, forward.z) * normalized.y * speed * Time::DeltaTime();
+
+            dirty = true;
         }
 
         vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
@@ -43,9 +52,15 @@ namespace flaw {
             _rotation.x += mouseDelta.y * glm::pi<float>() * Time::DeltaTime();
 
             glm::clamp(_rotation.x, -glm::half_pi<float>(), glm::half_pi<float>());
+
+			dirty = true;
         }
 
         _prevMousePos = mousePos;
+
+        if (dirty) {
+			_perspectiveCamera->UpdateViewMatrix(_position, QRotate(_rotation, Forward));
+        }
     }
 
     void EditorCamera::OnUpdateOrthographic(const vec2& moveDelta) {
@@ -98,22 +113,48 @@ namespace flaw {
         _moving = !EpsilonEqual(glm::length2(delta), 0);
     };
 
-    mat4 EditorCamera::GetWorldMatrix() const {
-        return ModelMatrix(_position, _rotation, vec3(1.0f));
-    }
+	Ref<Camera> EditorCamera::GetCurrentCamera() const {
+		if (_perspective) {
+			return _perspectiveCamera;
+		}
+		else {
+			return _orthographicCamera;
+		}
+	}
 
-    mat4 EditorCamera::GetViewMatrix() const {
-        return ViewMatrix(_position, _rotation);
-    }
+	void EditorCamera::SetAspectRatio(float aspectRatio) {
+		if (_perspective) {
+			const vec2 fov = _perspectiveCamera->GetFov();
+			const vec2 nearFarClip = _perspectiveCamera->GetNearFarClip();
+
+			_perspectiveCamera->UpdateProjectionMatrix(fov.y, aspectRatio, nearFarClip.x, nearFarClip.y);
+		}
+		else {
+			const vec4 size = _orthographicCamera->GetSize();
+			const vec2 nearFarClip = _orthographicCamera->GetNearFarClip();
+
+			float halfHeight = (size.w - size.y) * 0.5f;
+            float halfWidth = halfHeight * aspectRatio;
+
+			_orthographicCamera->UpdateProjectionMatrix(-size.x, size.x, -halfHeight, halfHeight, nearFarClip.x, nearFarClip.y);
+		}
+	}
+
+	mat4 EditorCamera::GetViewMatrix() const {
+		if (_perspective) {
+			return _perspectiveCamera->GetViewMatrix();
+		}
+		else {
+			return _orthographicCamera->GetViewMatrix();
+		}
+	}
 
 	mat4 EditorCamera::GetProjectionMatrix() const {
 		if (_perspective) {
-			return Perspective(_fov, _aspectRatio, _nearClip, _farClip);
+			return _perspectiveCamera->GetProjectionMatrix();
 		}
 		else {
-            const float height = _orthoSize * _zoomRate;
-            const float width = height * _aspectRatio;
-			return Orthographic(-width, width, -height, height, _nearClip, _farClip);
+			return _orthographicCamera->GetProjectionMatrix();
 		}
 	}
 }

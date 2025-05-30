@@ -5,6 +5,8 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "AnimationSystem.h"
+#include "RenderSystem.h"
+#include "Graphics/GraphicsFunc.h"
 
 namespace flaw {
 	ShadowSystem::ShadowSystem(Scene& scene)
@@ -23,7 +25,7 @@ namespace flaw {
 		_shadowMapSkeletalMaterial = CreateRef<Material>();
 		_shadowMapSkeletalMaterial->shader = shadowMapShader;
 		_shadowMapSkeletalMaterial->renderMode = RenderMode::Opaque;
-		_shadowMapSkeletalMaterial->cullMode = CullMode::None;
+		_shadowMapSkeletalMaterial->cullMode = CullMode::Front;
 		_shadowMapSkeletalMaterial->depthTest = DepthTest::Less;
 		_shadowMapSkeletalMaterial->depthWrite = true;
 
@@ -40,7 +42,7 @@ namespace flaw {
 		_shadowMapStaticMaterial = CreateRef<Material>();
 		_shadowMapStaticMaterial->shader = shadowMapShader;
 		_shadowMapStaticMaterial->renderMode = RenderMode::Opaque;
-		_shadowMapStaticMaterial->cullMode = CullMode::None;
+		_shadowMapStaticMaterial->cullMode = CullMode::Front;
 		_shadowMapStaticMaterial->depthTest = DepthTest::Less;
 		_shadowMapStaticMaterial->depthWrite = true;
 
@@ -159,12 +161,8 @@ namespace flaw {
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = _directionalShadowMaps[(uint32_t)entity];
 
-			// TODO: 현재는 하드코딩된 값으로 테스트
-			const float orthoHalfSize = (ShadowMapSize / 100.f) / 2.0f;
-			const vec3 origin = vec3(0.0f, 0.0f, 0.0f);
-
-			shadowMap._lightVPMatrix.view = LookAt(origin, transComp.GetWorldPosition() + transComp.GetWorldFront(), Up);
-			shadowMap._lightVPMatrix.projection = Orthographic(-orthoHalfSize, orthoHalfSize, -orthoHalfSize, orthoHalfSize, 0.1f, 500.0f);
+			// not calculating here, because we need to calculate tight bounding box for directional light
+			shadowMap.lightDirection = transComp.GetWorldFront();
 
 			shadowMap.renderPass->ClearAllRenderTargets();
 			shadowMap.renderPass->ClearDepthStencil();
@@ -237,13 +235,56 @@ namespace flaw {
 		_shadowMapRenderQueue.Close();
 	}
 
-	void ShadowSystem::Render(Ref<StructuredBuffer>& batchedTransformSB) {
+	void ShadowSystem::CalcTightDirectionalLightMatrices(const Frustum& frustum, const vec3& lightDirection, mat4& outView, mat4& outProjection) {
+		std::array<vec3, 8> worldSpaceCorners = frustum.GetCorners();
+
+		mat4 lightViewMatrix = LookAt(vec3(0.0), lightDirection, Up);
+
+		// # calculate corners coordinates in light space and get min, max coord elements
+		vec3 minCornerInLightView = vec3(std::numeric_limits<float>::max());
+		vec3 maxCornerInLightView = vec3(std::numeric_limits<float>::lowest());
+		for (int32_t i = 0; i < worldSpaceCorners.size(); ++i) {
+			const vec3& worldSpaceCorner = worldSpaceCorners[i];
+			const vec3 lightSpaceCorner = lightViewMatrix * vec4(worldSpaceCorner, 1.0f);
+
+			minCornerInLightView = glm::min(minCornerInLightView, lightSpaceCorner);
+			maxCornerInLightView = glm::max(maxCornerInLightView, lightSpaceCorner);
+		}
+
+		// # get center position of aabb for light position
+		vec3 lightPosition = (minCornerInLightView + maxCornerInLightView) * 0.5f;
+		lightPosition.z = minCornerInLightView.z;
+
+		// # translate light position to world space
+		mat4 invLightViewMatrix = glm::inverse(lightViewMatrix);
+		lightPosition = invLightViewMatrix * vec4(lightPosition, 1.0f);
+
+		// # calculate view matrix
+		outView = LookAt(lightPosition, lightPosition + lightDirection, Up);
+
+		// # get aabb coordinates in new light view space
+		minCornerInLightView = vec3(std::numeric_limits<float>::max());
+		maxCornerInLightView = vec3(std::numeric_limits<float>::lowest());
+		for (int32_t i = 0; i < worldSpaceCorners.size(); ++i) {
+			const vec3& worldSpaceCorner = worldSpaceCorners[i];
+			vec3 lightSpaceCorner = outView * vec4(worldSpaceCorner, 1.0f);
+
+			minCornerInLightView = glm::min(minCornerInLightView, lightSpaceCorner);
+			maxCornerInLightView = glm::max(maxCornerInLightView, lightSpaceCorner);
+		}
+
+		// # calculate projection matrix
+		outProjection = Orthographic(minCornerInLightView.x, maxCornerInLightView.x, minCornerInLightView.y, maxCornerInLightView.y, minCornerInLightView.z, maxCornerInLightView.z);
+	}
+
+	void ShadowSystem::Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB) {
 		while (!_shadowMapRenderQueue.Empty()) {
 			auto& entry = _shadowMapRenderQueue.Front();
 			_shadowMapRenderQueue.Pop();
 
-			for (const auto& [entt, shadowMap] : _directionalShadowMaps) {
+			for (auto& [entt, shadowMap] : _directionalShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
+				CalcTightDirectionalLightMatrices(stage.frustum, shadowMap.lightDirection, shadowMap._lightVPMatrix.view, shadowMap._lightVPMatrix.projection);
 				DrawRenderEntry(entry, batchedTransformSB, &shadowMap._lightVPMatrix, 1);
 				shadowMap.renderPass->Unbind();
 			}

@@ -6,6 +6,7 @@
 #include "Image/Image.h"
 #include "AssetManager.h"
 #include "Assets.h"
+#include "RenderSystem.h"
 
 namespace flaw {
 	LandscapeSystem::LandscapeSystem(Scene& scene)
@@ -101,14 +102,14 @@ namespace flaw {
 		}
 	}
 
-	void LandscapeSystem::Render(const Camera& camera, RenderQueue& renderQueue) {
+	void LandscapeSystem::GatherRenderable(CameraRenderStage& stage) {
 		for (auto&& [entity, transComp, landscapeComp] : _scene.GetRegistry().view<TransformComponent, LandScaperComponent>().each()) {
 			auto& landscape = _landscapes[(uint32_t)entity];
 
 			const MeshBoundingSphere& boundingSphere = landscape.mesh->GetBoundingSphere();
 
-			if (camera.isPerspective && camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transComp.worldTransform)) {
-				renderQueue.Push(landscape.mesh, transComp.worldTransform, landscape.material);
+			if (stage.frustum.TestInside(boundingSphere.center, boundingSphere.radius, transComp.worldTransform)) {
+				stage.renderQueue.Push(landscape.mesh, transComp.worldTransform, landscape.material);
 			}
 		}
 	}

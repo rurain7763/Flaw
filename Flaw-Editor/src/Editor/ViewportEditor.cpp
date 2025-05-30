@@ -78,10 +78,20 @@ namespace flaw {
             for (auto&& [entity, transComp, cameraComp] : _scene->GetRegistry().view<TransformComponent, CameraComponent>().each()) {
                 cameraComp.aspectRatio = aspectRatio;
 
-                if (cameraComp.depth == 0) {
-                    viewMatrix = ViewMatrix(transComp.position, transComp.rotation);
-                    projectionMatrix = cameraComp.GetProjectionMatrix();
-                    isPerspective = cameraComp.perspective;
+                if (cameraComp.depth != 0) {
+                    continue;
+                }
+
+                viewMatrix = ViewMatrix(transComp.position, transComp.rotation);
+                if (cameraComp.perspective) {
+					projectionMatrix = Perspective(cameraComp.fov, cameraComp.aspectRatio, cameraComp.nearClip, cameraComp.farClip);
+                    isPerspective = true;
+                }
+                else {
+					const float height = cameraComp.orthoSize;
+                    const float width = height * cameraComp.aspectRatio;
+					projectionMatrix = Orthographic(-width, width, -height, height, cameraComp.nearClip, cameraComp.farClip);
+					isPerspective = false;
                 }
             }
         }
@@ -270,6 +280,16 @@ namespace flaw {
 
         if (_selectedEntt.HasComponent<DecalComponent>()) {
             DebugRender::DrawCube(transComp.worldTransform, vec3(0.0, 1.0, 0.0));
+        }
+
+        if (_selectedEntt.HasComponent<CameraComponent>()) {
+            CameraComponent& cameraComp = _selectedEntt.GetComponent<CameraComponent>();
+            if (cameraComp.perspective) {
+				Frustum frustum;
+				CreateFrustum(GetFovX(cameraComp.fov, cameraComp.aspectRatio), cameraComp.fov, cameraComp.nearClip, cameraComp.farClip, frustum);
+
+				DebugRender::DrawFrustum(frustum, transComp.worldTransform, vec3(0.0, 1.0, 0.0));
+            }
         }
 
 		Renderer2D::End();

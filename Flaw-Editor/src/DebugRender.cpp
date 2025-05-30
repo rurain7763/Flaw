@@ -114,7 +114,25 @@ namespace flaw {
     }
 
     void DebugRender::DrawFrustum(const Frustum& frustrum, const mat4& transform, const vec3& color) {
+		std::array<vec3, 8> corners = frustrum.GetCorners();
 
+		// near plane
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[0], 1.0), transform * vec4(corners[1], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[1], 1.0), transform * vec4(corners[2], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[2], 1.0), transform * vec4(corners[3], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[3], 1.0), transform * vec4(corners[0], 1.0), vec4(color, 1.0));
+
+		// far plane
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[4], 1.0), transform * vec4(corners[5], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[5], 1.0), transform * vec4(corners[6], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[6], 1.0), transform * vec4(corners[7], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[7], 1.0), transform * vec4(corners[4], 1.0), vec4(color, 1.0));
+
+		// connecting lines
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[0], 1.0), transform * vec4(corners[4], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[1], 1.0), transform * vec4(corners[5], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[2], 1.0), transform * vec4(corners[6], 1.0), vec4(color, 1.0));
+		Renderer2D::DrawLine((uint32_t)entt::null, transform * vec4(corners[3], 1.0), transform * vec4(corners[7], 1.0), vec4(color, 1.0));
     }
 
 	void DebugRender::DrawLineTriangle(const mat4& transform, const vec3& p0, const vec3& p1, const vec3& p2, const vec3& color) {

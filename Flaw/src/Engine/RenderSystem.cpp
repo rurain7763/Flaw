@@ -9,10 +9,10 @@
 #include "LandscapeSystem.h"
 #include "AnimationSystem.h"
 #include "ShadowSystem.h"
+#include "SkyBoxSystem.h"
 
 // TODO: remove this
 #include "Renderer2D.h"
-#include "SkyBoxSystem.h"
 #include "ParticleSystem.h"
 
 namespace flaw {
@@ -265,48 +265,47 @@ namespace flaw {
 	}
 
 	void RenderSystem::Update() {
-		std::map<uint32_t, Camera> cameras;
-
+		// set camera render stages
+		_renderStages.clear();
 		for (auto&& [entity, transformComp, cameraComp] : _scene.GetRegistry().view<TransformComponent, CameraComponent>().each()) {
-			Camera camera;
-			camera.isPerspective = cameraComp.perspective;
-			camera.position = transformComp.GetWorldPosition();
-			camera.view = ViewMatrix(transformComp.position, transformComp.rotation);
-			camera.projection = cameraComp.GetProjectionMatrix();
+			const vec3 position = transformComp.GetWorldPosition();
+			const vec3 lookDirection = transformComp.GetWorldFront();
+
+			CameraRenderStage stage;
+			stage.cameraPosition = position;
+			stage.viewMatrix = LookAt(position, position + lookDirection, Up);
 
 			if (cameraComp.perspective) {
-				CreateFrustrum(GetFovX(cameraComp.fov, cameraComp.aspectRatio), cameraComp.fov, cameraComp.nearClip, cameraComp.farClip, transformComp.worldTransform, camera.frustrum);
+				stage.projectionMatrix = Perspective(cameraComp.fov, cameraComp.aspectRatio, cameraComp.nearClip, cameraComp.farClip);
+				CreateFrustum(GetFovX(cameraComp.fov, cameraComp.aspectRatio), cameraComp.fov, cameraComp.nearClip, cameraComp.farClip, position, lookDirection, stage.frustum);
 			}
 			else {
-				// Orthographic
+				const float height = cameraComp.orthoSize;
+				const float width = height * cameraComp.aspectRatio;
+				stage.projectionMatrix = Orthographic(-width, width, -height, height, cameraComp.nearClip, cameraComp.farClip);
+				// TODO: orthographic frustum
 			}
 
-			cameras[cameraComp.depth] = camera;
+			_renderStages.emplace(cameraComp.depth, std::move(stage));
 		}
 
-		int32_t width, height;
-		Graphics::GetSize(width, height);
-
-		_globalConstants.screenResolution = vec2((float)width, (float)height);
-		_globalConstants.time = Time::GetTime();
-		_globalConstants.deltaTime = Time::DeltaTime();
-		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
-
-		_scene.GetAnimationSystem().Update();
-		_scene.GetLandscapeSystem().Update();
-		_scene.GetParticleSystem().Update(_globalCB);
-		_scene.GetSkyBoxSystem().Update();
-		_scene.GetShadowSystem().Update();
-
-		GatherLights();
-		GatherDecals();
-		GatherCameraStages(cameras);
+		UpdateSystems();
 	}
 
-	void RenderSystem::Update(Camera& camera) {
-		std::map<uint32_t, Camera> cameras;
-		cameras[0] = camera;
+	void RenderSystem::Update(Ref<Camera> camera) {
+		// set camera render stages
+		_renderStages.clear();
+		CameraRenderStage stage;
+		stage.cameraPosition = camera->GetPosition();
+		stage.viewMatrix = camera->GetViewMatrix();
+		stage.projectionMatrix = camera->GetProjectionMatrix();
+		stage.frustum = camera->GetFrustum();
+		_renderStages.emplace(0, std::move(stage));
 
+		UpdateSystems();
+	}
+
+	void RenderSystem::UpdateSystems() {
 		int32_t width, height;
 		Graphics::GetSize(width, height);
 
@@ -323,7 +322,7 @@ namespace flaw {
 
 		GatherLights();
 		GatherDecals();
-		GatherCameraStages(cameras);
+		GatherRenderableObjects();
 	}
 
 	void RenderSystem::GatherLights() {
@@ -376,15 +375,8 @@ namespace flaw {
 		}
 	}
 
-	void RenderSystem::GatherCameraStages(std::map<uint32_t, Camera>& cameras) {
-		_renderStages.resize(cameras.size());
-		for (const auto& [depth, camera] : cameras) {
-			auto& stage = _renderStages[depth];
-
-			stage.cameraPosition = camera.position;
-			stage.view = camera.view;
-			stage.projection = camera.projection;		
-
+	void RenderSystem::GatherRenderableObjects() {
+		for (auto& [depth, stage] : _renderStages) {
 			stage.renderQueue.Open();
 
 			// submit mesh
@@ -398,7 +390,7 @@ namespace flaw {
 
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
 				auto& boundingSphere = mesh->GetBoundingSphere();
-				if (camera.isPerspective && !camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
+				if (!stage.frustum.TestInside(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
 					continue;
 				}
 
@@ -422,7 +414,7 @@ namespace flaw {
 
 				// NOTE: test frustums with sphere, but in the future, may be need secondary frustum check for bounding cube.
 				auto& boundingSphere = mesh->GetBoundingSphere();
-				if (camera.isPerspective && !camera.TestInFrustum(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
+				if (!stage.frustum.TestInside(boundingSphere.center, boundingSphere.radius, transform.worldTransform)) {
 					continue;
 				}
 
@@ -444,21 +436,21 @@ namespace flaw {
 				}
 			}
 
-			_scene.GetLandscapeSystem().Render(camera, stage.renderQueue);
+			_scene.GetLandscapeSystem().GatherRenderable(stage);
 
 			stage.renderQueue.Close();
 		}
 	}
 
 	void RenderSystem::Render() {
-		for (auto& stage : _renderStages) {
+		for (auto& [depth, stage] : _renderStages) {
 			_cameraConstansCB.position = stage.cameraPosition;
-			_cameraConstansCB.view = stage.view;
-			_cameraConstansCB.projection = stage.projection;
+			_cameraConstansCB.view = stage.viewMatrix;
+			_cameraConstansCB.projection = stage.projectionMatrix;
 			_vpCB->Update(&_cameraConstansCB, sizeof(CameraConstants));
 
 			_scene.GetSkyBoxSystem().Render(_vpCB, _globalCB, _lightCB, _materialCB);
-			_scene.GetShadowSystem().Render(_batchedTransformSB);
+			_scene.GetShadowSystem().Render(stage, _batchedTransformSB);
 
 			RenderGeometry(stage);
 			RenderDecal(stage);
@@ -898,7 +890,7 @@ namespace flaw {
 #if true
 		auto& enttRegistry = _scene.GetRegistry();
 
-		Renderer2D::Begin(stage.view, stage.projection);
+		Renderer2D::Begin(stage.viewMatrix, stage.projectionMatrix);
 
 		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);

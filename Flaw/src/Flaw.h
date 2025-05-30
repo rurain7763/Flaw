@@ -19,6 +19,7 @@
 #include "Engine/LandscapeSystem.h"
 #include "Engine/Mesh.h"
 #include "Engine/Material.h"
+#include "Engine/Camera.h"
 
 #include "Log/Log.h"
 #include "Input/Input.h"

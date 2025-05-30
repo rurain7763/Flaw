@@ -6,9 +6,11 @@
 #include "ECS/ECS.h"
 #include "Utils/UUID.h"
 #include "Mesh.h"
+#include "Camera.h"
 
 namespace flaw {
 	class Scene;
+	struct CameraRenderStage;
 	
 	struct Landscape {
 		Ref<Mesh> mesh;
@@ -23,7 +25,7 @@ namespace flaw {
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
 		void Update();
-		void Render(const Camera& camera, RenderQueue& renderQueue);
+		void GatherRenderable(CameraRenderStage& stage);
 
 		Landscape& GetLandscape(uint32_t landscapeID) { return _landscapes.at(landscapeID); }
 

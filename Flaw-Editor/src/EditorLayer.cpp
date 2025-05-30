@@ -434,29 +434,7 @@ namespace flaw {
         scene->UpdateTransform();
         _camera.OnUpdate();
 
-		// Rendering
-        Camera camera;
-		camera.position = _camera.GetPosition();
-        camera.view = _camera.GetViewMatrix();
-		camera.projection = _camera.GetProjectionMatrix();
-        camera.isPerspective = _camera.IsPerspective();
-
-        if (camera.isPerspective) {
-            CreateFrustrum(
-                GetFovX(_camera.GetFov(), _camera.GetAspectRatio()),
-                _camera.GetFov(),
-                _camera.GetNearClip(),
-                _camera.GetFarClip(),
-                _camera.GetWorldMatrix(),
-				camera.frustrum
-            );
-        }
-        else {
-			// TODO: Implement orthographic frustrum
-        }
-
-		renderSys.Update(camera);
-
+		renderSys.Update(_camera.GetCurrentCamera());
         renderSys.Render();
     }
 

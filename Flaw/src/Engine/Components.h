@@ -49,7 +49,13 @@ namespace flaw {
 		}
 
 		inline vec3 GetWorldRight() {
-			return normalize(cross(Up, GetWorldFront()));
+			vec3 front = GetWorldFront();
+			if (EpsilonEqual(abs(front.y), 1.0f)) {
+				return normalize(cross(-Forward, front));
+			}
+			else {
+				return normalize(cross(Up, front));
+			}
 		}
 
 		inline vec3 GetWorldUp() {
@@ -59,11 +65,11 @@ namespace flaw {
 		inline void GetWorldAxis(vec3& front, vec3& right, vec3& up) {
 			front = GetWorldFront();
 
-			if (abs(front.y) < 1.0 - glm::epsilon<float>()) {
-				right = normalize(cross(Up, front));
+			if (EpsilonEqual(abs(front.y), 1.0f)) {
+				right = normalize(cross(-Forward, front));
 			}
 			else {
-				right = normalize(cross(Right, front));
+				right = normalize(cross(Up, front));
 			}
 
 			up = normalize(cross(front, right));
@@ -104,17 +110,6 @@ namespace flaw {
 		}
 
 		CameraComponent(const CameraComponent& other) = default;
-
-		mat4 GetProjectionMatrix() const {
-			if (perspective) {
-				return Perspective(fov, aspectRatio, nearClip, farClip);
-			}
-			else {
-				const float height = orthoSize;
-				const float width = height * aspectRatio;
-				return Orthographic(-width, width, -height, height, nearClip, farClip);
-			}
-		}
 	};
 
 	struct NativeScriptComponent {
