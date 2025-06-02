@@ -48,5 +48,7 @@ namespace flaw {
 
 		virtual void ClearAllRenderTargets() = 0;
 		virtual void ClearDepthStencil() = 0;
+
+		virtual uint32_t GetRenderTargetCount() const = 0;
 	};
 }

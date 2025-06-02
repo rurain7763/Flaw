@@ -219,4 +219,8 @@ namespace flaw {
 			return;
 		}
 	}
+
+	uint32_t DXRenderPass::GetRenderTargetCount() const {
+		return static_cast<uint32_t>(_renderTargets.size());
+	}
 }

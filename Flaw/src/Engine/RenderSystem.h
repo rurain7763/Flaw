@@ -13,8 +13,10 @@ namespace flaw {
 
 	struct CameraRenderStage {
 		vec3 cameraPosition;
+
 		mat4 viewMatrix;
 		mat4 projectionMatrix;
+
 		Frustum frustum;
 
 		RenderQueue renderQueue;
@@ -87,14 +89,26 @@ namespace flaw {
 		Ref<StructuredBuffer> _batchedTransformSB;
 
 		struct DirectionalLightUniforms {
-			mat4 view;
-			mat4 projection;
+			mat4 view0;
+			mat4 projection0;
+			float cascadeDist0;
+			float padding0[3];
+
+			mat4 view1;
+			mat4 projection1;
+			float cascadeDist1;
+			float padding1[3];
+
+			mat4 view2;
+			mat4 projection2;
+			float cascadeDist2;
+			float padding2[3];
 
 			vec4 lightColor;
 			vec4 lightDirection;
 			float lightIntensity;
 
-			float padding[3];
+			float padding4[3];
 		};
 
 		struct SpotLightUniforms {

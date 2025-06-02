@@ -57,10 +57,10 @@ namespace flaw {
 		_lightVPMatricesSB = Graphics::CreateStructuredBuffer(sbDesc);
 	}
 
-	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass() {
+	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height) {
 		Texture2D::Descriptor texDesc = {};
-		texDesc.width = ShadowMapSize;
-		texDesc.height = ShadowMapSize;
+		texDesc.width = width;
+		texDesc.height = height;
 		texDesc.usage = UsageFlag::Static;
 		texDesc.bindFlags = BindFlag::RenderTarget | BindFlag::ShaderResource;
 		texDesc.format = PixelFormat::R32F;
@@ -71,8 +71,8 @@ namespace flaw {
 		shadowMapDesc.renderTargets[0].texture = Graphics::CreateTexture2D(texDesc);
 		shadowMapDesc.renderTargets[0].viewportX = 0;
 		shadowMapDesc.renderTargets[0].viewportY = 0;
-		shadowMapDesc.renderTargets[0].viewportWidth = ShadowMapSize;
-		shadowMapDesc.renderTargets[0].viewportHeight = ShadowMapSize;
+		shadowMapDesc.renderTargets[0].viewportWidth = width;
+		shadowMapDesc.renderTargets[0].viewportHeight = height;
 		shadowMapDesc.renderTargets[0].clearValue = { 1.0f, 1.0f, 1.0f, 0.0f };
 
 		texDesc.bindFlags = BindFlag::DepthStencil;
@@ -135,7 +135,10 @@ namespace flaw {
 	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		if (registry.any_of<DirectionalLightComponent>(entity)) {
 			auto& shadowMap = _directionalShadowMaps[(uint32_t)entity];
-			shadowMap.renderPass = CreateDirectionalLightShadowMapRenderPass();
+
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
+				shadowMap.renderPasses[i] = CreateDirectionalLightShadowMapRenderPass(ShadowMapSize >> i, ShadowMapSize >> i);
+			}
 		}
 
 		if (registry.any_of<SpotLightComponent>(entity)) {
@@ -164,15 +167,17 @@ namespace flaw {
 			// not calculating here, because we need to calculate tight bounding box for directional light
 			shadowMap.lightDirection = transComp.GetWorldFront();
 
-			shadowMap.renderPass->ClearAllRenderTargets();
-			shadowMap.renderPass->ClearDepthStencil();
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
+				shadowMap.renderPasses[i]->ClearAllRenderTargets();
+				shadowMap.renderPasses[i]->ClearDepthStencil();
+			}
 		}
 
 		for (auto&& [entity, transform, lightComp] : registry.view<TransformComponent, SpotLightComponent>().each()) {
 			auto& shadowMap = _spotLightShadowMaps[(uint32_t)entity];
 
-			shadowMap._lightVPMatrix.view = LookAt(transform.GetWorldPosition(), transform.GetWorldPosition() + transform.GetWorldFront(), Up);
-			shadowMap._lightVPMatrix.projection = Perspective(lightComp.outer * 2.0, 1.0f, 0.1f, lightComp.range);
+			shadowMap.lightVPMatrix.view = LookAt(transform.GetWorldPosition(), transform.GetWorldPosition() + transform.GetWorldFront(), Up);
+			shadowMap.lightVPMatrix.projection = Perspective(lightComp.outer * 2.0, 1.0f, 0.1f, lightComp.range);
 
 			shadowMap.renderPass->ClearAllRenderTargets();
 			shadowMap.renderPass->ClearDepthStencil();
@@ -190,8 +195,8 @@ namespace flaw {
 			};
 
 			for (int i = 0; i < 6; ++i) {
-				shadowMap._lightVPMatrices[i].view = LookAt(transComp.GetWorldPosition(), transComp.GetWorldPosition() + faceDirections[i], upDirections[i]);
-				shadowMap._lightVPMatrices[i].projection = Perspective(glm::half_pi<float>(), 1.0f, 0.1f, lightComp.range);
+				shadowMap.lightVPMatrices[i].view = LookAt(transComp.GetWorldPosition(), transComp.GetWorldPosition() + faceDirections[i], upDirections[i]);
+				shadowMap.lightVPMatrices[i].projection = Perspective(glm::half_pi<float>(), 1.0f, 0.1f, lightComp.range);
 			}
 
 			shadowMap.renderPass->ClearAllRenderTargets();
@@ -235,16 +240,100 @@ namespace flaw {
 		_shadowMapRenderQueue.Close();
 	}
 
-	void ShadowSystem::CalcTightDirectionalLightMatrices(const Frustum& frustum, const vec3& lightDirection, mat4& outView, mat4& outProjection) {
-		std::array<vec3, 8> worldSpaceCorners = frustum.GetCorners();
+#if false // linear split cascade
+	std::vector<Frustum::Corners> ShadowSystem::GetCascadeFrustumCorners(const Frustum& frustum) {
+		Frustum::Corners worldSpaceCorners = frustum.GetCorners();
+		vec3 tln2tlfDir = worldSpaceCorners.topLeftFar - worldSpaceCorners.topLeftNear;
+		float dist = glm::length(tln2tlfDir);
 
+		vec3 directions[4] = {
+			tln2tlfDir / dist,
+			(worldSpaceCorners.topRightFar - worldSpaceCorners.topRightNear) / dist,
+			(worldSpaceCorners.bottomRightFar - worldSpaceCorners.bottomRightNear) / dist,
+			(worldSpaceCorners.bottomLeftFar - worldSpaceCorners.bottomLeftNear) / dist
+		};
+
+		float stepDist = dist / (float)CascadeShadowCount;
+
+		std::vector<Frustum::Corners> cascadeCornersList(CascadeShadowCount);
+
+		for (int32_t i = 0; i < 4; i++) {
+			auto& cascadeCorners = cascadeCornersList[0];
+
+			cascadeCorners.data[i] = worldSpaceCorners.data[i];
+			cascadeCorners.data[i + 4] = worldSpaceCorners.data[i] + directions[i] * stepDist;
+		}
+
+		for (int32_t i = 1; i < CascadeShadowCount; ++i) {
+			const auto& prevCascadeCorners = cascadeCornersList[i - 1];
+			auto& cascadeCorners = cascadeCornersList[i];
+
+			for (int32_t j = 0; j < 4; j++) {
+				cascadeCorners.data[j] = prevCascadeCorners.data[j + 4];
+				cascadeCorners.data[j + 4] = prevCascadeCorners.data[j + 4] + directions[j] * stepDist;
+			}
+		}
+
+		return cascadeCornersList;
+	}
+#else // logarithmic split cascade
+	std::vector<Frustum::Corners> ShadowSystem::GetCascadeFrustumCorners(const Frustum& frustum) {
+		Frustum::Corners worldSpaceCorners = frustum.GetCorners();
+
+		vec3 viewDirTL = worldSpaceCorners.topLeftFar - worldSpaceCorners.topLeftNear;
+		vec3 viewDirTR = worldSpaceCorners.topRightFar - worldSpaceCorners.topRightNear;
+		vec3 viewDirBR = worldSpaceCorners.bottomRightFar - worldSpaceCorners.bottomRightNear;
+		vec3 viewDirBL = worldSpaceCorners.bottomLeftFar - worldSpaceCorners.bottomLeftNear;
+
+		float nearDist = glm::length(viewDirTL);
+		float farDist = nearDist * CascadeShadowCount;
+
+		float lambda = 0.95f;
+
+		std::vector<float> cascadeSplits(CascadeShadowCount + 1);
+		cascadeSplits[0] = 0.0f;
+		cascadeSplits[CascadeShadowCount] = 1.0f;
+
+		for (int i = 1; i < CascadeShadowCount; ++i) {
+			float p = (float)i / (float)CascadeShadowCount;
+			float logSplit = nearDist * std::pow(farDist / nearDist, p);
+			float linearSplit = nearDist + (farDist - nearDist) * p;
+			float splitDist = lambda * logSplit + (1.0f - lambda) * linearSplit;
+
+			cascadeSplits[i] = (splitDist - nearDist) / (farDist - nearDist);
+		}
+
+		std::vector<Frustum::Corners> cascadeCornersList(CascadeShadowCount);
+
+		for (int i = 0; i < CascadeShadowCount; ++i) {
+			float startRatio = cascadeSplits[i];
+			float endRatio = cascadeSplits[i + 1];
+
+			Frustum::Corners& corners = cascadeCornersList[i];
+
+			corners.topLeftNear = worldSpaceCorners.topLeftNear + viewDirTL * startRatio;
+			corners.topRightNear = worldSpaceCorners.topRightNear + viewDirTR * startRatio;
+			corners.bottomRightNear = worldSpaceCorners.bottomRightNear + viewDirBR * startRatio;
+			corners.bottomLeftNear = worldSpaceCorners.bottomLeftNear + viewDirBL * startRatio;
+
+			corners.topLeftFar = worldSpaceCorners.topLeftNear + viewDirTL * endRatio;
+			corners.topRightFar = worldSpaceCorners.topRightNear + viewDirTR * endRatio;
+			corners.bottomRightFar = worldSpaceCorners.bottomRightNear + viewDirBR * endRatio;
+			corners.bottomLeftFar = worldSpaceCorners.bottomLeftNear + viewDirBL * endRatio;
+		}
+
+		return cascadeCornersList;
+	}
+#endif
+
+	void ShadowSystem::CalcTightDirectionalLightMatrices(const Frustum::Corners& worldSpaceCorners, const vec3& lightDirection, mat4& outView, mat4& outProjection) {
 		mat4 lightViewMatrix = LookAt(vec3(0.0), lightDirection, Up);
 
 		// # calculate corners coordinates in light space and get min, max coord elements
 		vec3 minCornerInLightView = vec3(std::numeric_limits<float>::max());
 		vec3 maxCornerInLightView = vec3(std::numeric_limits<float>::lowest());
-		for (int32_t i = 0; i < worldSpaceCorners.size(); ++i) {
-			const vec3& worldSpaceCorner = worldSpaceCorners[i];
+		for (int32_t i = 0; i < 8; ++i) {
+			const vec3& worldSpaceCorner = worldSpaceCorners.data[i];
 			const vec3 lightSpaceCorner = lightViewMatrix * vec4(worldSpaceCorner, 1.0f);
 
 			minCornerInLightView = glm::min(minCornerInLightView, lightSpaceCorner);
@@ -265,8 +354,8 @@ namespace flaw {
 		// # get aabb coordinates in new light view space
 		minCornerInLightView = vec3(std::numeric_limits<float>::max());
 		maxCornerInLightView = vec3(std::numeric_limits<float>::lowest());
-		for (int32_t i = 0; i < worldSpaceCorners.size(); ++i) {
-			const vec3& worldSpaceCorner = worldSpaceCorners[i];
+		for (int32_t i = 0; i < 8; ++i) {
+			const vec3& worldSpaceCorner = worldSpaceCorners.data[i];
 			vec3 lightSpaceCorner = outView * vec4(worldSpaceCorner, 1.0f);
 
 			minCornerInLightView = glm::min(minCornerInLightView, lightSpaceCorner);
@@ -278,26 +367,40 @@ namespace flaw {
 	}
 
 	void ShadowSystem::Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB) {
+		auto worldSpaceCornersArr = GetCascadeFrustumCorners(stage.frustum);
+		
 		while (!_shadowMapRenderQueue.Empty()) {
 			auto& entry = _shadowMapRenderQueue.Front();
 			_shadowMapRenderQueue.Pop();
 
 			for (auto& [entt, shadowMap] : _directionalShadowMaps) {
-				shadowMap.renderPass->Bind(false, false);
-				CalcTightDirectionalLightMatrices(stage.frustum, shadowMap.lightDirection, shadowMap._lightVPMatrix.view, shadowMap._lightVPMatrix.projection);
-				DrawRenderEntry(entry, batchedTransformSB, &shadowMap._lightVPMatrix, 1);
-				shadowMap.renderPass->Unbind();
+				for (int32_t i = 0; i < CascadeShadowCount; i++) {
+					const auto& worldSpaceCorners = worldSpaceCornersArr[i];
+					auto& vpMatrix = shadowMap.lightVPMatrices[i];
+
+					CalcTightDirectionalLightMatrices(worldSpaceCorners, shadowMap.lightDirection, vpMatrix.view, vpMatrix.projection);
+					
+					vec3 p0 = glm::mix(worldSpaceCorners.topLeftFar, worldSpaceCorners.topRightFar, 0.5f);
+					vec3 p1 = glm::mix(worldSpaceCorners.bottomLeftFar, worldSpaceCorners.bottomRightFar, 0.5f);
+					vec3 center = glm::mix(p0, p1, 0.5f);
+					
+					shadowMap.cascadeDistances[i] = glm::length(center - stage.cameraPosition);
+
+					shadowMap.renderPasses[i]->Bind(false, false);
+					DrawRenderEntry(entry, batchedTransformSB, &vpMatrix, 1);
+					shadowMap.renderPasses[i]->Unbind();
+				}
 			}
 
 			for (const auto& [entt, shadowMap] : _spotLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, &shadowMap._lightVPMatrix, 1);
+				DrawRenderEntry(entry, batchedTransformSB, &shadowMap.lightVPMatrix, 1);
 				shadowMap.renderPass->Unbind();
 			}
 
 			for (const auto& [entt, shadowMap] : _pointLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, shadowMap._lightVPMatrices.data(), 6);
+				DrawRenderEntry(entry, batchedTransformSB, shadowMap.lightVPMatrices.data(), 6);
 				shadowMap.renderPass->Unbind();
 			}
 		}

@@ -712,14 +712,27 @@ namespace flaw {
 			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap((uint32_t)entity);
 			
 			DirectionalLightUniforms uniforms = {};
-			uniforms.view = shadowMap._lightVPMatrix.view;
-			uniforms.projection = shadowMap._lightVPMatrix.projection;
+			uniforms.view0 = shadowMap.lightVPMatrices[0].view;
+			uniforms.projection0 = shadowMap.lightVPMatrices[0].projection;
+			uniforms.cascadeDist0 = shadowMap.cascadeDistances[0];
+
+			uniforms.view1 = shadowMap.lightVPMatrices[1].view;
+			uniforms.projection1 = shadowMap.lightVPMatrices[1].projection;
+			uniforms.cascadeDist1 = shadowMap.cascadeDistances[1];
+
+			uniforms.view2 = shadowMap.lightVPMatrices[2].view;
+			uniforms.projection2 = shadowMap.lightVPMatrices[2].projection;
+			uniforms.cascadeDist2 = shadowMap.cascadeDistances[2];
+
 			uniforms.lightColor = vec4(directionalLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightIntensity = directionalLightComp.intensity;
 			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
-			cmdQueue.SetTexture(shadowMap.renderPass->GetRenderTargetTex(0), 4);
+			for (int32_t i = 0; i < 3; ++i) {
+				cmdQueue.SetTexture(shadowMap.renderPasses[i]->GetRenderTargetTex(0), 4 + i);
+			}
+
 			cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 			cmdQueue.Execute();
 		}
@@ -785,8 +798,8 @@ namespace flaw {
 			auto& shadowmap = shadowSys.GetSpotLightShadowMap((uint32_t)entity);
 
 			SpotLightUniforms uniforms = {};
-			uniforms.view = shadowmap._lightVPMatrix.view;
-			uniforms.projection = shadowmap._lightVPMatrix.projection;
+			uniforms.view = shadowmap.lightVPMatrix.view;
+			uniforms.projection = shadowmap.lightVPMatrix.projection;
 			uniforms.lightColor = vec4(spotLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightPosition = vec4(transform.GetWorldPosition(), 1.0f);

@@ -8,6 +8,8 @@
 #include "Camera.h"
 
 namespace flaw {
+	constexpr static uint32_t CascadeShadowCount = 3;
+
 	class Scene;
 	struct CameraRenderStage;
 
@@ -24,17 +26,18 @@ namespace flaw {
 
 	struct DirectionalLightShadowMap {
 		vec3 lightDirection;
-		LightVPMatrix _lightVPMatrix;
-		Ref<GraphicsRenderPass> renderPass;
+		std::array<LightVPMatrix, CascadeShadowCount> lightVPMatrices;
+		std::array<float, CascadeShadowCount> cascadeDistances; // Split distances for each cascade
+		std::array<Ref<GraphicsRenderPass>, CascadeShadowCount> renderPasses;
 	};
 
 	struct SpotLightShadowMap {
-		LightVPMatrix _lightVPMatrix;
+		LightVPMatrix lightVPMatrix;
 		Ref<GraphicsRenderPass> renderPass;
 	};
 
 	struct PointLightShadowMap {
-		std::array<LightVPMatrix, 6> _lightVPMatrices;
+		std::array<LightVPMatrix, 6> lightVPMatrices;
 		Ref<GraphicsRenderPass> renderPass;
 	};
 
@@ -53,11 +56,12 @@ namespace flaw {
 		PointLightShadowMap& GetPointLightShadowMap(const uint32_t& id) { return _pointLightShadowMaps[id]; }
 
 	private:
-		Ref<GraphicsRenderPass> CreateDirectionalLightShadowMapRenderPass();
+		Ref<GraphicsRenderPass> CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height);
 		Ref<GraphicsRenderPass> CreateSpotLightShadowMapRenderPass();
 		Ref<GraphicsRenderPass> CreatePointLightShadowMapRenderPass();
 
-		void CalcTightDirectionalLightMatrices(const Frustum& frustum, const vec3& lightDirection, mat4& outView, mat4& outProjection);
+		std::vector<Frustum::Corners> GetCascadeFrustumCorners(const Frustum& frustum);
+		void CalcTightDirectionalLightMatrices(const Frustum::Corners& worldSpaceCorners, const vec3& lightDirection, mat4& outView, mat4& outProjection);
 
 		void DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount);
 

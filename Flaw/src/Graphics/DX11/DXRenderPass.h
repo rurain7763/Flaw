@@ -38,6 +38,8 @@ namespace flaw {
 		void ClearAllRenderTargets() override;
 		void ClearDepthStencil() override;
 
+		uint32_t GetRenderTargetCount() const override;
+
 	private:
 		void SetRenderTargetViewsAndViewports();
 		void SetDepthStencilView();

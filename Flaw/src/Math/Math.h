@@ -296,17 +296,37 @@ namespace flaw {
 	};
 
 	struct Frustum {
-		enum PlaneType {
-			Left = 0,
-			Right,
-			Bottom,
-			Top,
-			Near,
-			Far,
-			PlaneCount
+		struct Planes {
+			union {
+				struct {
+					Plane leftPlane;   
+					Plane rightPlane;  
+					Plane bottomPlane; 
+					Plane topPlane;    
+					Plane nearPlane;   
+					Plane farPlane;    
+				};
+				Plane data[6];
+			};
 		};
 
-		Plane planes[6];
+		struct Corners {
+			union {
+				struct {
+					vec3 topLeftNear;    
+					vec3 topRightNear;   
+					vec3 bottomRightNear; 
+					vec3 bottomLeftNear; 
+					vec3 topLeftFar;    
+					vec3 topRightFar;    
+					vec3 bottomRightFar; 
+					vec3 bottomLeftFar; 
+				};
+				vec3 data[8];
+			};
+		};
+
+		Planes planes;
 
 		inline bool TestInside(const vec3& boundingBoxMin, const vec3& boundingBoxMax, const mat4& modelMatrix) {
 			// 8 corners of the AABB
@@ -328,7 +348,7 @@ namespace flaw {
 			}
 
 			// Frustum test: if all 8 points are outside any one plane, it's outside
-			for (const auto& plane : planes) {
+			for (const auto& plane : planes.data) {
 				int outsideCount = 0;
 				for (const auto& corner : transformedCorners) {
 					if (plane.Distance(corner) > 0.0f) {
@@ -350,7 +370,7 @@ namespace flaw {
 			const float scaledRadius = boundingSphereRadius * maxScale;
 			const vec4 transformedBoundingSphereCenter = modelMatrix * vec4(boundingSphereCenter, 1.0);
 
-			for (const auto& plane : planes) {
+			for (const auto& plane : planes.data) {
 				if (plane.Distance(transformedBoundingSphereCenter) > scaledRadius) {
 					return false;
 				}
@@ -359,17 +379,18 @@ namespace flaw {
 			return true;
 		}
 
-		inline std::array<vec3, 8> GetCorners() const {
-			std::array<vec3, 8> outCorners;
-			outCorners[0] = Plane::GetIntersectPoint(planes[Left], planes[Top], planes[Near]); // Top-Left-Near
-			outCorners[1] = Plane::GetIntersectPoint(planes[Right], planes[Near], planes[Top]); // Top-Right-Near
-			outCorners[2] = Plane::GetIntersectPoint(planes[Right], planes[Bottom], planes[Near]); // Bottom-Right-Near
-			outCorners[3] = Plane::GetIntersectPoint(planes[Left], planes[Bottom], planes[Near]); // Bottom-Left-Near
+		inline Corners GetCorners() const {
+			Corners outCorners;
 
-			outCorners[4] = Plane::GetIntersectPoint(planes[Left], planes[Far], planes[Top]); // Top-Left-Far
-			outCorners[5] = Plane::GetIntersectPoint(planes[Right], planes[Top], planes[Far]); // Top-Right-Far
-			outCorners[6] = Plane::GetIntersectPoint(planes[Right], planes[Far], planes[Bottom]); // Bottom-Right-Far
-			outCorners[7] = Plane::GetIntersectPoint(planes[Left], planes[Bottom], planes[Far]); // Bottom-Left-Far
+			outCorners.topLeftNear = Plane::GetIntersectPoint(planes.leftPlane, planes.topPlane, planes.nearPlane); 
+			outCorners.topRightNear = Plane::GetIntersectPoint(planes.rightPlane, planes.nearPlane, planes.topPlane);
+			outCorners.bottomRightNear = Plane::GetIntersectPoint(planes.rightPlane, planes.bottomPlane, planes.nearPlane);
+			outCorners.bottomLeftNear = Plane::GetIntersectPoint(planes.leftPlane, planes.bottomPlane, planes.nearPlane);
+
+			outCorners.topLeftFar = Plane::GetIntersectPoint(planes.leftPlane, planes.farPlane, planes.topPlane); 
+			outCorners.topRightFar = Plane::GetIntersectPoint(planes.rightPlane, planes.topPlane, planes.farPlane);
+			outCorners.bottomRightFar = Plane::GetIntersectPoint(planes.rightPlane, planes.farPlane, planes.bottomPlane); 
+			outCorners.bottomLeftFar = Plane::GetIntersectPoint(planes.leftPlane, planes.bottomPlane, planes.farPlane);
 
 			return outCorners;
 		}
@@ -388,32 +409,32 @@ namespace flaw {
 		// Left plane
 		auto origin = nearCenter - right * nearHalfWidth;
 		auto normal = normalize(cross(origin - position, up));
-		frustrum.planes[Frustum::Left].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.leftPlane.data = vec4(normal, dot(normal, origin));
 
 		// Right plane
 		origin = nearCenter + right * nearHalfWidth;
 		normal = normalize(cross(up, origin - position));
-		frustrum.planes[Frustum::Right].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.rightPlane.data = vec4(normal, dot(normal, origin));
 
 		// Top plane
 		origin = nearCenter + up * nearHalfHeight;
 		normal = normalize(cross(origin - position, right));
-		frustrum.planes[Frustum::Top].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.topPlane.data = vec4(normal, dot(normal, origin));
 
 		// Bottom plane
 		origin = nearCenter - up * nearHalfHeight;
 		normal = normalize(cross(right, origin - position));
-		frustrum.planes[Frustum::Bottom].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.bottomPlane.data = vec4(normal, dot(normal, origin));
 
 		// Near plane
 		origin = position + forward * nearClip;
 		normal = -forward;
-		frustrum.planes[Frustum::Near].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.nearPlane.data = vec4(normal, dot(normal, origin));
 
 		// Far plane
 		origin = position + forward * farClip;
 		normal = forward;
-		frustrum.planes[Frustum::Far].data = vec4(normal, dot(normal, origin));
+		frustrum.planes.farPlane.data = vec4(normal, dot(normal, origin));
 	}
 
 	inline void CreateFrustum(const float fovX, const float fovY, const float nearClip, const float farClip, const mat4& transform, Frustum& frustrum) {
