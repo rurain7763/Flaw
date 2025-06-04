@@ -42,12 +42,12 @@ namespace flaw {
 	}
 
 	Ref<Mesh> LandscapeSystem::CreateLandscapeMesh(uint32_t tilingX, uint32_t tilingY) {
-		std::vector<Vertex3D> vertices;
+		std::vector<SkinnedVertex3D> vertices;
 		std::vector<uint32_t> indices;
 
 		GenerateQuad(
 			[&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-				Vertex3D vertex;
+				SkinnedVertex3D vertex;
 				vertex.position = vec3(pos.x, pos.z, pos.y);
 				vertex.texcoord = uv;
 				vertex.normal = vec3(normal.x, -normal.z, normal.y);

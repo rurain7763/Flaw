@@ -44,7 +44,7 @@ namespace flaw {
 	public:
 		Mesh() = default;
 
-		Mesh(PrimitiveTopology topology, const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices) {
+		Mesh(PrimitiveTopology topology, const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
 			_meshSegments.resize(1);
 			_meshSegments[0].topology = topology;
 			_meshSegments[0].vertexStart = 0;
@@ -57,7 +57,7 @@ namespace flaw {
 			GenerateBoundingSphere(vertices);
 		}
 
-		Mesh(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices, const std::vector<MeshSegment>& segments)
+		Mesh(const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices, const std::vector<MeshSegment>& segments)
 			: _meshSegments(segments)
 		{
 			GenerateGPUResources(vertices, indices);
@@ -98,7 +98,7 @@ namespace flaw {
 		}
 
 	private:
-		void GenerateBVH(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices) {
+		void GenerateBVH(const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
 			if (vertices.empty()) {
 				return;
 			}
@@ -122,7 +122,7 @@ namespace flaw {
 			}
 		}
 
-		void GenerateBoundingSphere(const std::vector<Vertex3D>& vertices) {
+		void GenerateBoundingSphere(const std::vector<SkinnedVertex3D>& vertices) {
 			if (vertices.empty()) {
 				return;
 			}
@@ -143,13 +143,13 @@ namespace flaw {
 			}
 		}
 
-		void GenerateGPUResources(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices) {
+		void GenerateGPUResources(const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
 			auto& graphicsContext = Graphics::GetGraphicsContext();
 
 			VertexBuffer::Descriptor vertexDesc = {};
 			vertexDesc.usage = UsageFlag::Static;
-			vertexDesc.elmSize = sizeof(Vertex3D);
-			vertexDesc.bufferSize = vertices.size() * sizeof(Vertex3D);
+			vertexDesc.elmSize = sizeof(SkinnedVertex3D);
+			vertexDesc.bufferSize = vertices.size() * sizeof(SkinnedVertex3D);
 			vertexDesc.initialData = vertices.data();
 			_gpuVertexBuffer = graphicsContext.CreateVertexBuffer(vertexDesc);
 

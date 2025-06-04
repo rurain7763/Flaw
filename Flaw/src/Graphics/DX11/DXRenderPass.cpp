@@ -8,6 +8,9 @@
 namespace flaw {
 	DXRenderPass::DXRenderPass(DXContext& context, const Descriptor& desc)
 		: _context(context) 
+		, _dsv(nullptr)
+		, _blendState(nullptr)
+
 	{
 		if (desc.renderTargets.empty()) {
 			Log::Error("DXMultiRenderTarget::DXMultiRenderTarget: No render targets provided.");
@@ -51,13 +54,11 @@ namespace flaw {
 	}
 
 	void DXRenderPass::SetDepthStencilView() {
-		auto& depthStencil = _depthStencil;
-
 		if (!_depthStencil.texture) {
 			return;
 		}
 
-		_dsv = static_cast<ID3D11DepthStencilView*>(depthStencil.texture->GetDepthStencilView());
+		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView());
 	}
 
 	void DXRenderPass::Bind(bool clearColor, bool clearDepthStencil) {
@@ -114,6 +115,10 @@ namespace flaw {
 			viewport.Height = renderTarget.viewportHeight;
 			viewport.MinDepth = 0.0f;
 			viewport.MaxDepth = 1.0f;
+		}
+
+		if (!_depthStencil.texture) {
+			return;
 		}
 
 		if (_depthStencil.texture->GetWidth() == width && _depthStencil.texture->GetHeight() == height) {

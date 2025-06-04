@@ -156,7 +156,7 @@ namespace flaw {
 		struct Descriptor {
 			std::vector<MeshSegment> segments;
 			std::vector<AssetHandle> materials;
-			std::vector<Vertex3D> vertices;
+			std::vector<SkinnedVertex3D> vertices;
 			std::vector<uint32_t> indices;
 		};
 
@@ -186,7 +186,7 @@ namespace flaw {
 			std::vector<MeshSegment> segments;
 			AssetHandle skeleton;
 			std::vector<AssetHandle> materials;
-			std::vector<Vertex3D> vertices;
+			std::vector<SkinnedVertex3D> vertices;
 			std::vector<uint32_t> indices;
 		};
 

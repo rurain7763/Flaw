@@ -473,8 +473,14 @@ namespace flaw {
 
 	bool AssetDatabase::ImportTexture2D(Texture2DImportSettings* settings) {
 		return CreateAssetFile(settings->destPath.c_str(), AssetType::Texture2D, [&](SerializationArchive& archive) {
-			Image img(settings->srcPath.c_str(), 4);		
-			archive << PixelFormat::RGBA8;
+			Image img(settings->srcPath.c_str(), 4);	
+
+			switch (img.ImageType()) {
+				case Image::Type::Hdr: archive << PixelFormat::RGBA32F; break;
+				case Image::Type::Exr: archive << PixelFormat::RGBA32F; break;
+				default: archive << PixelFormat::RGBA8; break;
+			}
+
 			archive << img.Width();
 			archive << img.Height();
 			archive << Texture2D::Wrap::ClampToEdge;
@@ -653,7 +659,7 @@ namespace flaw {
 
 				std::vector<MeshSegment> segments;
 				std::vector<AssetHandle> materials;
-				std::vector<Vertex3D> vertices;
+				std::vector<SkinnedVertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
 					materials.push_back(getMaterialFunc(mesh));
@@ -662,7 +668,7 @@ namespace flaw {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
 						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
 
-						Vertex3D vertex3D = {};
+						SkinnedVertex3D vertex3D = {};
 						vertex3D.position = vertex.position;
 						vertex3D.texcoord = vertex.texCoord;
 						vertex3D.tangent = vertex.tangent;
@@ -720,7 +726,7 @@ namespace flaw {
 			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::StaticMesh, [&](SerializationArchive& archive) {
 				std::vector<MeshSegment> segments;
 				std::vector<AssetHandle> materials;
-				std::vector<Vertex3D> vertices;
+				std::vector<SkinnedVertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
 					materials.push_back(getMaterialFunc(mesh));
@@ -729,7 +735,7 @@ namespace flaw {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
 						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
 
-						Vertex3D vertex3D = {};
+						SkinnedVertex3D vertex3D = {};
 						vertex3D.position = vertex.position;
 						vertex3D.texcoord = vertex.texCoord;
 						vertex3D.tangent = vertex.tangent;

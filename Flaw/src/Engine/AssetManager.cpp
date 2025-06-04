@@ -85,7 +85,7 @@ namespace flaw {
 	void AssetManager::RegisterDefaultStaticMeshs() {
 		AssetHandle handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
+			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
@@ -93,7 +93,7 @@ namespace flaw {
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
+			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
@@ -101,7 +101,7 @@ namespace flaw {
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
+			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));

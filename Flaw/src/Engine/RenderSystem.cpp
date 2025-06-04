@@ -449,7 +449,7 @@ namespace flaw {
 			_cameraConstansCB.projection = stage.projectionMatrix;
 			_vpCB->Update(&_cameraConstansCB, sizeof(CameraConstants));
 
-			_scene.GetSkyBoxSystem().Render(_vpCB, _globalCB, _lightCB, _materialCB);
+			_scene.GetSkyBoxSystem().Render(_vpCB);
 			_scene.GetShadowSystem().Render(stage, _batchedTransformSB);
 
 			RenderGeometry(stage);

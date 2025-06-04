@@ -9,9 +9,17 @@ namespace flaw {
 	SkyBoxSystem::SkyBoxSystem(Scene& scene)
 		: _scene(scene) 
 	{
-		auto& context = Graphics::GetGraphicsContext();
+		_cubeMapShader = Graphics::CreateGraphicsShader("Resources/Shaders/cubemap.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
+		_cubeMapShader->AddInputElement<float>("POSITION", 3);
+		_cubeMapShader->AddInputElement<float>("TEXCOORD", 2);
+		_cubeMapShader->AddInputElement<float>("TANGENT", 3);
+		_cubeMapShader->AddInputElement<float>("NORMAL", 3);
+		_cubeMapShader->AddInputElement<float>("BINORMAL", 3);
+		_cubeMapShader->AddInputElement<int32_t>("BONEINDICES", 4);
+		_cubeMapShader->AddInputElement<float>("BONEWEIGHTS", 4);
+		_cubeMapShader->CreateInputLayout();
 
-		_skyBoxShader = context.CreateGraphicsShader("Resources/Shaders/skybox.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		_skyBoxShader = Graphics::CreateGraphicsShader("Resources/Shaders/skybox.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		_skyBoxShader->AddInputElement<float>("POSITION", 3);
 		_skyBoxShader->AddInputElement<float>("TEXCOORD", 2);
 		_skyBoxShader->AddInputElement<float>("TANGENT", 3);
@@ -20,109 +28,135 @@ namespace flaw {
 		_skyBoxShader->AddInputElement<int32_t>("BONEINDICES", 4);
 		_skyBoxShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_skyBoxShader->CreateInputLayout();
-
-		_skyBoxMaterial = CreateRef<Material>();
-		_skyBoxMaterial->renderMode = RenderMode::Masked;
-		_skyBoxMaterial->shader = _skyBoxShader;
-		_skyBoxMaterial->cullMode = CullMode::Front;
-		_skyBoxMaterial->depthTest = DepthTest::LessEqual;
-		_skyBoxMaterial->depthWrite = false;
 	}
 
 	void SkyBoxSystem::Update() {
-		_skyBoxTexture2D.reset();
-		_skyBoxTextureCube.reset();
-		for (auto&& [entity, skyBox] : _scene.GetRegistry().view<SkyBoxComponent>().each()) {
+		for (auto&& [entity, skyBoxComp] : _scene.GetRegistry().view<SkyBoxComponent>().each()) {
 			// SkyBoxComponent는 하나만 존재해야 함
-			if (auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(skyBox.texture)) {
-				_skyBoxTexture2D = tex2DAsset->GetTexture();
+			Ref<Texture> prevTexture = _skybox.originalTexture;
+
+			if (auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(skyBoxComp.texture)) {
+				_skybox.originalTexture = tex2DAsset->GetTexture();
+
+				if (prevTexture != _skybox.originalTexture) {
+					_skybox.cubemapTexture = MakeCubemapFromTexture2D(tex2DAsset->GetTexture());
+				}
 			}
-			else if (auto texCubeAsset = AssetManager::GetAsset<TextureCubeAsset>(skyBox.texture)) {
-				_skyBoxTextureCube = texCubeAsset->GetTexture();
+			else if (auto texCubeAsset = AssetManager::GetAsset<TextureCubeAsset>(skyBoxComp.texture)) {
+				_skybox.originalTexture = texCubeAsset->GetTexture();
+				_skybox.cubemapTexture = texCubeAsset->GetTexture();
+			}
+			
+			if (prevTexture != _skybox.originalTexture) {
+				_skybox.irradianceTexture = MakeIrradianceCubemap(_skybox.cubemapTexture);
 			}
 
 			break;
 		}
 	}
 
-	void SkyBoxSystem::Render(Ref<ConstantBuffer> vpCB, Ref<ConstantBuffer> globalCB, Ref<ConstantBuffer> lightCB, Ref<ConstantBuffer> materialCB) {
-		if (!_skyBoxTexture2D && !_skyBoxTextureCube) {
+	Ref<TextureCube> SkyBoxSystem::MakeCubemapFromTexture2D(Ref<Texture2D> texture) {
+		auto& cmdQueue = Graphics::GetCommandQueue();
+		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+
+		TextureCube::Descriptor desc = {};
+		desc.width = CubeTextureSize;
+		desc.height = CubeTextureSize;
+		desc.usage = UsageFlag::Static;
+		desc.layout = TextureCube::Layout::Horizontal;
+		desc.format = PixelFormat::RGBA8;
+		desc.bindFlags = BindFlag::ShaderResource | BindFlag::RenderTarget;
+
+		auto cubeTexture = Graphics::CreateTextureCube(desc);
+
+		GraphicsRenderPass::Descriptor cubeMapPassDesc = {};
+		cubeMapPassDesc.renderTargets.resize(1);
+
+		cubeMapPassDesc.renderTargets[0].blendMode = BlendMode::Disabled;
+		cubeMapPassDesc.renderTargets[0].alphaToCoverage = false;
+		cubeMapPassDesc.renderTargets[0].viewportX = 0;
+		cubeMapPassDesc.renderTargets[0].viewportY = 0;
+		cubeMapPassDesc.renderTargets[0].viewportWidth = CubeTextureSize;
+		cubeMapPassDesc.renderTargets[0].viewportHeight = CubeTextureSize;
+		cubeMapPassDesc.renderTargets[0].texture = cubeTexture;
+		cubeMapPassDesc.renderTargets[0].clearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		auto cubeMapRenderPass = Graphics::CreateRenderPass(cubeMapPassDesc);
+
+		struct VPMatrix {
+			mat4 view;
+			mat4 projection;
+		};
+
+		mat4 perspective = Perspective(glm::half_pi<float>(), 1.0f, 0.1f, 10.0f);
+
+		std::vector<VPMatrix> vpMatrices = {
+			{ LookAt(vec3(0.0), Right, Up), perspective }, // Right
+			{ LookAt(vec3(0.0), -Right, Up), perspective }, // Left
+			{ LookAt(vec3(0.0), Up, -Forward), perspective }, // Up
+			{ LookAt(vec3(0.0), -Up, Forward), perspective }, // Down
+			{ LookAt(vec3(0.0), Forward, Up), perspective }, // Forward
+			{ LookAt(vec3(0.0), -Forward, Up), perspective }  // Backward
+		};
+
+		StructuredBuffer::Descriptor vpMatricesDesc = {};
+		vpMatricesDesc.elmSize = sizeof(VPMatrix);
+		vpMatricesDesc.count = 6;
+		vpMatricesDesc.bindFlags = BindFlag::ShaderResource;
+		vpMatricesDesc.initialData = vpMatrices.data();
+		
+		auto vpMatricesSB = Graphics::CreateStructuredBuffer(vpMatricesDesc);
+		auto mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cube_mesh")->GetMesh();
+
+		cubeMapRenderPass->Bind();
+
+		pipeline->SetShader(_cubeMapShader);
+		pipeline->SetFillMode(FillMode::Solid);
+		pipeline->SetCullMode(CullMode::Front);
+		pipeline->SetDepthTest(DepthTest::Disabled);
+
+		cmdQueue.SetPipeline(pipeline);
+		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
+		cmdQueue.SetStructuredBuffer(vpMatricesSB, 0);
+		cmdQueue.SetTexture(texture, 1);
+		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
+		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
+		cmdQueue.Execute();
+
+		cubeMapRenderPass->Unbind();
+
+		return cubeTexture;
+	}
+
+	Ref<TextureCube> SkyBoxSystem::MakeIrradianceCubemap(Ref<TextureCube> cubemap) {
+		// TODO: Implement irradiance cubemap generation
+		return nullptr;
+	}
+
+	void SkyBoxSystem::Render(Ref<ConstantBuffer> vpCB) {
+		if (!_skybox.cubemapTexture) {
 			return;
-		}
-
-		Ref<Mesh> mesh;
-
-		if (_skyBoxTexture2D) {
-			_skyBoxMaterial->intConstants[0] = 0;
-			_skyBoxMaterial->albedoTexture = _skyBoxTexture2D;
-			mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_sphere_mesh")->GetMesh();
-		}
-		else if (_skyBoxTextureCube) {
-			_skyBoxMaterial->intConstants[0] = 1;
-			_skyBoxMaterial->cubeTextures[0] = _skyBoxTextureCube;
-			mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cube_mesh")->GetMesh();
 		}
 
 		auto& mainPass = Graphics::GetMainRenderPass();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 
+		auto mesh = AssetManager::GetAsset<StaticMeshAsset>("default_static_cube_mesh")->GetMesh();
+
 		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
 		mainPass->Bind(false, false);
 
 		// set pipeline
-		pipeline->SetShader(_skyBoxMaterial->shader);
+		pipeline->SetShader(_skyBoxShader);
 		pipeline->SetFillMode(FillMode::Solid);
-		pipeline->SetCullMode(_skyBoxMaterial->cullMode);
-		pipeline->SetDepthTest(_skyBoxMaterial->depthTest, _skyBoxMaterial->depthWrite);
+		pipeline->SetCullMode(CullMode::Front);
+		pipeline->SetDepthTest(DepthTest::LessEqual, false);
 
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(vpCB, 0);
-		cmdQueue.SetConstantBuffer(globalCB, 1);
-		cmdQueue.SetConstantBuffer(lightCB, 2);
-
-		// set material properties
-		MaterialConstants materialConstants;
-
-		materialConstants.reservedTextureBitMask = 0;
-		if (_skyBoxMaterial->albedoTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
-			cmdQueue.SetTexture(_skyBoxMaterial->albedoTexture, ReservedTextureStartSlot);
-		}
-
-		if (_skyBoxMaterial->normalTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
-			cmdQueue.SetTexture(_skyBoxMaterial->normalTexture, ReservedTextureStartSlot + 1);
-		}
-
-		if (_skyBoxMaterial->emissiveTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
-			cmdQueue.SetTexture(_skyBoxMaterial->emissiveTexture, ReservedTextureStartSlot + 2);
-		}
-
-		if (_skyBoxMaterial->heightTexture) {
-			materialConstants.reservedTextureBitMask |= MaterialTextureType::Height;
-			cmdQueue.SetTexture(_skyBoxMaterial->heightTexture, ReservedTextureStartSlot + 3);
-		}
-
-		materialConstants.cubeTextureBitMask = 0;
-		for (int32_t i = 0; i < _skyBoxMaterial->cubeTextures.size(); ++i) {
-			if (_skyBoxMaterial->cubeTextures[i]) {
-				materialConstants.cubeTextureBitMask |= (1 << i);
-				cmdQueue.SetTexture(_skyBoxMaterial->cubeTextures[i], CubeTextureStartSlot + i);
-			}
-		}
-
-		std::memcpy(
-			materialConstants.intConstants,
-			_skyBoxMaterial->intConstants,
-			sizeof(uint32_t) * 4 + sizeof(float) * 4
-		);
-
-		materialCB->Update(&materialConstants, sizeof(MaterialConstants));
-
-		cmdQueue.SetConstantBuffer(materialCB, 3);
+		cmdQueue.SetTexture(_skybox.cubemapTexture, 0);
 		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
 		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
 

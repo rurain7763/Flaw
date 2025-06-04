@@ -14,6 +14,7 @@ namespace flaw {
 			Tga,
 			Dds,
 			Exr,
+			Hdr,
 			Unknown
 		};
 

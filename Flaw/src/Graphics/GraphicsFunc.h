@@ -129,8 +129,7 @@ namespace flaw {
 		}
 	}
 
-	inline void GenerateCube(std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices, std::vector<uint32_t>& outIndices)
-	{
+	inline void GenerateCube(std::function<void(vec3, vec2, vec3, vec3, vec3)> vertices, std::vector<uint32_t>& outIndices) {
 		const vec3 positions[6][4] = {
 			// Front (Z-)
 			{ {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f} },
@@ -178,8 +177,9 @@ namespace flaw {
 			vec3 tangent = tangents[face];
 			vec3 binormal = normalize(cross(normal, tangent));
 
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < 4; ++i) {
 				vertices(positions[face][i], uvs[i], normal, tangent, binormal);
+			}
 
 			// Index order same as GenerateCubeMesh (CW winding)
 			outIndices.push_back(baseIndex + 0);

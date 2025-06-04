@@ -37,29 +37,48 @@ namespace flaw {
 				desiredChannels = 4; // RGBA
 			}
 
-			_data.resize(_width * _height * desiredChannels); // RGBA
-			for (int y = 0; y < _height; ++y) {
-				for (int x = 0; x < _width; ++x) {
+			std::vector<float> data(_width * _height * desiredChannels);
+			for (int32_t y = 0; y < _height; ++y) {
+				for (int32_t x = 0; x < _width; ++x) {
 					Imf::Rgba& pixel = pixels[y][x];
 
 					int32_t pixelIndex = (y * _width + x) * desiredChannels;
-					
+
 					if (desiredChannels == 1) {
-						_data[pixelIndex] = pixel.r * 255.f; // R
+						data[pixelIndex] = pixel.r; // R
 					}
 					else if (desiredChannels == 3) {
-						_data[pixelIndex] = pixel.r * 255.f; // R
-						_data[pixelIndex + 1] = pixel.g * 255.f; // G
-						_data[pixelIndex + 2] = pixel.b * 255.f; // B
+						data[pixelIndex] = pixel.r; // R
+						data[pixelIndex + 1] = pixel.g; // G
+						data[pixelIndex + 2] = pixel.b; // B
 					}
 					else if (desiredChannels == 4) {
-						_data[pixelIndex] = pixel.r * 255.f; // R
-						_data[pixelIndex + 1] = pixel.g * 255.f; // G
-						_data[pixelIndex + 2] = pixel.b * 255.f; // B
-						_data[pixelIndex + 3] = pixel.a * 255.f; // A
+						data[pixelIndex] = pixel.r; // R
+						data[pixelIndex + 1] = pixel.g; // G
+						data[pixelIndex + 2] = pixel.b; // B
+						data[pixelIndex + 3] = pixel.a; // A
 					}
 				}
 			}
+
+			_data.resize(_width * _height * desiredChannels * sizeof(float));
+			memcpy(_data.data(), data.data(), _data.size());
+		}
+		else if (_type == Image::Type::Hdr) {
+			float* data = stbi_loadf(filePath, &_width, &_height, &_channels, desiredChannels);
+			if (data == nullptr) {
+				Log::Error("Failed to load HDR image : %s", filePath);
+				return;
+			}
+
+			if (desiredChannels != 0) {
+				_channels = desiredChannels;
+			}
+
+			_data.resize(_width * _height * _channels * sizeof(float));
+			memcpy(_data.data(), data, _data.size());
+
+			stbi_image_free(data);
 		}
 		else {
 			uint8_t* data = stbi_load(filePath, &_width, &_height, &_channels, desiredChannels);
@@ -90,6 +109,22 @@ namespace flaw {
 
 		if (_type == Image::Type::Exr) {
 			// TODO: EXR 메모리 로드 구현
+		}
+		else if (_type == Image::Type::Hdr) {
+			float* data = stbi_loadf_from_memory((const uint8_t*)source, size, &_width, &_height, &_channels, desiredChannels);
+			if (data == nullptr) {
+				Log::Error("Failed to load HDR image from memory");
+				return;
+			}
+
+			if (desiredChannels != 0) {
+				_channels = desiredChannels;
+			}
+
+			_data.resize(_width * _height * _channels * sizeof(float));
+			memcpy(_data.data(), data, _data.size());
+
+			stbi_image_free(data);
 		}
 		else {
 			uint8_t* data = stbi_load_from_memory((const uint8_t*)source, size, &_width, &_height, &_channels, desiredChannels);
@@ -140,6 +175,9 @@ namespace flaw {
 		else if (path.extension() == ".exr") {
 			return Image::Type::Exr;
 		}
+		else if (path.extension() == ".hdr") {
+			return Image::Type::Hdr;
+		}
 		else {
 			return Image::Type::Unknown;
 		}
@@ -161,6 +199,9 @@ namespace flaw {
 			break;
 		case Image::Type::Exr:
 			// TODO: EXR 저장 구현
+			break;
+		case Image::Type::Hdr:
+			stbi_write_hdr(filePath, width, height, channels, (const float*)data);
 			break;
 		case Image::Type::Dds:
 			Log::Error("DDS format is not supported for saving");

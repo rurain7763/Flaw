@@ -1,1 +1,1 @@
-{"otherData": {},"traceEvents":[{"cat":"function","dur":401374,"name":"__cdecl flaw::Application::Application(const struct flaw::ApplicationProps &)","ph":"X","pid":0,"tid":2154303362,"ts":29178961808}]}
+{"otherData": {},"traceEvents":[{"cat":"function","dur":379992,"name":"__cdecl flaw::Application::Application(const struct flaw::ApplicationProps &)","ph":"X","pid":0,"tid":4194920926,"ts":23073875787}]}
