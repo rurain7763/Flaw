@@ -22,6 +22,8 @@ namespace flaw {
 		DXTexture2D(DXContext& context, const Descriptor& descriptor);
 		DXTexture2D(DXContext& context, const ComPtr<ID3D11Texture2D>& texture, const PixelFormat format, const uint32_t bindFlags);
 
+		void GenerateMips(uint32_t level) override;
+
 		void Fetch(void* outData, const uint32_t size) const override;
 
 		void CopyTo(Ref<Texture2D>& target) const override;
@@ -29,8 +31,8 @@ namespace flaw {
 
 		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
 		UnorderedAccessView GetUnorderedAccessView() const override { return _uav.Get(); }
-		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
-		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+		RenderTargetView GetRenderTargetView(uint32_t mipLevel = 0) const override { return _rtv.Get(); }
+		DepthStencilView GetDepthStencilView(uint32_t mipLevel = 0) const override { return _dsv.Get(); }
 
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
@@ -44,10 +46,10 @@ namespace flaw {
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
 
-		bool CreateRenderTargetView(const PixelFormat format);
-		bool CreateDepthStencilView(const PixelFormat format);
-		bool CreateShaderResourceView(const PixelFormat format);
-		bool CreateUnorderedAccessView(const PixelFormat format);
+		bool CreateRenderTargetView();
+		bool CreateDepthStencilView();
+		bool CreateShaderResourceView();
+		bool CreateUnorderedAccessView();
 
 	private:
 		DXContext& _context;
@@ -63,6 +65,7 @@ namespace flaw {
 		UsageFlag _usage;
 		uint32_t _acessFlags;
 		uint32_t _bindFlags;
+		uint32_t _mipLevels;
 
 		uint32_t _width;
 		uint32_t _height;
@@ -78,8 +81,8 @@ namespace flaw {
 
 		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
 		UnorderedAccessView GetUnorderedAccessView() const override { return _uav.Get(); }
-		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
-		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+		RenderTargetView GetRenderTargetView(uint32_t mipLevel = 0) const override { return _rtv.Get(); } // TODO: support multiple mip levels
+		DepthStencilView GetDepthStencilView(uint32_t mipLevel = 0) const override { return _dsv.Get(); } // TODO: support multiple mip levels
 
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
@@ -128,10 +131,12 @@ namespace flaw {
 	public:
 		DXTextureCube(DXContext& context, const Descriptor& descriptor);
 
+		void GenerateMips(uint32_t level) override;
+
 		ShaderResourceView GetShaderResourceView() const override { return _srv.Get(); }
 		UnorderedAccessView GetUnorderedAccessView() const override { return nullptr; } // UnorderedAccessView is not supported for cube textures now
-		RenderTargetView GetRenderTargetView() const override { return _rtv.Get(); }
-		DepthStencilView GetDepthStencilView() const override { return _dsv.Get(); }
+		RenderTargetView GetRenderTargetView(uint32_t mipLevel = 0) const override { return mipLevel < _rtvs.size() ? _rtvs[mipLevel].Get() : nullptr; } // TODO: support multiple mip levels
+		DepthStencilView GetDepthStencilView(uint32_t mipLevel = 0) const override { return mipLevel < _dsvs.size() ? _dsvs[mipLevel].Get() : nullptr; } // TODO: support multiple mip levels
 
 		uint32_t GetWidth() const override { return _width; }
 		uint32_t GetHeight() const override { return _height; }
@@ -145,23 +150,24 @@ namespace flaw {
 	private:
 		bool CreateTexture(const Descriptor& descriptor);
 
-		bool CreateRenderTargetView(const PixelFormat format);
-		bool CreateDepthStencilView(const PixelFormat format);
-		bool CreateShaderResourceView(const PixelFormat format);
+		bool CreateRenderTargetViews();
+		bool CreateDepthStencilViews();
+		bool CreateShaderResourceView();
 
 	private:
 		DXContext& _context;
 
 		ComPtr<ID3D11Texture2D> _texture;
 
-		ComPtr<ID3D11RenderTargetView> _rtv;
-		ComPtr<ID3D11DepthStencilView> _dsv;
+		std::vector<ComPtr<ID3D11RenderTargetView>> _rtvs; // rtvs per mip level
+		std::vector<ComPtr<ID3D11DepthStencilView>> _dsvs; // dsvs per mip level
 		ComPtr<ID3D11ShaderResourceView> _srv;
 
 		PixelFormat _format;
 		UsageFlag _usage;
 		uint32_t _acessFlags;
 		uint32_t _bindFlags;
+		uint32_t _mipLevels;
 
 		uint32_t _width;
 		uint32_t _height;

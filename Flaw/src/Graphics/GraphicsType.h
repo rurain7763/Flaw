@@ -41,6 +41,7 @@ namespace flaw {
 		PointList,
 		ControlPoint3_PatchList,
 		ControlPoint4_PatchList,
+		Count
 	};
 
 	enum class CullMode {

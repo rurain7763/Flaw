@@ -42,7 +42,7 @@ namespace flaw {
 			auto& rtv = _rtvs[i];
 			auto& viewport = _viewports[i];
 
-			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView());
+			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView(renderTarget.mipLevel));
 
 			viewport.TopLeftX = renderTarget.viewportX;
 			viewport.TopLeftY = renderTarget.viewportY;
@@ -58,7 +58,7 @@ namespace flaw {
 			return;
 		}
 
-		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView());
+		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView(_depthStencil.mipLevel));
 	}
 
 	void DXRenderPass::Bind(bool clearColor, bool clearDepthStencil) {
@@ -107,7 +107,7 @@ namespace flaw {
 			auto& rtv = _rtvs[i];
 			auto& viewport = _viewports[i];
 
-			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView());
+			rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView(renderTarget.mipLevel));
 
 			viewport.TopLeftX = renderTarget.viewportX;
 			viewport.TopLeftY = renderTarget.viewportY;
@@ -130,7 +130,7 @@ namespace flaw {
 		}
 
 		_depthStencil.resizeFunc(_depthStencil, width, height);
-		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView());
+		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView(_depthStencil.mipLevel));
 	}
 
 	void DXRenderPass::PushRenderTarget(const GraphicsRenderTarget& renderTarget) {
@@ -170,6 +170,51 @@ namespace flaw {
 		renderTarget.alphaToCoverage = alphaToCoverage;
 
 		CreateBlendState();
+	}
+
+	void DXRenderPass::SetViewport(int32_t slot, float x, float y, float width, float height) {
+		FASSERT(slot >= 0 && slot < _renderTargets.size(), "Invalid render target slot");
+
+		auto& renderTarget = _renderTargets[slot];
+		renderTarget.viewportX = x;
+		renderTarget.viewportY = y;
+		renderTarget.viewportWidth = width;
+		renderTarget.viewportHeight = height;
+
+		auto& viewport = _viewports[slot];
+		viewport.TopLeftX = renderTarget.viewportX;
+		viewport.TopLeftY = renderTarget.viewportY;
+		viewport.Width = renderTarget.viewportWidth;
+		viewport.Height = renderTarget.viewportHeight;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+	}
+
+	void DXRenderPass::SetRenderTargetMipLevel(int32_t slot, uint32_t mipLevel) {
+		FASSERT(slot >= 0 && slot < _renderTargets.size(), "Invalid render target slot");
+
+		auto& renderTarget = _renderTargets[slot];
+		if (renderTarget.mipLevel == mipLevel) {
+			return;
+		}
+
+		renderTarget.mipLevel = mipLevel;
+
+		auto& rtv = _rtvs[slot];
+		rtv = static_cast<ID3D11RenderTargetView*>(renderTarget.texture->GetRenderTargetView(mipLevel));
+	}
+
+	void DXRenderPass::SetDepthStencilMipLevel(uint32_t mipLevel) {
+		if (!_depthStencil.texture) {
+			return;
+		}
+
+		if (_depthStencil.mipLevel == mipLevel) {
+			return;
+		}
+
+		_depthStencil.mipLevel = mipLevel;
+		_dsv = static_cast<ID3D11DepthStencilView*>(_depthStencil.texture->GetDepthStencilView(mipLevel));
 	}
 
 	Ref<Texture> DXRenderPass::GetRenderTargetTex(int32_t slot) {

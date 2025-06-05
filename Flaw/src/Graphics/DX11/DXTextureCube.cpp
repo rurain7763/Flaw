@@ -14,20 +14,74 @@ namespace flaw {
 			return;
 		}
 
-		if (descriptor.bindFlags & BindFlag::RenderTarget && !CreateRenderTargetView(descriptor.format)) {
+		if (_bindFlags & BindFlag::RenderTarget && !CreateRenderTargetViews()) {
 			Log::Error("CreateRenderTargetView failed");
 			return;
 		}
 
-		if (descriptor.bindFlags & BindFlag::DepthStencil && !CreateDepthStencilView(descriptor.format)) {
+		if (_bindFlags & BindFlag::DepthStencil && !CreateDepthStencilViews()) {
 			Log::Error("CreateDepthStencilView failed");
 			return;
 		}
 
-		if (descriptor.bindFlags & BindFlag::ShaderResource && !CreateShaderResourceView(descriptor.format)) {
+		if (_bindFlags & BindFlag::ShaderResource && !CreateShaderResourceView()) {
 			Log::Error("CreateShaderResourceView failed");
 			return;
 		}
+	}
+
+	void DXTextureCube::GenerateMips(uint32_t level) {
+		if (!(_bindFlags & BindFlag::ShaderResource)) {
+			Log::Error("DXTextureCube::GenerateMips: ShaderResource bind flag is required for mip generation");
+			return;
+		}
+
+		if (level == _mipLevels) {
+			return;
+		}
+
+		D3D11_TEXTURE2D_DESC desc;
+		_texture->GetDesc(&desc);
+		desc.BindFlags |= D3D11_BIND_RENDER_TARGET; // Ensure render target binding for mip generation
+		desc.MipLevels = level;
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+		ComPtr<ID3D11Texture2D> newTexture;
+		if (FAILED(_context.Device()->CreateTexture2D(&desc, nullptr, newTexture.GetAddressOf()))) {
+			Log::Error("DXTextureCube::GenerateMips: CreateTexture2D failed");
+			return;
+		}
+
+		for (uint32_t i = 0; i < 6; ++i) {
+			_context.DeviceContext()->CopySubresourceRegion(
+				newTexture.Get(),
+				D3D11CalcSubresource(0, i, level),
+				0, 0, 0,
+				_texture.Get(),
+				D3D11CalcSubresource(0, i, _mipLevels),
+				nullptr
+			);
+		}
+
+		_texture = newTexture;
+		_mipLevels = level;
+
+		if (_bindFlags & BindFlag::RenderTarget && !CreateRenderTargetViews()) {
+			Log::Error("DXTextureCube::GenerateMips: CreateRenderTargetView failed after mip generation");
+			return;
+		}
+
+		if (_bindFlags & BindFlag::DepthStencil && !CreateDepthStencilViews()) {
+			Log::Error("DXTextureCube::GenerateMips: CreateDepthStencilView failed after mip generation");
+			return;
+		}
+
+		if (!CreateShaderResourceView()) {
+			Log::Error("DXTextureCube::GenerateMips: CreateShaderResourceView failed after mip generation");
+			return;
+		}
+
+		_context.DeviceContext()->GenerateMips(_srv.Get());
 	}
 
 	bool DXTextureCube::CreateTexture(const Descriptor& descriptor) {
@@ -125,47 +179,59 @@ namespace flaw {
 		_usage = descriptor.usage;
 		_acessFlags = descriptor.access;
 		_bindFlags = descriptor.bindFlags;
+		_mipLevels = desc.MipLevels;
+
 		_width = descriptor.width;
 		_height = descriptor.height;
 
 		return true;
 	}
 
-	bool DXTextureCube::CreateRenderTargetView(const PixelFormat format) {
-		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-		rtvDesc.Format = ConvertToDXGIFormat(format);
-		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-		rtvDesc.Texture2DArray.MipSlice = 0;
-		rtvDesc.Texture2DArray.FirstArraySlice = 0;
-		rtvDesc.Texture2DArray.ArraySize = 6;
+	bool DXTextureCube::CreateRenderTargetViews() {
+		_rtvs.resize(_mipLevels);
+		for (int32_t i = 0; i < _mipLevels; i++) {
+			ComPtr<ID3D11RenderTargetView>& rtv = _rtvs[i];
 
-		if (FAILED(_context.Device()->CreateRenderTargetView(_texture.Get(), &rtvDesc, _rtv.GetAddressOf()))) {
-			return false;
+			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+			rtvDesc.Format = ConvertToDXGIFormat(_format);
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.MipSlice = i;
+			rtvDesc.Texture2DArray.FirstArraySlice = 0;
+			rtvDesc.Texture2DArray.ArraySize = 6;
+
+			if (FAILED(_context.Device()->CreateRenderTargetView(_texture.Get(), &rtvDesc, rtv.GetAddressOf()))) {
+				return false;
+			}
 		}
 
 		return true;
 	}
 
-	bool DXTextureCube::CreateDepthStencilView(const PixelFormat format) {
-		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = ConvertToDXGIFormat(format);
-		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-		dsvDesc.Texture2DArray.MipSlice = 0;
-		dsvDesc.Texture2DArray.FirstArraySlice = 0;
-		dsvDesc.Texture2DArray.ArraySize = 6;
+	bool DXTextureCube::CreateDepthStencilViews() {
+		_dsvs.resize(_mipLevels);
+		for (int32_t i = 0; i < _mipLevels; i++) {
+			ComPtr<ID3D11DepthStencilView>& dsv = _dsvs[i];
 
-		if (FAILED(_context.Device()->CreateDepthStencilView(_texture.Get(), &dsvDesc, _dsv.GetAddressOf()))) {
-			return false;
+			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+			dsvDesc.Format = ConvertToDXGIFormat(_format);
+			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			dsvDesc.Texture2DArray.MipSlice = i;
+			dsvDesc.Texture2DArray.FirstArraySlice = 0;
+			dsvDesc.Texture2DArray.ArraySize = 6;
+
+			if (FAILED(_context.Device()->CreateDepthStencilView(_texture.Get(), &dsvDesc, dsv.GetAddressOf()))) {
+				return false;
+			}
 		}
 
 		return true;
 	}
 
-	bool DXTextureCube::CreateShaderResourceView(const PixelFormat format) {
+	bool DXTextureCube::CreateShaderResourceView() {
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = ConvertToDXGIFormat(format);
+		srvDesc.Format = ConvertToDXGIFormat(_format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-		srvDesc.TextureCube.MipLevels = 1;
+		srvDesc.TextureCube.MipLevels = _mipLevels;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 
 		if (FAILED(_context.Device()->CreateShaderResourceView(_texture.Get(), &srvDesc, _srv.GetAddressOf()))) {

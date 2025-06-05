@@ -106,6 +106,14 @@ namespace flaw {
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
 		RegisterKey("default_static_sphere_mesh", handle);
+
+		handle = g_registeredAssets.size();
+		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
+			GenerateQuad([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
+			// NOTE: no material for quad mesh
+			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
+		}));
+		RegisterKey("default_static_quad_mesh", handle);
 	}
 
 	void AssetManager::Cleanup() {

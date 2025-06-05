@@ -10,8 +10,8 @@ namespace flaw {
 
 		virtual ShaderResourceView GetShaderResourceView() const = 0;
 		virtual UnorderedAccessView GetUnorderedAccessView() const = 0;
-		virtual RenderTargetView GetRenderTargetView() const = 0;
-		virtual DepthStencilView GetDepthStencilView() const = 0;
+		virtual RenderTargetView GetRenderTargetView(uint32_t mipLevel = 0) const = 0;
+		virtual DepthStencilView GetDepthStencilView(uint32_t mipLevel = 0) const = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
@@ -53,6 +53,8 @@ namespace flaw {
 
 		Texture2D() = default;
 		virtual ~Texture2D() = default;
+
+		virtual void GenerateMips(uint32_t level) = 0;
 
 		virtual void Fetch(void* outData, uint32_t size) const = 0;
 
@@ -110,6 +112,8 @@ namespace flaw {
 
 		TextureCube() = default;
 		virtual ~TextureCube() = default;
+
+		virtual void GenerateMips(uint32_t level) = 0;
 	};
 }
 

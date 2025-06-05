@@ -14,29 +14,29 @@ namespace flaw {
 			return;
 		}
 
-		if (descriptor.bindFlags & BindFlag::RenderTarget) {
-			if (!CreateRenderTargetView(descriptor.format)) {
+		if (_bindFlags & BindFlag::RenderTarget) {
+			if (!CreateRenderTargetView()) {
 				Log::Error("CreateRenderTargetView failed");
 				return;
 			}
 		}
 
-		if (descriptor.bindFlags & BindFlag::DepthStencil) {
-			if (!CreateDepthStencilView(descriptor.format)) {
+		if (_bindFlags & BindFlag::DepthStencil) {
+			if (!CreateDepthStencilView()) {
 				Log::Error("CreateDepthStencilView failed");
 				return;
 			}
 		}
 
-		if (descriptor.bindFlags & BindFlag::ShaderResource) {
-			if (!CreateShaderResourceView(descriptor.format)) {
+		if (_bindFlags & BindFlag::ShaderResource) {
+			if (!CreateShaderResourceView()) {
 				Log::Error("CreateShaderResourceView failed");
 				return;
 			}
 		}
 
-		if (descriptor.bindFlags & BindFlag::UnorderedAccess) {
-			if (!CreateUnorderedAccessView(descriptor.format)) {
+		if (_bindFlags & BindFlag::UnorderedAccess) {
+			if (!CreateUnorderedAccessView()) {
 				Log::Error("CreateUnorderedAccessView failed");
 				return;
 			}
@@ -72,34 +72,73 @@ namespace flaw {
 		}
 
 		_bindFlags = bindFlags;
+		_mipLevels = desc.MipLevels;
 
 		_width = desc.Width;
 		_height = desc.Height;
 
-		if (bindFlags & BindFlag::RenderTarget) {
-			if (!CreateRenderTargetView(format)) {
+		if (_bindFlags & BindFlag::RenderTarget) {
+			if (!CreateRenderTargetView()) {
 				Log::Error("CreateRenderTargetView failed");
 				return;
 			}
 		}
-		if (bindFlags & BindFlag::DepthStencil) {
-			if (!CreateDepthStencilView(format)) {
+		if (_bindFlags & BindFlag::DepthStencil) {
+			if (!CreateDepthStencilView()) {
 				Log::Error("CreateDepthStencilView failed");
 				return;
 			}
 		}
-		if (bindFlags & BindFlag::ShaderResource) {
-			if (!CreateShaderResourceView(format)) {
+		if (_bindFlags & BindFlag::ShaderResource) {
+			if (!CreateShaderResourceView()) {
 				Log::Error("CreateShaderResourceView failed");
 				return;
 			}
 		}
-		if (bindFlags & BindFlag::UnorderedAccess) {
-			if (!CreateUnorderedAccessView(format)) {
+		if (_bindFlags & BindFlag::UnorderedAccess) {
+			if (!CreateUnorderedAccessView()) {
 				Log::Error("CreateUnorderedAccessView failed");
 				return;
 			}
 		}
+	}
+
+	void DXTexture2D::GenerateMips(uint32_t levels) {
+		if (!(_bindFlags & BindFlag::ShaderResource)) {
+			Log::Error("GenerateMips called on a texture without ShaderResource bind flag");
+			return;
+		}
+
+		D3D11_TEXTURE2D_DESC desc;
+		_texture->GetDesc(&desc);
+		desc.BindFlags |= D3D11_BIND_RENDER_TARGET; // Ensure render target binding for mip generation
+		desc.MipLevels = levels;
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+		ComPtr<ID3D11Texture2D> newTexture;
+		if (FAILED(_context.Device()->CreateTexture2D(&desc, nullptr, newTexture.GetAddressOf()))) {
+			Log::Error("CreateTexture2D failed during mip generation");
+			return;
+		}
+
+		_context.DeviceContext()->CopySubresourceRegion(
+			newTexture.Get(), 
+			D3D11CalcSubresource(0, 0, levels), 
+			0, 0, 0,
+			_texture.Get(),
+			D3D11CalcSubresource(0, 0, _mipLevels),
+			nullptr
+		);
+
+		_texture = newTexture;
+		_mipLevels = levels;
+
+		if (!CreateShaderResourceView()) {
+			Log::Error("CreateShaderResourceView failed after mip generation");
+			return;
+		}
+
+		_context.DeviceContext()->GenerateMips(_srv.Get());
 	}
 
 	void DXTexture2D::Fetch(void* outData, const uint32_t size) const {
@@ -177,6 +216,7 @@ namespace flaw {
 		_usage = descriptor.usage;
 		_acessFlags = descriptor.access;
 		_bindFlags = descriptor.bindFlags;
+		_mipLevels = desc.MipLevels;
 
 		_width = descriptor.width;
 		_height = descriptor.height;
@@ -184,9 +224,9 @@ namespace flaw {
 		return true;
 	}
 
-	bool DXTexture2D::CreateRenderTargetView(const PixelFormat format) {
+	bool DXTexture2D::CreateRenderTargetView() {
 		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-		rtvDesc.Format = ConvertToDXGIFormat(format);
+		rtvDesc.Format = ConvertToDXGIFormat(_format);
 		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		rtvDesc.Texture2D.MipSlice = 0;
 
@@ -197,9 +237,9 @@ namespace flaw {
 		return true;
 	}
 
-	bool DXTexture2D::CreateDepthStencilView(const PixelFormat format) {
+	bool DXTexture2D::CreateDepthStencilView() {
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = ConvertToDXGIFormat(format);
+		dsvDesc.Format = ConvertToDXGIFormat(_format);
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
 
@@ -210,12 +250,12 @@ namespace flaw {
 		return true;
 	}
 
-	bool DXTexture2D::CreateShaderResourceView(const PixelFormat format) {
+	bool DXTexture2D::CreateShaderResourceView() {
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = ConvertToDXGIFormat(format);
+		srvDesc.Format = ConvertToDXGIFormat(_format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MipLevels = _mipLevels;
 
 		if (FAILED(_context.Device()->CreateShaderResourceView(_texture.Get(), &srvDesc, _srv.GetAddressOf()))) {
 			return false;
@@ -224,9 +264,9 @@ namespace flaw {
 		return true;
 	}
 
-	bool DXTexture2D::CreateUnorderedAccessView(const PixelFormat format) {
+	bool DXTexture2D::CreateUnorderedAccessView() {
 		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-		uavDesc.Format = ConvertToDXGIFormat(format);
+		uavDesc.Format = ConvertToDXGIFormat(_format);
 		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 
 		if (FAILED(_context.Device()->CreateUnorderedAccessView(_texture.Get(), &uavDesc, _uav.GetAddressOf()))) {

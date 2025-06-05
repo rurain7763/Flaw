@@ -31,6 +31,10 @@ namespace flaw {
 		void PopRenderTarget() override;
 
 		void SetBlendMode(int32_t slot, BlendMode blendMode, bool alphaToCoverage) override;
+		void SetViewport(int32_t slot, float x, float y, float width, float height) override;
+
+		void SetRenderTargetMipLevel(int32_t slot, uint32_t mipLevel) override;
+		void SetDepthStencilMipLevel(uint32_t mipLevel) override;
 
 		Ref<Texture> GetRenderTargetTex(int32_t slot) override;
 		Ref<Texture> GetDepthStencilTex() override;

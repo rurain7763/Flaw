@@ -229,11 +229,6 @@ namespace flaw {
 			current.viewportHeight = height;
 		};
 
-		lightMRTDesc.depthStencil.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		lightMRTDesc.depthStencil.resizeFunc = [](GraphicsDepthStencil& current, int32_t width, int32_t height) {
-			current.texture = Graphics::GetMainRenderPass()->GetDepthStencilTex();
-		};
-
 		_lightingPass = Graphics::CreateRenderPass(lightMRTDesc);
 	}
 
@@ -884,16 +879,25 @@ namespace flaw {
 		pipeline->SetCullMode(CullMode::Back);
 		pipeline->SetDepthTest(DepthTest::Always, false);
 
+		SkyBox& skybox = _scene.GetSkyBoxSystem().GetSkyBox();
+
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
 		cmdQueue.SetConstantBuffer(_globalCB, 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 0);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 1);
-		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 2);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingRadiance), 3);
-		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingShadow), 4);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryAlbedo), 2);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryMaterial), 3);
+		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryEmissive), 4);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingRadiance), 5);
+		cmdQueue.SetTexture(_lightingPass->GetRenderTargetTex(LightingShadow), 6);
+		if (skybox.originalTexture) {
+			cmdQueue.SetTexture(skybox.irradianceTexture, 7);
+			cmdQueue.SetTexture(skybox.prefilteredTexture, 8);
+			cmdQueue.SetTexture(skybox.brdfLUTTexture, 9);
+		}
 		cmdQueue.SetVertexBuffer(g_fullscreenQuadVB);
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 
