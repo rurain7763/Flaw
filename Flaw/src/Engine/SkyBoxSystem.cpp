@@ -64,7 +64,6 @@ namespace flaw {
 
 	void SkyBoxSystem::Update() {
 		for (auto&& [entity, skyBoxComp] : _scene.GetRegistry().view<SkyBoxComponent>().each()) {
-			// SkyBoxComponent는 하나만 존재해야 함
 			Ref<Texture> prevTexture = _skybox.originalTexture;
 
 			if (auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(skyBoxComp.texture)) {
@@ -79,12 +78,13 @@ namespace flaw {
 				_skybox.cubemapTexture = texCubeAsset->GetTexture();
 				_skybox.cubemapTexture->GenerateMips(CubeMipLevels);
 			}
-			
+
 			if (prevTexture != _skybox.originalTexture) {
 				_skybox.irradianceTexture = GenerateIrradianceCubemap(_skybox.cubemapTexture);
 				_skybox.prefilteredTexture = GeneratePrefilteredCubemap(_skybox.cubemapTexture);
 			}
 
+			// SkyBoxComponent는 하나만 존재해야 함
 			break;
 		}
 	}

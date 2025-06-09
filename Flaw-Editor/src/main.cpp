@@ -13,13 +13,13 @@ void main(int argc, char** argv) {
 	props.argc = argc;
 	props.argv = argv;
 
-	FLAW_PROFILE_BEGIN_SESSION("Startup", "FlawProfile-Startup.json");
+	//FLAW_PROFILE_BEGIN_SESSION("Startup", "FlawProfile-Startup.json");
 	flaw::FlawEditor* sandbox = new flaw::FlawEditor(props);
-	FLAW_PROFILE_END_SESSION();
+	//FLAW_PROFILE_END_SESSION();
 
-	FLAW_PROFILE_BEGIN_SESSION("Runtime", "FlawProfile-Runtime.json");
+	//FLAW_PROFILE_BEGIN_SESSION("Runtime", "FlawProfile-Runtime.json");
 	sandbox->Run();
-	FLAW_PROFILE_END_SESSION();
+	//FLAW_PROFILE_END_SESSION();
 
 	delete sandbox;
 

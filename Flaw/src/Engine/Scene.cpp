@@ -195,9 +195,9 @@ namespace flaw {
 
 	static b2BodyType RigidBody2DBTypeToBox2DBType(Rigidbody2DComponent::BodyType type) {
 		switch (type) {
-		case Rigidbody2DComponent::BodyType::Static: return b2_staticBody;
-		case Rigidbody2DComponent::BodyType::Dynamic: return b2_dynamicBody;
-		case Rigidbody2DComponent::BodyType::Kinematic: return b2_kinematicBody;
+			case Rigidbody2DComponent::BodyType::Static: return b2_staticBody;
+			case Rigidbody2DComponent::BodyType::Dynamic: return b2_dynamicBody;
+			case Rigidbody2DComponent::BodyType::Kinematic: return b2_kinematicBody;
 		}
 		
 		throw std::runtime_error("Unknown RigidBody2DComponent::BodyType");

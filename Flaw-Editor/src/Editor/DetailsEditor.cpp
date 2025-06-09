@@ -118,24 +118,56 @@ namespace flaw {
 				});
 
 			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
-				char buffer[256] = { 0 };
-				strcpy_s(buffer, monoScriptComp.name.c_str());
-				if (ImGui::InputText("Name", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-					monoScriptComp.name = buffer;
+				std::vector<std::string> scriptNames;
+				int32_t selectedScriptIndex = -1;
+				int32_t index = 0;
+				for (const auto& [scriptName, scriptClass] : Scripting::GetMonoScriptDomain().GetMonoScriptClasses()) {
+					if (Scripting::IsEngineComponent(scriptClass->GetReflectionType())) {
+						continue; // Skip engine components
+					}
+					
+					scriptNames.push_back(scriptName);
+
+					if (scriptName == monoScriptComp.name) {
+						selectedScriptIndex = index;
+					}
+
+					index++;
 				}
 
-				auto obj = Scripting::GetMonoScriptObject(_selectedEntt);
-				if (obj) {
-					obj->GetClass()->EachPublicFields([this, &obj](std::string_view fieldName, MonoScriptClassField& field) {
-						if (field.GetTypeName() == "System.Single") {
-							float value = field.GetValue<float>(obj.get());
-							if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
-								field.SetValue(obj.get(), &value);
-							}
-						}
-						});
+				if (EditorHelper::DrawCombo("Script", selectedScriptIndex, scriptNames)) {
+					Scripting::DestroyTempMonoScriptObject(_selectedEntt.GetUUID());
+					monoScriptComp.name = scriptNames[selectedScriptIndex];
 				}
+
+				if (selectedScriptIndex == -1) {
+					return;
+				}
+
+				auto tempMonoScriptObject = Scripting::GetTempMonoScriptObject(_selectedEntt.GetUUID());
+				if (!tempMonoScriptObject) {
+					tempMonoScriptObject = Scripting::CreateTempMonoScriptObject(_selectedEntt.GetUUID(), monoScriptComp.name.c_str());
+				}
+
+				tempMonoScriptObject->GetClass()->EachPublicFields([&tempMonoScriptObject](std::string_view fieldName, MonoScriptClassField& field) {
+					auto typeName = field.GetTypeName();
+					
+					if (typeName == "System.Single") {
+						float value = 0.f;
+						field.GetValue(tempMonoScriptObject.get(), &value);
+						if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
+							field.SetValue(tempMonoScriptObject.get(), &value);
+						}
+					}
+					else if (typeName == "System.Int32") {
+						int32_t value = 0;
+						field.GetValue(tempMonoScriptObject.get(), &value);
+						if (ImGui::DragInt(fieldName.data(), &value, 1)) {
+							field.SetValue(tempMonoScriptObject.get(), &value);
+						}
+					}
 				});
+			});
 
 			DrawComponent<TextComponent>(_selectedEntt, [](TextComponent& textComp) {
 				std::string utf8Str = Utf16ToUtf8(textComp.text);

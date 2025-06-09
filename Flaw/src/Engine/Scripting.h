@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "Scripting/MonoScripting.h"
-#include "Entity.h"
+#include "Utils/UUID.h"
 
 namespace flaw {
 	class Application;
@@ -18,8 +18,22 @@ namespace flaw {
 		static void OnUpdate();
 		static void OnEnd();
 
-		static Ref<MonoScriptObject> CreateMonoScriptObject(const Entity& entity, const char* name);
-		static Ref<MonoScriptObject> GetMonoScriptObject(const Entity& entity);
+		static Ref<MonoScriptObject> CreateTempMonoScriptObject(const UUID& uuid, const char* name);
+		static void DestroyTempMonoScriptObject(const UUID& uuid);
+		static Ref<MonoScriptObject> GetTempMonoScriptObject(const UUID& uuid);
+
+		static bool IsEngineComponent(MonoReflectionType* type);
+		static bool HasComponent(UUID uuid, MonoReflectionType* type);
+		static bool IsComponentInstanceExists(UUID uuid);
+		static MonoObject* GetComponentInstance(UUID uuid);
+
+		static MonoScriptDomain& GetMonoScriptDomain();
+		static Application& GetApplication();
+		static Scene& GetScene();
+		static float GetTimeSinceStart();
+
+	private:
+		static Ref<MonoScriptObject> CreateMonoScriptObjectImpl(const UUID& uuid, const char* name);
 
 	private:
 		static void LoadMonoScripts();

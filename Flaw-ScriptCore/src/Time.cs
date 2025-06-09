@@ -9,5 +9,13 @@
                 return InternalCalls.GetDeltaTime();
             }
         }
+
+        public static float TimeSinceStart
+        {
+            get
+            {
+                return InternalCalls.GetTimeSinceStart();
+            }
+        }
     }
 }

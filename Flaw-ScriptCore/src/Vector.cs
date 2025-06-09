@@ -56,5 +56,61 @@ namespace Flaw
             this.y = y;
             this.z = z;
         }
+
+        public static Vec3 Forward
+        {
+            get { return new Vec3(0, 0, 1); }
+        }
+
+        public static Vec3 Up
+        {
+            get { return new Vec3(0, 1, 0); }
+        }
+
+        public static Vec3 Right
+        {
+            get { return new Vec3(1, 0, 0); }
+        }
+
+        public float Length()
+        {
+            return (float)Math.Sqrt(x * x + y * y + z * z);
+        }
+
+        public float SqrLength()
+        {
+            return x * x + y * y + z * z;
+        }
+
+        public void Normalize()
+        {
+            float length = Length();
+            if (length == 0) return; // Avoid division by zero
+            x /= length;
+            y /= length;
+            z /= length;
+        }
+
+        public Vec3 Normalized()
+        {
+            float length = Length();
+            if (length == 0) return new Vec3(0, 0, 0); // Avoid division by zero
+            return new Vec3(x / length, y / length, z / length);
+        }
+
+        public static float Dot(Vec3 a, Vec3 b)
+        {
+            return a.x * b.x + a.y * b.y + a.z * b.z;
+        }
+
+        public static Vec3 operator +(Vec3 a, Vec3 b)
+        {
+            return new Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+        }
+
+        public static Vec3 operator -(Vec3 a, Vec3 b)
+        {
+            return new Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+        }
     }
 }

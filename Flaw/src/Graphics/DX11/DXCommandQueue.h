@@ -52,6 +52,12 @@ namespace flaw {
 	private:
 		DXContext& _context;
 
+		PrimitiveTopology _primitiveTopology = PrimitiveTopology::Count;
+		std::unordered_map<uint32_t, ID3D11ShaderResourceView*> _graphicsTRegistries;
+
+		std::unordered_map<uint32_t, ID3D11ShaderResourceView*> _computeTRegistries;
+		std::unordered_map<uint32_t, ID3D11UnorderedAccessView*> _computeURegistries;
+
 		std::queue<std::function<void()>> _commands;
 	};
 }

@@ -7,30 +7,24 @@
 #include "DXType.h"
 
 namespace flaw {
-	static PrimitiveTopology g_primitiveTopology = PrimitiveTopology::Count;
-	static std::unordered_map<uint32_t, ID3D11ShaderResourceView*> g_graphicsTRegistries;
-
-	static std::unordered_map<uint32_t, ID3D11ShaderResourceView*> g_computeTRegistries;
-	static std::unordered_map<uint32_t, ID3D11UnorderedAccessView*> g_computeURegistries;
-
 	DXCommandQueue::DXCommandQueue(DXContext& context)
 		: _context(context)
 	{
 	}
 
 	void DXCommandQueue::SetPrimitiveTopology(PrimitiveTopology primitiveTopology) {
-		if (g_primitiveTopology != PrimitiveTopology::Count && g_primitiveTopology == primitiveTopology) {
+		if (_primitiveTopology != PrimitiveTopology::Count && _primitiveTopology == primitiveTopology) {
 			return;
 		}
 
 		_context.DeviceContext()->IASetPrimitiveTopology(ConvertToD3D11Topology(primitiveTopology));
-		g_primitiveTopology = primitiveTopology;
+		_primitiveTopology = primitiveTopology;
 	}
 
 	void DXCommandQueue::ClearAllRegistries() {
-		g_graphicsTRegistries.clear();
-		g_computeTRegistries.clear();
-		g_computeURegistries.clear();
+		_graphicsTRegistries.clear();
+		_computeTRegistries.clear();
+		_computeURegistries.clear();
 
 		std::vector<ID3D11ShaderResourceView*> nullSRVs(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, nullptr);
 		_context.DeviceContext()->VSSetShaderResources(0, nullSRVs.size(), nullSRVs.data());
@@ -59,12 +53,12 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::BindToGraphicsTRegistry(uint32_t slot, ID3D11ShaderResourceView* srv) {
-		auto it = g_graphicsTRegistries.find(slot);
-		if (it != g_graphicsTRegistries.end() && it->second == srv) {
+		auto it = _graphicsTRegistries.find(slot);
+		if (it != _graphicsTRegistries.end() && it->second == srv) {
 			return; // Already bound
 		}
 
-		auto& registry = g_graphicsTRegistries[slot];
+		auto& registry = _graphicsTRegistries[slot];
 		registry = srv;
 
 		_context.DeviceContext()->VSSetShaderResources(slot, 1, &registry);
@@ -121,24 +115,24 @@ namespace flaw {
 	}
 
 	void DXCommandQueue::BindToComputeTRegistry(uint32_t slot, ID3D11ShaderResourceView* srv) {
-		auto it = g_computeTRegistries.find(slot);
-		if (it != g_computeTRegistries.end() && it->second == srv) {
+		auto it = _computeTRegistries.find(slot);
+		if (it != _computeTRegistries.end() && it->second == srv) {
 			return;
 		}
 
-		auto& registry = g_computeTRegistries[slot];
+		auto& registry = _computeTRegistries[slot];
 		registry = srv;
 
 		_context.DeviceContext()->CSSetShaderResources(slot, 1, &registry);
 	}
 
 	void DXCommandQueue::BindToComputeURegistry(uint32_t slot, ID3D11UnorderedAccessView* uav) {
-		auto it = g_computeURegistries.find(slot);
-		if (it != g_computeURegistries.end() && it->second == uav) {
+		auto it = _computeURegistries.find(slot);
+		if (it != _computeURegistries.end() && it->second == uav) {
 			return;
 		}
 
-		auto& registry = g_computeURegistries[slot];
+		auto& registry = _computeURegistries[slot];
 		registry = uav;
 
 		_context.DeviceContext()->CSSetUnorderedAccessViews(slot, 1, &registry, nullptr);

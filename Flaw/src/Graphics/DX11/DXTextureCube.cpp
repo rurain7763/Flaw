@@ -52,6 +52,7 @@ namespace flaw {
 			return;
 		}
 
+
 		for (uint32_t i = 0; i < 6; ++i) {
 			_context.DeviceContext()->CopySubresourceRegion(
 				newTexture.Get(),
@@ -188,6 +189,8 @@ namespace flaw {
 	}
 
 	bool DXTextureCube::CreateRenderTargetViews() {
+		_rtvs.clear();
+
 		_rtvs.resize(_mipLevels);
 		for (int32_t i = 0; i < _mipLevels; i++) {
 			ComPtr<ID3D11RenderTargetView>& rtv = _rtvs[i];
@@ -208,6 +211,8 @@ namespace flaw {
 	}
 
 	bool DXTextureCube::CreateDepthStencilViews() {
+		_dsvs.clear();
+
 		_dsvs.resize(_mipLevels);
 		for (int32_t i = 0; i < _mipLevels; i++) {
 			ComPtr<ID3D11DepthStencilView>& dsv = _dsvs[i];
@@ -228,6 +233,8 @@ namespace flaw {
 	}
 
 	bool DXTextureCube::CreateShaderResourceView() {
+		_srv.Reset();
+
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Format = ConvertToDXGIFormat(_format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;

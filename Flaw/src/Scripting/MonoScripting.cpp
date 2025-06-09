@@ -13,11 +13,10 @@
 #include <mono/metadata/mono-debug.h>
 #include <fmt/format.h>
 
-namespace flaw {
-	static MonoDomain* s_rootDomain = nullptr;
-	
-	MonoScriptClassField::MonoScriptClassField(MonoClassField* field)
-		: _field(field)
+namespace flaw {	
+	MonoScriptClassField::MonoScriptClassField(MonoScriptClass* clss, MonoClassField* field)
+		: _clss(clss)
+		, _field(field)
 	{
 	}
 
@@ -30,11 +29,31 @@ namespace flaw {
 		return mono_type_get_type(type) == MONO_TYPE_CLASS;
 	}
 
+	bool MonoScriptClassField::HasAttribute(const char* attrName) const {
+		MonoCustomAttrInfo* attrInfo = mono_custom_attrs_from_field(_clss->GetMonoClass(), _field);
+		if (!attrInfo) {
+			return false;
+		}
+
+		auto attrClss = _clss->GetDomain()->GetAttribute(attrName);
+
+		if (!attrClss) {
+			Log::Warn("Attribute class not found: %s", attrName);
+			mono_custom_attrs_free(attrInfo);
+			return false;
+		}
+
+		bool hasAttr = mono_custom_attrs_has_attr(attrInfo, attrClss->GetMonoClass());
+		mono_custom_attrs_free(attrInfo);
+
+		return hasAttr;
+	}
+
 	void MonoScriptClassField::SetValue(MonoScriptObject* obj, void* value) {
 		mono_field_set_value(obj->GetMonoObject(), _field, value);
 	}
 
-	void MonoScriptClassField::GetValueImpl(MonoScriptObject* obj, void* buff) {
+	void MonoScriptClassField::GetValue(MonoScriptObject* obj, void* buff) {
 		mono_field_get_value(obj->GetMonoObject(), _field, buff);
 	}
 
@@ -51,14 +70,14 @@ namespace flaw {
 		return mono_type_get_name(type);
 	}
 
-	MonoScriptClass::MonoScriptClass(MonoDomain* appDomain, MonoClass* clss) 
-		: _appDomain(appDomain)
+	MonoScriptClass::MonoScriptClass(MonoScriptDomain* appDomain, MonoClass* clss)
+		: _domain(appDomain)
 		, _clss(clss) 
 	{
 	}
 
 	MonoObject* MonoScriptClass::CreateInstance() {
-		MonoObject* obj = mono_object_new(_appDomain, _clss);
+		MonoObject* obj = mono_object_new(_domain->GetMonoDomain(), _clss);
 		if (!obj) {
 			throw std::runtime_error("mono_object_new failed");
 		}
@@ -69,16 +88,16 @@ namespace flaw {
 
 	MonoScriptClassField MonoScriptClass::GetField(const char* fieldName) {
 		MonoClassField* field = mono_class_get_field_from_name(_clss, fieldName);
-		return MonoScriptClassField(field);
+		FASSERT(field, "Field not found");
+		return MonoScriptClassField(this, field);
 	}
 
 	void MonoScriptClass::EachPublicFields(std::function<void(std::string_view, MonoScriptClassField&)> callback) {
 		void* iter = nullptr;
 		while (MonoClassField* field = mono_class_get_fields(_clss, &iter)) {
 			const char* fieldName = mono_field_get_name(field);
-			int32_t flags = mono_field_get_flags(field);
 
-			MonoScriptClassField fieldRef(field);
+			MonoScriptClassField fieldRef(this, field);
 			if (fieldRef.IsPublic()) {
 				callback(fieldName, fieldRef);
 			}
@@ -98,6 +117,14 @@ namespace flaw {
 		}
 
 		return method;
+	}
+
+	MonoType* MonoScriptClass::GetMonoType() const {
+		return mono_class_get_type(_clss);
+	}
+
+	MonoReflectionType* MonoScriptClass::GetReflectionType() const {
+		return mono_type_get_object(mono_domain_get(), GetMonoType());
 	}
 
 	std::string_view MonoScriptClass::GetTypeName() const {
@@ -163,23 +190,23 @@ namespace flaw {
 		mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 #endif
 
-		s_rootDomain = mono_jit_init("FlawJITRuntime");
-		if (!s_rootDomain) {
+		auto rootDomain = mono_jit_init("FlawJITRuntime");
+		if (!rootDomain) {
 			throw std::runtime_error("mono_jit_init failed");
 		}
 
 #if _DEBUG
-		mono_debug_domain_create(s_rootDomain);
+		mono_debug_domain_create(rootDomain);
 #endif
 	}
 
 	void MonoScripting::Cleanup() {
-		if (!s_rootDomain) {
+		auto rootDomain = mono_get_root_domain();
+		if (!rootDomain) {
 			return;
 		}
 
-		mono_jit_cleanup(s_rootDomain);
-		s_rootDomain = nullptr;
+		mono_jit_cleanup(rootDomain);
 
 #if _DEBUG
 		mono_debug_cleanup();
@@ -200,7 +227,7 @@ namespace flaw {
 
 	MonoScriptDomain::~MonoScriptDomain() {
 		if (mono_domain_get() == _appDomain) {
-			mono_domain_set(s_rootDomain, true);
+			mono_domain_set(mono_get_root_domain(), true);
 		}
 
 		mono_domain_unload(_appDomain);
@@ -276,7 +303,38 @@ namespace flaw {
 
 			if (baseClass != clss && mono_class_is_subclass_of(clss, baseClass, false)) {
 				std::string fullName = fmt::format("{}.{}", nameSpace, name);
-				_monoScriptClasses[fullName] = CreateRef<MonoScriptClass>(_appDomain, clss);
+				_monoScriptClasses[fullName] = CreateRef<MonoScriptClass>(this, clss);
+			}
+		}
+	}
+
+	void MonoScriptDomain::AddAllAttributesOf(int32_t assemblyIndex, const char* attributeNameSpace) {
+		MonoImage* corlibImage = mono_get_corlib();
+		MonoClass* attributeClass = mono_class_from_name(corlibImage, "System", "Attribute");
+
+		MonoImage* image = mono_assembly_get_image(_assemblies[assemblyIndex]);
+		const MonoTableInfo* table = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		uint32_t rows = mono_table_info_get_rows(table);
+		for (int32_t i = 0; i < rows; i++) {
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(table, i, cols, MONO_TYPEDEF_SIZE);
+
+			// Get namespace and type name
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+
+			if (strcmp(nameSpace, attributeNameSpace) != 0) {
+				continue; // Skip if namespace does not match
+			}
+
+			MonoClass* clss = mono_class_from_name(image, nameSpace, name);
+			if (!clss) {
+				continue;
+			}
+
+			if (mono_class_is_subclass_of(clss, attributeClass, false)) {
+				std::string fullName = fmt::format("{}.{}", nameSpace, name);
+				_monoScriptAttributes[fullName] = CreateRef<MonoScriptClass>(this, clss);
 			}
 		}
 	}
@@ -308,12 +366,18 @@ namespace flaw {
 		return obj;
 	}
 
-	MonoType* MonoScriptDomain::GetReflectionType(const char* name) {
-		for (auto assem : _assemblies) {
-			MonoType* type = mono_reflection_type_from_name((char*)name, mono_assembly_get_image(assem));
-			if (type) {
-				return type;
-			}
+	Ref<MonoScriptClass> MonoScriptDomain::GetClass(const char* name) {
+		auto it = _monoScriptClasses.find(name);
+		if (it != _monoScriptClasses.end()) {
+			return it->second;
+		}
+		return nullptr;
+	}
+
+	Ref<MonoScriptClass> MonoScriptDomain::GetAttribute(const char* name) {
+		auto it = _monoScriptAttributes.find(name);
+		if (it != _monoScriptAttributes.end()) {
+			return it->second;
 		}
 		return nullptr;
 	}

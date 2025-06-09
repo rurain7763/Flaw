@@ -23,7 +23,7 @@ namespace flaw {
 
 		// 파일 시스템 감시 시작
 		g_fileWatch = CreateScope<filewatch::FileWatch<std::filesystem::path>>(
-			g_contentsDir.parent_path(),
+			g_contentsDir,
 			[](const std::filesystem::path& path, const filewatch::Event change_type) {
 				switch (change_type) {
 					case filewatch::Event::added:

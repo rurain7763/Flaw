@@ -1,4 +1,6 @@
-﻿namespace Flaw
+﻿using System;
+
+namespace Flaw
 {
     public class EntityComponent
     {
@@ -9,7 +11,7 @@
             entity = new Entity();
         }
 
-        internal EntityComponent(uint id)
+        internal EntityComponent(ulong id)
         {
             entity = new Entity(id);
         }

@@ -251,6 +251,8 @@ namespace flaw {
 	}
 
 	bool DXTexture2D::CreateShaderResourceView() {
+		_srv.Reset();
+
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Format = ConvertToDXGIFormat(_format);
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;

@@ -318,6 +318,7 @@
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\ThreadPool.h" />
     <ClInclude Include="src\Engine\Camera.h" />
+    <ClInclude Include="src\Engine\MonoInternalCall.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\Application.cpp">
@@ -478,5 +479,6 @@
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
     <ClCompile Include="src\Utils\ThreadPool.cpp" />
     <ClCompile Include="src\Engine\Camera.cpp" />
+    <ClCompile Include="src\Engine\MonoInternalCall.cpp" />
   </ItemGroup>
 </Project>

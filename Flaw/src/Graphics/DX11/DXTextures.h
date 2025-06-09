@@ -130,6 +130,7 @@ namespace flaw {
 	class DXTextureCube : public TextureCube {
 	public:
 		DXTextureCube(DXContext& context, const Descriptor& descriptor);
+		~DXTextureCube() = default;
 
 		void GenerateMips(uint32_t level) override;
 

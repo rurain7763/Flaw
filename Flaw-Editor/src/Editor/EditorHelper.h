@@ -38,12 +38,14 @@ namespace flaw {
 		static bool DrawCombo(const char* label, int32_t& value, const std::vector<std::string>& items) {
 			bool dirty = false;
 
-			if (ImGui::BeginCombo(label, items[value].c_str())) {
+			std::string current = (value >= 0 && value < items.size()) ? items[value] : "None";
+
+			if (ImGui::BeginCombo(label, current.c_str())) {
 				for (int32_t i = 0; i < items.size(); i++) {
-					bool isSelected = items[i] == items[value];
+					bool isSelected = items[i] == current;
 					if (ImGui::Selectable(items[i].c_str(), isSelected)) {
+						dirty |= value != i;
 						value = i;
-						dirty |= true;
 					}
 					if (isSelected) {
 						ImGui::SetItemDefaultFocus();

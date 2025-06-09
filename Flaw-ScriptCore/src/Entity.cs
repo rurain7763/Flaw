@@ -4,14 +4,14 @@ namespace Flaw
 {
     public class Entity
     {
-        internal uint id;
+        internal ulong id;
 
         public Entity()
         {
-            id = uint.MaxValue;
+            id = ulong.MaxValue;
         }
 
-        public Entity(uint id)
+        public Entity(ulong id)
         {
             this.id = id;
         }
@@ -53,8 +53,8 @@ namespace Flaw
 
         public Entity FindEntityByName(string name)
         {
-            uint id = InternalCalls.FindEntityByName(name);
-            if (id != uint.MaxValue)
+            ulong id = InternalCalls.FindEntityByName(name);
+            if (id != ulong.MaxValue)
             {
                 return new Entity(id);
             }

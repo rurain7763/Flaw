@@ -39,6 +39,16 @@
                 InternalCalls.SetRotation_Transform(entity.id, ref value);
             }
         }
+
+        public void LookAt(Vec3 target)
+        {
+            Vec3 dir = (target - Position).Normalized();
+
+            float pitch = (float)System.Math.Asin(-dir.y);
+            float yaw = (float)System.Math.Atan2(dir.x, dir.z);
+
+            Rotation = new Vec3(pitch, yaw, 0);
+        }
     }
 
     public class Rigidbody2DComponent : EntityComponent

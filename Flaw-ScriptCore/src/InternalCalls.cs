@@ -12,46 +12,49 @@ namespace Flaw
         internal extern static float GetDeltaTime();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static float GetTimeSinceStart();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool IsEngineComponent(Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool HasComponent(uint id, Type type);
+        internal extern static bool HasComponent(ulong id, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool IsComponentInstanceExists(uint id);
+        internal extern static bool IsComponentInstanceExists(ulong id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static object GetComponentInstance(uint id);
+        internal extern static object GetComponentInstance(ulong id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static uint FindEntityByName(string name);
+        internal extern static ulong FindEntityByName(string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void GetPosition_Transform(uint id, out Vec3 position);
+        internal extern static void GetPosition_Transform(ulong id, out Vec3 position);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void SetPosition_Transform(uint id, ref Vec3 position);
+        internal extern static void SetPosition_Transform(ulong id, ref Vec3 position);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void GetRotation_Transform(uint id, out Vec3 rotation);
+        internal extern static void GetRotation_Transform(ulong id, out Vec3 rotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void SetRotation_Transform(uint id, ref Vec3 rotation);
+        internal extern static void SetRotation_Transform(ulong id, ref Vec3 rotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void GetScale_Transform(uint id, out Vec3 scale);
+        internal extern static void GetScale_Transform(ulong id, out Vec3 scale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void SetScale_Transform(uint id, ref Vec3 scale);
+        internal extern static void SetScale_Transform(ulong id, ref Vec3 scale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void GetBodyType_RigidBody2D(uint id, out int type);
+        internal extern static void GetBodyType_RigidBody2D(ulong id, out int type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void SetBodyType_RigidBody2D(uint id, int type);
+        internal extern static void SetBodyType_RigidBody2D(ulong id, int type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static void GetLinearVelocity_RigidBody2D(uint id, out Vec2 velocity);
+        internal extern static void GetLinearVelocity_RigidBody2D(ulong id, out Vec2 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool GetKeyDown(KeyCode keyCode);
