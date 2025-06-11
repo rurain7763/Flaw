@@ -122,10 +122,14 @@ namespace flaw {
 				int32_t selectedScriptIndex = -1;
 				int32_t index = 0;
 				for (const auto& [scriptName, scriptClass] : Scripting::GetMonoScriptDomain().GetMonoScriptClasses()) {
-					if (Scripting::IsEngineComponent(scriptClass->GetReflectionType())) {
+					if (Scripting::IsEngineComponent(scriptClass.GetReflectionType())) {
 						continue; // Skip engine components
 					}
-					
+
+					if (!Scripting::IsMonoComponent(scriptClass)) {
+						continue; // Skip non-component scripts
+					}
+										
 					scriptNames.push_back(scriptName);
 
 					if (scriptName == monoScriptComp.name) {
@@ -149,22 +153,32 @@ namespace flaw {
 					tempMonoScriptObject = Scripting::CreateTempMonoScriptObject(_selectedEntt.GetUUID(), monoScriptComp.name.c_str());
 				}
 
-				tempMonoScriptObject->GetClass()->EachPublicFields([&tempMonoScriptObject](std::string_view fieldName, MonoScriptClassField& field) {
-					auto typeName = field.GetTypeName();
-					
-					if (typeName == "System.Single") {
-						float value = 0.f;
-						field.GetValue(tempMonoScriptObject.get(), &value);
+				tempMonoScriptObject->GetClass().EachFields([this, &tempMonoScriptObject](std::string_view fieldName, MonoScriptClassField& field) {
+					auto monoClass = field.GetMonoClass();
+
+					if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
+						float value = field.GetValue<float>(tempMonoScriptObject.get());
 						if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
 							field.SetValue(tempMonoScriptObject.get(), &value);
 						}
 					}
-					else if (typeName == "System.Int32") {
-						int32_t value = 0;
-						field.GetValue(tempMonoScriptObject.get(), &value);
+					else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
+						int32_t value = field.GetValue<int32_t>(tempMonoScriptObject.get());
 						if (ImGui::DragInt(fieldName.data(), &value, 1)) {
 							field.SetValue(tempMonoScriptObject.get(), &value);
 						}
+					}
+					else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
+						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(tempMonoScriptObject.get()));
+						MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
+
+						AssetHandle current = handleField.GetValue<AssetHandle>(&prefabObj);
+						EditorHelper::DrawAssetPayloadTarget(fieldName.data(), current, [this, &prefabObj, &handleField](const char* filepath) {
+							AssetMetadata metadata;
+							if (AssetDatabase::GetAssetMetadata(filepath, metadata) && metadata.type == AssetType::Prefab) {
+								handleField.SetValue(&prefabObj, &metadata.handle);
+							}
+						});
 					}
 				});
 			});
@@ -385,7 +399,7 @@ namespace flaw {
 				}
 				});
 
-			DrawComponent<LandScaperComponent>(_selectedEntt, [](LandScaperComponent& landScaperComp) {
+			DrawComponent<LandscapeComponent>(_selectedEntt, [](LandscapeComponent& landScaperComp) {
 				ImGui::Text("Height Map");
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
@@ -472,7 +486,7 @@ namespace flaw {
 				DrawAddComponentItem<SpotLightComponent>(_selectedEntt);
 				DrawAddComponentItem<SkyBoxComponent>(_selectedEntt);
 				DrawAddComponentItem<DecalComponent>(_selectedEntt);
-				DrawAddComponentItem<LandScaperComponent>(_selectedEntt);
+				DrawAddComponentItem<LandscapeComponent>(_selectedEntt);
 
 				ImGui::EndPopup();
 			}

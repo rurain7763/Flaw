@@ -105,6 +105,7 @@
     <ClInclude Include="src\Engine\AnimationSystem.h" />
     <ClInclude Include="src\Engine\Camera.h" />
     <ClInclude Include="src\Engine\MonoInternalCall.h" />
+    <ClInclude Include="src\Engine\Prefab.h" />
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\Debug\Instrumentor.h" />
@@ -197,6 +198,7 @@
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
     <ClCompile Include="src\Engine\MonoInternalCall.cpp" />
+    <ClCompile Include="src\Engine\Prefab.cpp" />
     <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />

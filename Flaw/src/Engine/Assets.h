@@ -11,6 +11,7 @@
 #include "Mesh.h"
 #include "Material.h"
 #include "Skeleton.h"
+#include "Prefab.h"
 
 namespace flaw {
 	class Texture2DAsset : public Asset {
@@ -330,5 +331,29 @@ namespace flaw {
 		std::function<void(Descriptor&)> _getDesc;
 
 		Ref<SkeletalAnimation> _animation;
+	};
+
+	class PrefabAsset : public Asset {
+	public:
+		struct Descriptor {
+			std::vector<int8_t> prefabData; // Serialized data of the prefab
+		};
+
+		PrefabAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
+
+		void Load() override;
+		void Unload() override;
+
+		AssetType GetAssetType() const override { return AssetType::Prefab; }
+		bool IsLoaded() const override { return _prefab != nullptr; }
+
+		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
+
+		const Ref<Prefab>& GetPrefab() const { return _prefab; }
+
+	private:
+		std::function<void(Descriptor&)> _getDesc;
+
+		Ref<Prefab> _prefab;
 	};
 }

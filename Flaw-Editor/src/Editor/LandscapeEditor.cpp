@@ -65,11 +65,11 @@ namespace flaw {
 		ImGui::Begin("Landscape");
 		Finalizer finalizer([]() { ImGui::End(); });
 
-		if (!_selectedEntt || !_selectedEntt.HasComponent<LandScaperComponent>()) {
+		if (!_selectedEntt || !_selectedEntt.HasComponent<LandscapeComponent>()) {
 			return;
 		}
 
-		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
+		auto& landscapeComp = _selectedEntt.GetComponent<LandscapeComponent>();
 
 		auto tex2DAsset = AssetManager::GetAsset<Texture2DAsset>(landscapeComp.heightMap);
 		if (!tex2DAsset) {
@@ -144,7 +144,7 @@ namespace flaw {
 		auto& mainPipeline = Graphics::GetMainGraphicsPipeline();
 		auto& landscapeSys = _scene->GetLandscapeSystem();
 
-		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
+		auto& landscapeComp = _selectedEntt.GetComponent<LandscapeComponent>();
 		auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
 		auto& landscape = landscapeSys.GetLandscape(_selectedEntt);
 
@@ -187,7 +187,7 @@ namespace flaw {
 		auto& mainPipeline = Graphics::GetMainComputePipeline();
 		auto& landscapeSys = _scene->GetLandscapeSystem();
 
-		auto& landscapeComp = _selectedEntt.GetComponent<LandScaperComponent>();
+		auto& landscapeComp = _selectedEntt.GetComponent<LandscapeComponent>();
 		auto& transComp = _selectedEntt.GetComponent<TransformComponent>();
 		auto& landscape = landscapeSys.GetLandscape(_selectedEntt);
 

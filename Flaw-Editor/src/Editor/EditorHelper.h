@@ -212,8 +212,23 @@ namespace flaw {
 			ImGui::EndGroup();
 		}
 
-		static void DrawAssetPayloadTarget(const char* label, const std::function<void(const char*)>& onFileDropped) {
+		static void DrawAssetPayloadTarget(const char* label, AssetHandle current, const std::function<void(const char*)>& onFileDropped) {
 			ImGui::Text("%s", label);
+
+			ImGui::SameLine();
+
+			if (current.IsValid()) {
+				if (AssetManager::IsAssetRegistered(current)) {
+					ImGui::Text("%" PRIu64, current);
+				}
+				else {
+					ImGui::Text("Invalid Asset");
+				}
+
+			}
+			else {
+				ImGui::Text("None");
+			}
 			
 			if (ImGui::BeginDragDropTarget()) {
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH");

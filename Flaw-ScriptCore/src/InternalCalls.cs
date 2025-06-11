@@ -30,6 +30,9 @@ namespace Flaw
         internal extern static ulong FindEntityByName(string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static ulong CreateEntity_Prefab(ulong handle);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static void GetPosition_Transform(ulong id, out Vec3 position);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

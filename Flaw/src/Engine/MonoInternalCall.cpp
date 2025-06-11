@@ -2,6 +2,8 @@
 #include "MonoInternalCall.h"
 #include "Time/Time.h"
 #include "Scripting.h"
+#include "AssetManager.h"
+#include "Assets.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -33,6 +35,17 @@ namespace flaw {
 		mono_free(n);
 
 		return found;
+	}
+
+	uint64_t CreateEntity_Prefab(AssetHandle prefab) {
+		auto prefabAsset = AssetManager::GetAsset<PrefabAsset>(prefab);
+		if (!prefabAsset) {
+			Log::Error("Prefab asset not found with handle: %llu", prefab);
+			return UUID();
+		}
+
+		Entity entity = prefabAsset->GetPrefab()->CreateEntity(Scripting::GetScene());
+		return entity.GetUUID();
 	}
 
 	void GetPosition_Transform(UUID uuid, vec3& position) {

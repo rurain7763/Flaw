@@ -99,8 +99,7 @@ namespace flaw {
 
 		ImGui::Separator();
 
-		std::string shaderName = _editedMaterialSettings.shaderHandle.IsValid() ? std::to_string(_editedMaterialSettings.shaderHandle) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Shader: " + shaderName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Shader", _editedMaterialSettings.shaderHandle, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::GraphicsShader) {
 				if (_editedMaterialSettings.shaderHandle != metadata.handle) {
@@ -121,8 +120,7 @@ namespace flaw {
 
 		ImGui::Separator();
 
-		std::string albedoTextureName = _editedMaterialSettings.albedoTexture.IsValid() ? std::to_string(_editedMaterialSettings.albedoTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Albedo Texture: " + albedoTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Albedo Texture", _editedMaterialSettings.albedoTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.albedoTexture != metadata.handle) {
@@ -132,8 +130,7 @@ namespace flaw {
 			}
 		});
 
-		std::string normalTextureName = _editedMaterialSettings.normalTexture.IsValid() ? std::to_string(_editedMaterialSettings.normalTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Normal Texture: " + normalTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Normal Texture", _editedMaterialSettings.normalTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.normalTexture != metadata.handle) {
@@ -143,8 +140,7 @@ namespace flaw {
 			}
 		});
 
-		std::string emissiveTextureName = _editedMaterialSettings.emissiveTexture.IsValid() ? std::to_string(_editedMaterialSettings.emissiveTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Emissive Texture: " + emissiveTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Emissive Texture", _editedMaterialSettings.emissiveTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.emissiveTexture != metadata.handle) {
@@ -154,8 +150,7 @@ namespace flaw {
 			}
 		});
 
-		std::string metallicTextureName = _editedMaterialSettings.metallicTexture.IsValid() ? std::to_string(_editedMaterialSettings.metallicTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Metallic Texture: " + metallicTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Metallic Texture", _editedMaterialSettings.metallicTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.metallicTexture != metadata.handle) {
@@ -165,8 +160,7 @@ namespace flaw {
 			}
 		});
 
-		std::string roughnessTextureName = _editedMaterialSettings.roughnessTexture.IsValid() ? std::to_string(_editedMaterialSettings.roughnessTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Roughness Texture: " + roughnessTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Roughness Texture", _editedMaterialSettings.roughnessTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.roughnessTexture != metadata.handle) {
@@ -176,8 +170,7 @@ namespace flaw {
 			}
 		});
 
-		std::string ambientOcclusionTextureName = _editedMaterialSettings.ambientOcclusionTexture.IsValid() ? std::to_string(_editedMaterialSettings.ambientOcclusionTexture) : "Null";
-		EditorHelper::DrawAssetPayloadTarget(("Ambient Occlusion Texture: " + ambientOcclusionTextureName).c_str(), [&](const char* filePath) {
+		EditorHelper::DrawAssetPayloadTarget("Ambient Occlusion Texture", _editedMaterialSettings.ambientOcclusionTexture, [&](const char* filePath) {
 			AssetMetadata metadata;
 			if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
 				if (_editedMaterialSettings.ambientOcclusionTexture != metadata.handle) {

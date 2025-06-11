@@ -8,6 +8,10 @@ namespace flaw {
 	class Application;
 	class Scene;
 
+	enum class MonoAssetType {
+		Prefab,
+	};
+
 	class Scripting {
 	public:
 		static void Init(Application& app);
@@ -18,10 +22,15 @@ namespace flaw {
 		static void OnUpdate();
 		static void OnEnd();
 
+		static MonoScriptClass& GetMonoSystemClass(MonoSystemType type);
+		static MonoScriptClass& GetMonoAssetClass(MonoAssetType type);
+		static MonoScriptClass& GetMonoClass(const char* name);
+
 		static Ref<MonoScriptObject> CreateTempMonoScriptObject(const UUID& uuid, const char* name);
 		static void DestroyTempMonoScriptObject(const UUID& uuid);
 		static Ref<MonoScriptObject> GetTempMonoScriptObject(const UUID& uuid);
 
+		static bool IsMonoComponent(const MonoScriptClass& monoClass);
 		static bool IsEngineComponent(MonoReflectionType* type);
 		static bool HasComponent(UUID uuid, MonoReflectionType* type);
 		static bool IsComponentInstanceExists(UUID uuid);

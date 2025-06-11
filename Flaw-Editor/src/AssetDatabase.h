@@ -31,6 +31,7 @@ namespace flaw {
 			Material,
 			Skeleton,
 			SkeletalAnimation,
+			Prefab,
 		};
 
 		Type type;
@@ -96,6 +97,14 @@ namespace flaw {
 
 		SkeletalAnimationCreateSettings() {
 			type = Type::SkeletalAnimation;
+		}
+	};
+
+	struct PrefabCreateSettings : public AssetCreateSettings {
+		std::vector<int8_t> prefabData; // Serialized data of the prefab
+
+		PrefabCreateSettings() {
+			type = Type::Prefab;
 		}
 	};
 
@@ -221,6 +230,7 @@ namespace flaw {
 		static void FillSerializationArchive(SerializationArchive& archive, const MaterialCreateSettings* settings);
 		static void FillSerializationArchive(SerializationArchive& archive, const SkeletonCreateSettings* settings);
 		static void FillSerializationArchive(SerializationArchive& archive, const SkeletalAnimationCreateSettings* settings);
+		static void FillSerializationArchive(SerializationArchive& archive, const PrefabCreateSettings* settings);
 
 		static bool ImportTexture2D(Texture2DImportSettings* settings);
 		static bool ImportTextureCube(TextureCubeImportSettings* settings);

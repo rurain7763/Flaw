@@ -27,6 +27,39 @@ namespace flaw {
 
 		operator uint64_t() const { return _id; }
 
+		UUID operator+(uint64_t value) const {
+			return UUID(_id + value);
+		}
+
+		UUID operator-(uint64_t value) const {
+			return UUID(_id - value);
+		}
+
+		UUID& operator+=(uint64_t value) {
+			_id += value;
+			return *this;
+		}
+
+		UUID& operator-=(uint64_t value) {
+			_id -= value;
+			return *this;
+		}
+
+		UUID operator++(int) {
+			UUID temp = *this;
+			_id++;
+			return temp;
+		}
+
+		UUID& operator++() {
+			_id++;
+			return *this;
+		}
+
+		bool operator==(const UUID& other) const { return _id == other._id; }
+		bool operator!=(const UUID& other) const { return _id != other._id; }
+		bool operator<(const UUID& other) const { return _id < other._id; }
+
 	private:
 		friend struct std::hash<UUID>;
 

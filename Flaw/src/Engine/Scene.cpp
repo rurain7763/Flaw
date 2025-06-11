@@ -30,8 +30,8 @@ namespace flaw {
 		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
 
 		_landscapeSystem = CreateScope<LandscapeSystem>(*this);
-		_registry.on_construct<LandScaperComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
-		_registry.on_destroy<LandScaperComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
+		_registry.on_construct<LandscapeComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
+		_registry.on_destroy<LandscapeComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
 
 		_shadowSystem = CreateScope<ShadowSystem>(*this);
 		_registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
@@ -165,7 +165,7 @@ namespace flaw {
 		CopyComponentIfExists<SpotLightComponent>(srcEntt, cloned);
 		CopyComponentIfExists<SkyBoxComponent>(srcEntt, cloned);
 		CopyComponentIfExists<DecalComponent>(srcEntt, cloned);
-		CopyComponentIfExists<LandScaperComponent>(srcEntt, cloned);
+		CopyComponentIfExists<LandscapeComponent>(srcEntt, cloned);
 
 		// clone children
 		srcEntt.EachChildren([this, &cloned, sameUUID](const Entity& child) {

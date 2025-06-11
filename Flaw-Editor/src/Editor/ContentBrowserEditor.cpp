@@ -33,6 +33,10 @@ namespace flaw {
 		);
 	}
 
+	void ContentBrowserEditor::SetScene(const Ref<Scene>& scene) {
+		_scene = scene;
+	}
+
 	void ContentBrowserEditor::OnRender() {
 		ImGui::Begin("Content Browser");
 
@@ -210,6 +214,19 @@ namespace flaw {
 				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
+				uint32_t id = *(uint32_t*)payload->Data;
+				Entity draggedEntity((entt::entity)id, _scene.get());
+
+				PrefabCreateSettings prefabSettings;
+				prefabSettings.destPath = _currentDirectory.generic_string() + "/" + draggedEntity.GetName() + ".asset";
+				prefabSettings.prefabData = Prefab::ExportData(draggedEntity);
+				AssetDatabase::CreateAsset(&prefabSettings);
+			}
+			ImGui::EndDragDropTarget();
 		}
 
 		ImGui::End();

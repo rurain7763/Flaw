@@ -17,6 +17,11 @@
 namespace flaw {
 	#define ADD_INTERNAL_CALL(func) MonoScripting::RegisterInternalCall("Flaw.InternalCalls::"#func, func)
 
+	struct MonoRuntimeObject {
+		Ref<MonoScriptObject> scriptObject;
+		MonoMethod* updateMethod;
+	};
+
 	static Scope<filewatch::FileWatch<std::string>> g_scriptAsmWatcher;
 
 	static Scope<MonoScriptDomain> g_monoScriptDomain;
@@ -25,14 +30,14 @@ namespace flaw {
 	static Application* g_app;
 	static Scene* g_scene;
 	static float g_timeSinceStart = 0.f;
-	static std::unordered_map<UUID, Ref<MonoScriptObject>> g_monoRuntimeObjects;
+	static std::unordered_map<UUID, MonoRuntimeObject> g_monoRuntimeObjects;
 	static std::unordered_map<UUID, Ref<MonoScriptObject>> g_monoTempObjects;
 
 	template <typename T>
 	static void RegisterComponent() {
 		const std::string fullName = fmt::format("Flaw.{}", TypeName<T>());
 		if (g_monoScriptDomain->IsClassExists(fullName.c_str())) {
-			auto type = g_monoScriptDomain->GetClass(fullName.c_str())->GetMonoType();
+			auto type = g_monoScriptDomain->GetClass(fullName.c_str()).GetMonoType();
 			g_hasComponentFuncs[type] = [](const Entity& entity) { return entity.HasComponent<T>(); };
 		}
 	}
@@ -43,14 +48,15 @@ namespace flaw {
 		MonoScripting::Init();
 
 		// Register internal calls
-		ADD_INTERNAL_CALL(LogInfo);
-		ADD_INTERNAL_CALL(GetDeltaTime);
-		ADD_INTERNAL_CALL(GetTimeSinceStart);
 		ADD_INTERNAL_CALL(IsEngineComponent);
 		ADD_INTERNAL_CALL(HasComponent);
 		ADD_INTERNAL_CALL(IsComponentInstanceExists);
 		ADD_INTERNAL_CALL(GetComponentInstance);
+		ADD_INTERNAL_CALL(LogInfo);
+		ADD_INTERNAL_CALL(GetDeltaTime);
+		ADD_INTERNAL_CALL(GetTimeSinceStart);
 		ADD_INTERNAL_CALL(FindEntityByName);
+		ADD_INTERNAL_CALL(CreateEntity_Prefab);
 		ADD_INTERNAL_CALL(GetPosition_Transform);
 		ADD_INTERNAL_CALL(SetPosition_Transform);
 		ADD_INTERNAL_CALL(GetRotation_Transform);
@@ -83,6 +89,7 @@ namespace flaw {
 		g_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		g_monoScriptDomain->PrintMonoAssemblyInfo(0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 0);
+		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "Asset", 0);
 		g_monoScriptDomain->AddAllAttributesOf(0, "Flaw");
 
 		auto& projectConfig = Project::GetConfig();
@@ -132,39 +139,41 @@ namespace flaw {
 
 		auto& registry = g_scene->GetRegistry();
 		for (auto&& [entity, entityComp, scriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {
-			auto obj = CreateMonoScriptObjectImpl(entityComp.uuid, scriptComp.name.c_str());
-			if (obj) {
-				obj->CallMethod("OnCreate");
-				obj->SaveMethod("OnUpdate", 0, 0);
-
-				g_monoRuntimeObjects[entityComp.uuid] = obj;
-			}
+			Ref<MonoScriptObject> runtimeObj;
 
 			auto it = g_monoTempObjects.find(entityComp.uuid);
 			if (it == g_monoTempObjects.end()) {
+				runtimeObj = CreateMonoScriptObjectImpl(entityComp.uuid, scriptComp.name.c_str());
+			}
+			else {
+				runtimeObj = CreateRef<MonoScriptObject>(it->second->Clone());
+			}
+
+			if (!runtimeObj) {
 				continue;
 			}
 
-			auto tempObj = it->second;
-			auto objClass = obj->GetClass();
-			auto tempObjClass = tempObj->GetClass();
+			auto runtimeClass = runtimeObj->GetClass();
+			auto createMethod = runtimeClass.GetMethodRecurcive("OnCreate", 0);
+			auto updateMethod = runtimeClass.GetMethodRecurcive("OnUpdate", 0);
 
-			if (objClass != tempObjClass) {
-				Log::Error("Mono script class mismatch for entity %d: %s vs %s", (uint32_t)entity, obj->GetClass()->GetTypeName().data(), tempObj->GetClass()->GetTypeName().data());
-				continue;
+			g_monoRuntimeObjects[entityComp.uuid] = { runtimeObj, updateMethod };
+
+			if (createMethod) {
+				runtimeObj->CallMethod(createMethod);
 			}
-
-			std::array<int8_t, 1024> buff;
-			objClass->EachPublicFields([&obj, &tempObj, &buff](std::string_view fieldName, MonoScriptClassField& field) {
-				field.GetValue(tempObj.get(), buff.data());
-				field.SetValue(obj.get(), buff.data());
-			});
 		}
 
 		for (auto&& [entity, entityComp, scriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = g_monoRuntimeObjects.find(entityComp.uuid);
-			if (it != g_monoRuntimeObjects.end()) {
-				it->second->CallMethod("OnStart");
+			if (it == g_monoRuntimeObjects.end()) {
+				continue;
+			}
+
+			auto objClass = it->second.scriptObject->GetClass();
+			auto startMethod = objClass.GetMethodRecurcive("OnStart", 0);
+			if (startMethod) {
+				it->second.scriptObject->CallMethod(startMethod);
 			}
 		}
 	}
@@ -172,9 +181,11 @@ namespace flaw {
 	void Scripting::OnUpdate() {
 		for (auto& [entity, entityComp, scriptComp] : g_scene->GetRegistry().view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = g_monoRuntimeObjects.find(entityComp.uuid);
-			if (it != g_monoRuntimeObjects.end()) {
-				it->second->CallMethod(0); // Call the saved method at slot 0
+			if (it == g_monoRuntimeObjects.end() || !it->second.updateMethod) {
+				continue;
 			}
+
+			it->second.scriptObject->CallMethod(it->second.updateMethod);
 		}
 
 		// TODO: how to handle removed objects and created objects on runtime?
@@ -185,13 +196,34 @@ namespace flaw {
 	void Scripting::OnEnd() {
 		for (auto&& [entity, entityComp, scriptComp] : g_scene->GetRegistry().view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = g_monoRuntimeObjects.find(entityComp.uuid);
-			if (it != g_monoRuntimeObjects.end()) {
-				it->second->CallMethod("OnDestroy");
+			if (it == g_monoRuntimeObjects.end()) {
+				continue;
+			}
+
+			auto objClass = it->second.scriptObject->GetClass();
+			auto destroyMethod = objClass.GetMethodRecurcive("OnDestroy", 0);
+			if (destroyMethod) {
+				it->second.scriptObject->CallMethod(destroyMethod);
 			}
 		}
 		g_monoRuntimeObjects.clear();
 
 		g_scene = nullptr;
+	}
+
+	MonoScriptClass& Scripting::GetMonoSystemClass(MonoSystemType type) {
+		return g_monoScriptDomain->GetSystemClass(type);
+	}
+
+	MonoScriptClass& Scripting::GetMonoAssetClass(MonoAssetType type) {
+		switch (type) {
+		case MonoAssetType::Prefab:
+			return g_monoScriptDomain->GetClass("Flaw.Prefab");
+		}
+	}
+
+	MonoScriptClass& Scripting::GetMonoClass(const char* name) {
+		return g_monoScriptDomain->GetClass(name);
 	}
 
 	Ref<MonoScriptObject> Scripting::CreateTempMonoScriptObject(const UUID& uuid, const char* name) {
@@ -210,20 +242,42 @@ namespace flaw {
 		}
 	}
 
+	static void CreatePublicFieldsInObjectRecursive(MonoScriptObject& object) {
+		object.GetClass().EachFields([&object](std::string_view fieldName, MonoScriptClassField& field) {
+			if (field.IsClass()) {
+				auto typeName = field.GetTypeName();
+
+				if (!g_monoScriptDomain->IsClassExists(typeName.data())) {
+					return;
+				}
+				
+				MonoObject* fieldObj = field.GetValue<MonoObject*>(&object);
+				
+				if (!fieldObj) {
+					auto fieldInstance = g_monoScriptDomain->CreateInstance(typeName.data());
+					field.SetValue(&object, fieldInstance.GetMonoObject());
+					fieldObj = fieldInstance.GetMonoObject();
+				}
+
+				MonoScriptObject fieldMonoObj(object.GetMonoDomain(), field.GetMonoClass(), fieldObj);
+				CreatePublicFieldsInObjectRecursive(fieldMonoObj);
+			}
+		});
+	}
+
 	Ref<MonoScriptObject> Scripting::CreateMonoScriptObjectImpl(const UUID& uuid, const char* name) {
 		if (!g_monoScriptDomain->IsClassExists(name)) {
 			Log::Error("Mono script class not found: %s", name);
 			return nullptr;
 		}
 
-		Ref<MonoScriptObject> obj = g_monoScriptDomain->CreateInstance(name);
-
-		// call constructor
 		UUID copy = uuid;
 		void* args[] = { &copy };
-		obj->CallMethod(".ctor", args, 1);
 
-		return obj;
+		auto instance = g_monoScriptDomain->CreateInstance(name, args, 1);
+		CreatePublicFieldsInObjectRecursive(instance);
+
+		return CreateRef<MonoScriptObject>(instance);
 	}
 
 	Ref<MonoScriptObject> Scripting::GetTempMonoScriptObject(const UUID& uuid) {
@@ -232,6 +286,11 @@ namespace flaw {
 			return it->second;
 		}
 		return nullptr;
+	}
+
+	bool Scripting::IsMonoComponent(const MonoScriptClass& monoClass) {
+		auto entityComponentMonoClass = g_monoScriptDomain->GetClass("Flaw.EntityComponent");
+		return entityComponentMonoClass != monoClass && monoClass.IsSubClassOf(&entityComponentMonoClass);
 	}
 
 	bool Scripting::IsEngineComponent(MonoReflectionType* type) {
@@ -253,7 +312,7 @@ namespace flaw {
 
 	MonoObject* Scripting::GetComponentInstance(UUID uuid) {
 		FASSERT(IsComponentInstanceExists(uuid), "Component instance not found");
-		return g_monoRuntimeObjects[uuid]->GetMonoObject();
+		return g_monoRuntimeObjects[uuid].scriptObject->GetMonoObject();
 	}
 
 	MonoScriptDomain& Scripting::GetMonoScriptDomain() {

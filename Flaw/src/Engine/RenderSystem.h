@@ -53,7 +53,7 @@ namespace flaw {
 	private:
 		constexpr static uint32_t MaxBatchVertexCount = 10000;
 		constexpr static uint32_t MaxBatchIndexCount = 30000;
-		constexpr static uint32_t MaxBatchTransformCount = 100;
+		constexpr static uint32_t MaxBatchTransformCount = 10000;
 		constexpr static uint32_t MaxDecalCount = 1000;
 		constexpr static uint32_t MaxPointLights = 10;
 		constexpr static uint32_t MaxSpotLights = 10;

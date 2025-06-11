@@ -30,7 +30,7 @@ namespace flaw {
 					case filewatch::Event::removed:
 					case filewatch::Event::renamed_new:
 					{
-						std::filesystem::path absolutePath = g_contentsDir.parent_path() / path.parent_path();
+						std::filesystem::path absolutePath = g_contentsDir / path.parent_path();
 						if (path.extension() == ".asset") {
 							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), false); });
 						}
@@ -299,6 +299,16 @@ namespace flaw {
 				}
 			);
 			break;
+		case AssetType::Prefab:
+			asset = CreateRef<PrefabAsset>(
+				[path, dataOffset](PrefabAsset::Descriptor& desc) {
+					std::vector<int8_t> data;
+					FileSystem::ReadFile(path.generic_string().c_str(), data);
+					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
+					archive >> desc.prefabData;
+				}
+			);
+			break;
 		}
 
 		return asset;
@@ -381,6 +391,9 @@ namespace flaw {
 		else if (settings->type == AssetCreateSettings::Type::SkeletalAnimation) {
 			return CreateAssetFile(settings->destPath.c_str(), AssetType::SkeletalAnimation, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletalAnimationCreateSettings*)settings); });
 		}
+		else if (settings->type == AssetCreateSettings::Type::Prefab) {
+			return CreateAssetFile(settings->destPath.c_str(), AssetType::Prefab, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (PrefabCreateSettings*)settings); });
+		}
 
 		return AssetHandle();
 	}
@@ -397,6 +410,9 @@ namespace flaw {
 		}
 		else if (settings->type == AssetCreateSettings::Type::SkeletalAnimation) {
 			RecreateAssetFile(assetFile, AssetType::SkeletalAnimation, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (SkeletalAnimationCreateSettings*)settings); });
+		}
+		else if (settings->type == AssetCreateSettings::Type::Prefab) {
+			RecreateAssetFile(assetFile, AssetType::Prefab, [settings](SerializationArchive& archive) { FillSerializationArchive(archive, (PrefabCreateSettings*)settings); });
 		}
 
 		AssetMetadata metadata = g_assetMetadataMap[assetFile];
@@ -442,6 +458,10 @@ namespace flaw {
 		archive << settings->name;
 		archive << settings->durationSec;
 		archive << settings->animationNodes;
+	}
+
+	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const PrefabCreateSettings* settings) {
+		archive << settings->prefabData;
 	}
 
 	bool AssetDatabase::ImportAsset(const AssetImportSettings* settings) {

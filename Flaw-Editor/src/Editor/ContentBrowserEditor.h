@@ -9,6 +9,8 @@ namespace flaw{
 	public:
 		ContentBrowserEditor(Application& app);
 
+		void SetScene(const Ref<Scene>& scene);
+
 		void OnRender();
 
 		std::string GetCurrentDir() const { return _currentDirectory.generic_string(); }
@@ -43,6 +45,8 @@ namespace flaw{
 	private:
 		Application& _app;
 		EventDispatcher& _eventDispatcher;
+
+		Ref<Scene> _scene;
 
 		HANDLE _changeHandle;
 

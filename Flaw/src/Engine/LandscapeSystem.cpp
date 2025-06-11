@@ -24,7 +24,7 @@ namespace flaw {
 	}
 
 	void LandscapeSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
-		auto& landscapeComp = registry.get<LandScaperComponent>(entity);
+		auto& landscapeComp = registry.get<LandscapeComponent>(entity);
 
 		Landscape landscape;
 
@@ -68,7 +68,7 @@ namespace flaw {
 	}
 
 	void LandscapeSystem::Update() {
-		for (auto&& [entity, landscapeComp] : _scene.GetRegistry().view<LandScaperComponent>().each()) {
+		for (auto&& [entity, landscapeComp] : _scene.GetRegistry().view<LandscapeComponent>().each()) {
 			if (!landscapeComp.dirty) {
 				continue;
 			}
@@ -103,7 +103,7 @@ namespace flaw {
 	}
 
 	void LandscapeSystem::GatherRenderable(CameraRenderStage& stage) {
-		for (auto&& [entity, transComp, landscapeComp] : _scene.GetRegistry().view<TransformComponent, LandScaperComponent>().each()) {
+		for (auto&& [entity, transComp, landscapeComp] : _scene.GetRegistry().view<TransformComponent, LandscapeComponent>().each()) {
 			auto& landscape = _landscapes[(uint32_t)entity];
 
 			const MeshBoundingSphere& boundingSphere = landscape.mesh->GetBoundingSphere();

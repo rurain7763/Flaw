@@ -224,4 +224,15 @@ namespace flaw {
 	void SkeletalAnimationAsset::Unload() {
 		_animation.reset();
 	}
+
+	void PrefabAsset::Load() {
+		Descriptor desc;
+		_getDesc(desc);
+
+		_prefab = CreateRef<Prefab>(desc.prefabData.data());
+	}
+
+	void PrefabAsset::Unload() {
+		_prefab.reset();
+	}
 }

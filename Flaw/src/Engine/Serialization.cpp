@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "AssetManager.h"
 #include "ParticleSystem.h"
+#include "Scripting.h"
 
 namespace flaw {
 	void Serialize(YAML::Emitter& out, ProjectConfig& config) {
@@ -33,7 +34,7 @@ namespace flaw {
 
 		if (entity.HasComponent<flaw::EntityComponent>()) {
 			auto& comp = entity.GetComponent<flaw::EntityComponent>();
-			out << YAML::Key << "EntityComponent";
+			out << YAML::Key << TypeName<flaw::EntityComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Name" << YAML::Value << comp.name;
 			out << YAML::EndMap;
@@ -41,7 +42,7 @@ namespace flaw {
 
 		if (entity.HasComponent<flaw::TransformComponent>()) {
 			auto& comp = entity.GetComponent<flaw::TransformComponent>();
-			out << YAML::Key << "TransformComponent";
+			out << YAML::Key << TypeName<flaw::TransformComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Position" << YAML::Value << comp.position;
 			out << YAML::Key << "Rotation" << YAML::Value << comp.rotation;
@@ -108,6 +109,30 @@ namespace flaw {
 			out << YAML::Key << "MonoScriptComponent";
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Name" << YAML::Value << comp.name;
+
+			out << YAML::Key << "Fields" << YAML::Value << YAML::BeginMap;
+			auto obj = Scripting::GetTempMonoScriptObject(entity.GetUUID());
+			if (obj) {
+				obj->GetClass().EachFields([&out, &obj](std::string_view fieldName, MonoScriptClassField& field) {
+					auto monoClass = field.GetMonoClass();
+					if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
+						float value = field.GetValue<float>(obj.get());
+						out << YAML::Key << fieldName.data() << YAML::Value << value;
+					}
+					else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
+						int32_t value = field.GetValue<int32_t>(obj.get());
+						out << YAML::Key << fieldName.data() << YAML::Value << value;
+					}
+					else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
+						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(obj.get()));
+						MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
+						AssetHandle current = handleField.GetValue<AssetHandle>(&prefabObj);
+						out << YAML::Key << fieldName.data() << YAML::Value << current;
+					}
+				});
+			}
+			out << YAML::EndMap;
+
 			out << YAML::EndMap;
 		}
 
@@ -343,9 +368,9 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<flaw::LandScaperComponent>()) {
-			auto& comp = entity.GetComponent<flaw::LandScaperComponent>();
-			out << YAML::Key << TypeName<flaw::LandScaperComponent>().data();
+		if (entity.HasComponent<flaw::LandscapeComponent>()) {
+			auto& comp = entity.GetComponent<flaw::LandscapeComponent>();
+			out << YAML::Key << TypeName<flaw::LandscapeComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "TilingX" << YAML::Value << comp.tilingX;
 			out << YAML::Key << "TilingY" << YAML::Value << comp.tilingY;
@@ -411,7 +436,7 @@ namespace flaw {
 			for (auto component : components) {
 				std::string name = component.first.as<std::string>();
 
-				if (name == "EntityComponent") {
+				if (name == TypeName<EntityComponent>()) {
 					if (!entity.HasComponent<EntityComponent>()) {
 						entity.AddComponent<EntityComponent>();
 					}
@@ -419,7 +444,7 @@ namespace flaw {
 					auto& comp = entity.GetComponent<EntityComponent>();
 					comp.name = component.second["Name"].as<std::string>();
 				}
-				else if (name == "TransformComponent") {
+				else if (name == TypeName<TransformComponent>()) {
 					if (!entity.HasComponent<TransformComponent>()) {
 						entity.AddComponent<TransformComponent>();
 					}
@@ -480,12 +505,43 @@ namespace flaw {
 					comp.offset = component.second["Offset"].as<vec2>();
 					comp.radius = component.second["Radius"].as<float>();
 				}
-				else if (name == "MonoScriptComponent") {
+				else if (name == TypeName<MonoScriptComponent>()) {
 					if (!entity.HasComponent<MonoScriptComponent>()) {
 						entity.AddComponent<MonoScriptComponent>();
 					}
 					auto& comp = entity.GetComponent<MonoScriptComponent>();
 					comp.name = component.second["Name"].as<std::string>();
+
+					auto fieldsNode = component.second["Fields"];
+
+					auto obj = Scripting::GetTempMonoScriptObject(entity.GetUUID());
+					if (!obj) {
+						obj = Scripting::CreateTempMonoScriptObject(entity.GetUUID(), comp.name.c_str());
+					}
+ 
+					for (const auto& field : fieldsNode) {
+						std::string fieldName = field.first.as<std::string>();
+						auto fieldValue = field.second;
+
+						auto field = obj->GetClass().GetField(fieldName.c_str());
+						if (field) {
+							auto monoClass = field.GetMonoClass();
+							if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
+								float value = fieldValue.as<float>();
+								field.SetValue(obj.get(), &value);
+							}
+							else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
+								int32_t value = fieldValue.as<int32_t>();
+								field.SetValue(obj.get(), &value);
+							}
+							else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
+								MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(obj.get()));
+								MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
+								AssetHandle current = fieldValue.as<AssetHandle>();
+								handleField.SetValue(&prefabObj, &current);
+							}
+						}
+					}
 				}
 				else if (name == "TextComponent") {
 					if (!entity.HasComponent<TextComponent>()) {
@@ -697,11 +753,11 @@ namespace flaw {
 					auto& comp = entity.GetComponent<DecalComponent>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
-				else if (name == TypeName<LandScaperComponent>()) {
-					if (!entity.HasComponent<LandScaperComponent>()) {
-						entity.AddComponent<LandScaperComponent>();
+				else if (name == TypeName<LandscapeComponent>()) {
+					if (!entity.HasComponent<LandscapeComponent>()) {
+						entity.AddComponent<LandscapeComponent>();
 					}
-					auto& comp = entity.GetComponent<LandScaperComponent>();
+					auto& comp = entity.GetComponent<LandscapeComponent>();
 					comp.tilingX = component.second["TilingX"].as<float>();
 					comp.tilingY = component.second["TilingY"].as<float>();
 					comp.heightMap = component.second["HeightMap"].as<uint64_t>();

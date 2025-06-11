@@ -43,6 +43,7 @@ namespace flaw {
 		void EachChildren(const std::function<void(const Entity& entity)>& func) const;
 
 		const UUID& GetUUID() const;
+		const std::string& GetName() const;
 
 		Scene& GetScene() const { return *_scene; }
 

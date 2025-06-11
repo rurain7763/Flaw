@@ -375,7 +375,7 @@ namespace flaw {
 	};
 
 	// Terrain
-	struct LandScaperComponent {
+	struct LandscapeComponent {
 		AssetHandle heightMap;
 		AssetHandle albedoTexture2DArray;
 		uint32_t tilingX = 1, tilingY = 1;
@@ -384,9 +384,9 @@ namespace flaw {
 
 		bool dirty;
 
-		LandScaperComponent() = default;
+		LandscapeComponent() = default;
 
-		LandScaperComponent(const LandScaperComponent& other) {
+		LandscapeComponent(const LandscapeComponent& other) {
 			heightMap = other.heightMap;
 			albedoTexture2DArray = other.albedoTexture2DArray;
 			tilingX = other.tilingX;
@@ -395,7 +395,7 @@ namespace flaw {
 			lodDistanceRange = other.lodDistanceRange;
 		}
 
-		LandScaperComponent& operator=(const LandScaperComponent& other) {
+		LandscapeComponent& operator=(const LandscapeComponent& other) {
 			heightMap = other.heightMap;
 			albedoTexture2DArray = other.albedoTexture2DArray;
 			tilingX = other.tilingX;

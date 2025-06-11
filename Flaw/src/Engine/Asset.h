@@ -33,6 +33,7 @@ namespace flaw {
 		Material,
 		Skeleton,
 		SkeletalAnimation,
+		Prefab,
 	};
 
 	class Asset {

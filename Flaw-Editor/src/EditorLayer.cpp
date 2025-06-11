@@ -81,6 +81,8 @@ namespace flaw {
 			_editorScene = CreateRef<Scene>(_app);
 		    _outlinerEditor.SetScene(_editorScene);
             _viewportEditor.SetScene(_editorScene);
+			_landscapeEditor.SetScene(_editorScene);
+			_contentBrowserEditor.SetScene(_editorScene);
 		}
 		else {
 			const std::string fullPath = projConfig.path + "/" + projConfig.startScene;
@@ -525,6 +527,7 @@ namespace flaw {
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
 		_landscapeEditor.SetScene(_editorScene);
+		_contentBrowserEditor.SetScene(_editorScene);
 		_currentScenePath = "";
 	}
 
@@ -565,6 +568,7 @@ namespace flaw {
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
 		_landscapeEditor.SetScene(_editorScene);
+		_contentBrowserEditor.SetScene(_editorScene);
 		_currentScenePath = path;
 	}
 
@@ -586,6 +590,7 @@ namespace flaw {
 		_outlinerEditor.SetScene(_runtimeScene);
 		_viewportEditor.SetScene(_runtimeScene);
 		_landscapeEditor.SetScene(_runtimeScene);
+		_contentBrowserEditor.SetScene(_runtimeScene);
 
 		_sceneState = SceneState::Play;
 
@@ -617,6 +622,7 @@ namespace flaw {
 		_outlinerEditor.SetScene(_editorScene);
 		_viewportEditor.SetScene(_editorScene);
 		_landscapeEditor.SetScene(_editorScene);
+		_contentBrowserEditor.SetScene(_editorScene);
 
 		_sceneState = SceneState::Edit;
 

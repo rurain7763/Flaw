@@ -6,7 +6,9 @@
 #include "Assets.h"
 #include "Utils/SerializationArchive.h"
 #include "Utils/Raycast.h"
+#include "Utils/UUID.h"
 #include "Mesh.h"
+#include "Prefab.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -87,6 +89,24 @@ namespace YAML {
 			rhs.y = node[1].as<float>();
 			rhs.z = node[2].as<float>();
 			rhs.w = node[3].as<float>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<flaw::UUID> {
+		static Node encode(const flaw::UUID& uuid) {
+			Node node;
+			node = static_cast<uint64_t>(uuid);
+			return node;
+		}
+
+		static bool decode(const Node& node, flaw::UUID& uuid) {
+			if (!node.IsScalar()) {
+				return false;
+			}
+			uuid = flaw::UUID(std::stoull(node.Scalar()));
+
 			return true;
 		}
 	};

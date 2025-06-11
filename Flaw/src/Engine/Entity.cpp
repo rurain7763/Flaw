@@ -20,6 +20,10 @@ namespace flaw {
 		return _scene->_registry.get<EntityComponent>(_handle).uuid;
 	}
 
+	const std::string& Entity::GetName() const {
+		return _scene->_registry.get<EntityComponent>(_handle).name;
+	}
+
 	bool Entity::HasParent() const {
 		return _scene->_parentMap.find(GetUUID()) != _scene->_parentMap.end();
 	}
