@@ -44,66 +44,6 @@ namespace flaw {
 		vec3 position;
 	};
 
-	struct Vertex3D {
-		vec3 position;
-		vec2 texcoord;
-		vec3 tangent;
-		vec3 normal;
-		vec3 binormal;
-	};
-
-	template<>
-	struct Serializer<Vertex3D> {
-		static void Serialize(SerializationArchive& archive, const Vertex3D& value) {
-			archive << value.position.x << value.position.y << value.position.z;
-			archive << value.texcoord.x << value.texcoord.y;
-			archive << value.tangent.x << value.tangent.y << value.tangent.z;
-			archive << value.normal.x << value.normal.y << value.normal.z;
-			archive << value.binormal.x << value.binormal.y << value.binormal.z;
-		}
-
-		static void Deserialize(SerializationArchive& archive, Vertex3D& value) {
-			archive >> value.position.x >> value.position.y >> value.position.z;
-			archive >> value.texcoord.x >> value.texcoord.y;
-			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
-			archive >> value.normal.x >> value.normal.y >> value.normal.z;
-			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
-		}
-	};
-
-	struct SkinnedVertex3D {
-		vec3 position;
-		vec2 texcoord;
-		vec3 tangent;
-		vec3 normal;
-		vec3 binormal;
-		ivec4 boneIndices = ivec4(-1, -1, -1, -1);
-		vec4 boneWeights = vec4(0.0f);
-	};
-
-	template<>
-	struct Serializer<SkinnedVertex3D> {
-		static void Serialize(SerializationArchive& archive, const SkinnedVertex3D& value) {
-			archive << value.position.x << value.position.y << value.position.z;
-			archive << value.texcoord.x << value.texcoord.y;
-			archive << value.tangent.x << value.tangent.y << value.tangent.z;
-			archive << value.normal.x << value.normal.y << value.normal.z;
-			archive << value.binormal.x << value.binormal.y << value.binormal.z;
-			archive << value.boneIndices.x << value.boneIndices.y << value.boneIndices.z << value.boneIndices.w;
-			archive << value.boneWeights.x << value.boneWeights.y << value.boneWeights.z << value.boneWeights.w;
-		}
-
-		static void Deserialize(SerializationArchive& archive, SkinnedVertex3D& value) {
-			archive >> value.position.x >> value.position.y >> value.position.z;
-			archive >> value.texcoord.x >> value.texcoord.y;
-			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
-			archive >> value.normal.x >> value.normal.y >> value.normal.z;
-			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
-			archive >> value.boneIndices.x >> value.boneIndices.y >> value.boneIndices.z >> value.boneIndices.w;
-			archive >> value.boneWeights.x >> value.boneWeights.y >> value.boneWeights.z >> value.boneWeights.w;
-		}
-	};
-
 	struct CameraConstants {
 		mat4 view = mat4(1.0f);
 		mat4 projection = mat4(1.0f);
@@ -138,23 +78,6 @@ namespace flaw {
 	struct SkyLight {
 		vec3 color = vec3(0.0f);
 		float intensity = 0.0f;
-	};
-
-	struct PointLight {
-		vec3 color = vec3(1.0f);
-		float intensity = 1.0f;
-		vec3 position = vec3(0.0f);
-		float range = 1.0f;
-	};
-
-	struct SpotLight {
-		vec3 color = vec3(1.0f);
-		float intensity = 1.0f;
-		vec3 position = vec3(0.0f);
-		vec3 direction = Forward;
-		float inner;
-		float outer;
-		float range = 1.0f;
 	};
 
 	struct Decal {

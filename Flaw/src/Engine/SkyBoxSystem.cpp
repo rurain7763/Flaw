@@ -15,8 +15,6 @@ namespace flaw {
 		_cubeMapShader->AddInputElement<float>("TANGENT", 3);
 		_cubeMapShader->AddInputElement<float>("NORMAL", 3);
 		_cubeMapShader->AddInputElement<float>("BINORMAL", 3);
-		_cubeMapShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		_cubeMapShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_cubeMapShader->CreateInputLayout();
 
 		_irradianceShader = Graphics::CreateGraphicsShader("Resources/Shaders/skybox_irradiance.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
@@ -25,8 +23,6 @@ namespace flaw {
 		_irradianceShader->AddInputElement<float>("TANGENT", 3);
 		_irradianceShader->AddInputElement<float>("NORMAL", 3);
 		_irradianceShader->AddInputElement<float>("BINORMAL", 3);
-		_irradianceShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		_irradianceShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_irradianceShader->CreateInputLayout();
 
 		_prefilteredShader = Graphics::CreateGraphicsShader("Resources/Shaders/skybox_prefiltered.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Geometry | ShaderCompileFlag::Pixel);
@@ -35,8 +31,6 @@ namespace flaw {
 		_prefilteredShader->AddInputElement<float>("TANGENT", 3);
 		_prefilteredShader->AddInputElement<float>("NORMAL", 3);
 		_prefilteredShader->AddInputElement<float>("BINORMAL", 3);
-		_prefilteredShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		_prefilteredShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_prefilteredShader->CreateInputLayout();
 
 		_brdfLUTShader = Graphics::CreateGraphicsShader("Resources/Shaders/skybox_brdflut.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -45,8 +39,6 @@ namespace flaw {
 		_brdfLUTShader->AddInputElement<float>("TANGENT", 3);
 		_brdfLUTShader->AddInputElement<float>("NORMAL", 3);
 		_brdfLUTShader->AddInputElement<float>("BINORMAL", 3);
-		_brdfLUTShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		_brdfLUTShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_brdfLUTShader->CreateInputLayout();
 
 		_skyBoxShader = Graphics::CreateGraphicsShader("Resources/Shaders/skybox.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
@@ -55,8 +47,6 @@ namespace flaw {
 		_skyBoxShader->AddInputElement<float>("TANGENT", 3);
 		_skyBoxShader->AddInputElement<float>("NORMAL", 3);
 		_skyBoxShader->AddInputElement<float>("BINORMAL", 3);
-		_skyBoxShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		_skyBoxShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_skyBoxShader->CreateInputLayout();
 
 		_skybox.brdfLUTTexture = GenerateBRDFLUTTexture();

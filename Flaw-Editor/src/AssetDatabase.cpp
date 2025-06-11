@@ -746,7 +746,7 @@ namespace flaw {
 			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::StaticMesh, [&](SerializationArchive& archive) {
 				std::vector<MeshSegment> segments;
 				std::vector<AssetHandle> materials;
-				std::vector<SkinnedVertex3D> vertices;
+				std::vector<Vertex3D> vertices;
 				for (const auto& mesh : model.GetMeshs()) {
 					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
 					materials.push_back(getMaterialFunc(mesh));
@@ -755,16 +755,12 @@ namespace flaw {
 						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
 						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
 
-						SkinnedVertex3D vertex3D = {};
+						Vertex3D vertex3D = {};
 						vertex3D.position = vertex.position;
 						vertex3D.texcoord = vertex.texCoord;
 						vertex3D.tangent = vertex.tangent;
 						vertex3D.normal = vertex.normal;
 						vertex3D.binormal = vertex.bitangent;
-						for (int32_t j = 0; j < 4; ++j) {
-							vertex3D.boneIndices[j] = vertexBoneData.boneIndices[j];
-							vertex3D.boneWeights[j] = vertexBoneData.boneWeight[j];
-						}
 
 						vertices.push_back(vertex3D);
 					}

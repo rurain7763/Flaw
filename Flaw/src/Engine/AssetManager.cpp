@@ -28,8 +28,6 @@ namespace flaw {
 			desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
 			desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
 			desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
-			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
 		}));
 		RegisterKey("std3d_geometry_static", handle);
 
@@ -64,8 +62,6 @@ namespace flaw {
 			desc.inputElements.push_back({ "TANGENT", GraphicsShader::InputElement::ElementType::Float, 3, false });
 			desc.inputElements.push_back({ "NORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
 			desc.inputElements.push_back({ "BINORMAL", GraphicsShader::InputElement::ElementType::Float, 3, false });
-			desc.inputElements.push_back({ "BONEINDICES", GraphicsShader::InputElement::ElementType::Int, 4, false });
-			desc.inputElements.push_back({ "BONEWEIGHTS", GraphicsShader::InputElement::ElementType::Float, 4, false });
 		}));
 		RegisterKey("lighting3d_spot", handle);
 	}
@@ -85,7 +81,7 @@ namespace flaw {
 	void AssetManager::RegisterDefaultStaticMeshs() {
 		AssetHandle handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
+			GenerateCone([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 0.5, 1);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
@@ -93,7 +89,7 @@ namespace flaw {
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
+			GenerateCube([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
@@ -101,7 +97,7 @@ namespace flaw {
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
+			GenerateSphere([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices, 50, 50, 0.5);
 			desc.materials.push_back(AssetManager::GetHandleByKey("default_material_std3d_geometry"));
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));
@@ -109,7 +105,7 @@ namespace flaw {
 
 		handle = g_registeredAssets.size();
 		RegisterAsset(handle, CreateRef<StaticMeshAsset>([](StaticMeshAsset::Descriptor& desc) {
-			GenerateQuad([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(SkinnedVertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
+			GenerateQuad([&desc](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) { desc.vertices.emplace_back(Vertex3D{ pos, uv, tangent, normal, binormal }); }, desc.indices);
 			// NOTE: no material for quad mesh
 			desc.segments.emplace_back(MeshSegment{ PrimitiveTopology::TriangleList, 0, (uint32_t)desc.vertices.size(), 0, (uint32_t)desc.indices.size() });
 		}));

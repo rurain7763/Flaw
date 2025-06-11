@@ -7,6 +7,66 @@
 #include "Utils/SerializationArchive.h"
 
 namespace flaw {
+	struct Vertex3D {
+		vec3 position;
+		vec2 texcoord;
+		vec3 tangent;
+		vec3 normal;
+		vec3 binormal;
+	};
+
+	template<>
+	struct Serializer<Vertex3D> {
+		static void Serialize(SerializationArchive& archive, const Vertex3D& value) {
+			archive << value.position.x << value.position.y << value.position.z;
+			archive << value.texcoord.x << value.texcoord.y;
+			archive << value.tangent.x << value.tangent.y << value.tangent.z;
+			archive << value.normal.x << value.normal.y << value.normal.z;
+			archive << value.binormal.x << value.binormal.y << value.binormal.z;
+		}
+
+		static void Deserialize(SerializationArchive& archive, Vertex3D& value) {
+			archive >> value.position.x >> value.position.y >> value.position.z;
+			archive >> value.texcoord.x >> value.texcoord.y;
+			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
+			archive >> value.normal.x >> value.normal.y >> value.normal.z;
+			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
+		}
+	};
+
+	struct SkinnedVertex3D {
+		vec3 position;
+		vec2 texcoord;
+		vec3 tangent;
+		vec3 normal;
+		vec3 binormal;
+		ivec4 boneIndices = ivec4(-1, -1, -1, -1);
+		vec4 boneWeights = vec4(0.0f);
+	};
+
+	template<>
+	struct Serializer<SkinnedVertex3D> {
+		static void Serialize(SerializationArchive& archive, const SkinnedVertex3D& value) {
+			archive << value.position.x << value.position.y << value.position.z;
+			archive << value.texcoord.x << value.texcoord.y;
+			archive << value.tangent.x << value.tangent.y << value.tangent.z;
+			archive << value.normal.x << value.normal.y << value.normal.z;
+			archive << value.binormal.x << value.binormal.y << value.binormal.z;
+			archive << value.boneIndices.x << value.boneIndices.y << value.boneIndices.z << value.boneIndices.w;
+			archive << value.boneWeights.x << value.boneWeights.y << value.boneWeights.z << value.boneWeights.w;
+		}
+
+		static void Deserialize(SerializationArchive& archive, SkinnedVertex3D& value) {
+			archive >> value.position.x >> value.position.y >> value.position.z;
+			archive >> value.texcoord.x >> value.texcoord.y;
+			archive >> value.tangent.x >> value.tangent.y >> value.tangent.z;
+			archive >> value.normal.x >> value.normal.y >> value.normal.z;
+			archive >> value.binormal.x >> value.binormal.y >> value.binormal.z;
+			archive >> value.boneIndices.x >> value.boneIndices.y >> value.boneIndices.z >> value.boneIndices.w;
+			archive >> value.boneWeights.x >> value.boneWeights.y >> value.boneWeights.z >> value.boneWeights.w;
+		}
+	};
+
 	struct MeshSegment {
 		PrimitiveTopology topology = PrimitiveTopology::TriangleList;
 
@@ -43,6 +103,27 @@ namespace flaw {
 	class Mesh {
 	public:
 		Mesh() = default;
+		
+		Mesh(PrimitiveTopology topology, const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices) {
+			_meshSegments.resize(1);
+			_meshSegments[0].topology = topology;
+			_meshSegments[0].vertexStart = 0;
+			_meshSegments[0].vertexCount = vertices.size();
+			_meshSegments[0].indexStart = 0;
+			_meshSegments[0].indexCount = indices.size();
+
+			GenerateGPUResources(vertices, indices);
+			GenerateBVH(vertices, indices);
+			GenerateBoundingSphere(vertices);
+		}
+
+		Mesh(const std::vector<Vertex3D>& vertices, const std::vector<uint32_t>& indices, const std::vector<MeshSegment>& segments)
+			: _meshSegments(segments)
+		{
+			GenerateGPUResources(vertices, indices);
+			GenerateBVH(vertices, indices);
+			GenerateBoundingSphere(vertices);
+		}
 
 		Mesh(PrimitiveTopology topology, const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
 			_meshSegments.resize(1);
@@ -98,7 +179,8 @@ namespace flaw {
 		}
 
 	private:
-		void GenerateBVH(const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
+		template<typename T>
+		void GenerateBVH(const std::vector<T>& vertices, const std::vector<uint32_t>& indices) {
 			if (vertices.empty()) {
 				return;
 			}
@@ -122,7 +204,8 @@ namespace flaw {
 			}
 		}
 
-		void GenerateBoundingSphere(const std::vector<SkinnedVertex3D>& vertices) {
+		template<typename T>
+		void GenerateBoundingSphere(const std::vector<T>& vertices) {
 			if (vertices.empty()) {
 				return;
 			}
@@ -143,13 +226,14 @@ namespace flaw {
 			}
 		}
 
-		void GenerateGPUResources(const std::vector<SkinnedVertex3D>& vertices, const std::vector<uint32_t>& indices) {
+		template<typename T>
+		void GenerateGPUResources(const std::vector<T>& vertices, const std::vector<uint32_t>& indices) {
 			auto& graphicsContext = Graphics::GetGraphicsContext();
 
 			VertexBuffer::Descriptor vertexDesc = {};
 			vertexDesc.usage = UsageFlag::Static;
-			vertexDesc.elmSize = sizeof(SkinnedVertex3D);
-			vertexDesc.bufferSize = vertices.size() * sizeof(SkinnedVertex3D);
+			vertexDesc.elmSize = sizeof(T);
+			vertexDesc.bufferSize = vertices.size() * sizeof(T);
 			vertexDesc.initialData = vertices.data();
 			_gpuVertexBuffer = graphicsContext.CreateVertexBuffer(vertexDesc);
 

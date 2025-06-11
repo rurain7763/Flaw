@@ -18,8 +18,6 @@ namespace flaw {
 		_landscapeShader->AddInputElement<float>("TANGENT", 3);
 		_landscapeShader->AddInputElement<float>("NORMAL", 3);
 		_landscapeShader->AddInputElement<float>("BINORMAL", 3);
-		_landscapeShader->AddInputElement<int>("BONEINDICES", 4);
-		_landscapeShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		_landscapeShader->CreateInputLayout();
 	}
 
@@ -42,12 +40,12 @@ namespace flaw {
 	}
 
 	Ref<Mesh> LandscapeSystem::CreateLandscapeMesh(uint32_t tilingX, uint32_t tilingY) {
-		std::vector<SkinnedVertex3D> vertices;
+		std::vector<Vertex3D> vertices;
 		std::vector<uint32_t> indices;
 
 		GenerateQuad(
 			[&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-				SkinnedVertex3D vertex;
+				Vertex3D vertex;
 				vertex.position = vec3(pos.x, pos.z, pos.y);
 				vertex.texcoord = uv;
 				vertex.normal = vec3(normal.x, -normal.z, normal.y);
