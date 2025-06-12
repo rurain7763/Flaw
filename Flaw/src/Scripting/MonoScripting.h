@@ -24,6 +24,7 @@ namespace flaw {
 
 	class MonoScriptClassField {
 	public:
+		MonoScriptClassField() = default;
 		MonoScriptClassField(MonoDomain* domain, MonoClass* parentClss, MonoClassField* fieldClass);
 
 		bool IsPublic() const;
@@ -38,7 +39,7 @@ namespace flaw {
 		void GetValue(const MonoScriptObject* obj, void* buff) const;
 
 		template <typename T>
-		T GetValue(MonoScriptObject* obj) {
+		T GetValue(const MonoScriptObject* obj) {
 			T value;
 			GetValue(obj, &value);
 			return value;
@@ -131,6 +132,7 @@ namespace flaw {
 
 	class MonoScriptObject {
 	public:
+		MonoScriptObject() = default;
 		MonoScriptObject(MonoDomain* domain, MonoClass* clss);
 		MonoScriptObject(MonoDomain* domain, MonoClass* clss, MonoObject* obj);
 		MonoScriptObject(MonoScriptClass* clss);
@@ -138,11 +140,11 @@ namespace flaw {
 
 		void Instantiate();
 
-		void CallMethod(MonoMethod* method, void** args = nullptr, int32_t argCount = 0);
+		void CallMethod(MonoMethod* method, void** args = nullptr, int32_t argCount = 0) const;
 
-		MonoScriptObject Clone(uint32_t fieldFlags = MonoFieldFlag_Public);
+		MonoScriptObject Clone(uint32_t fieldFlags = MonoFieldFlag_Public) const;
 
-		Ref<MonoScriptObjectTreeNode> ToTree();
+		Ref<MonoScriptObjectTreeNode> ToTree() const;
 		void ApplyTree(const Ref<MonoScriptObjectTreeNode>& treeNode);
 
 		bool IsValid() const { return _obj != nullptr; }
@@ -193,7 +195,6 @@ namespace flaw {
 
 		MonoScriptClass& GetSystemClass(MonoSystemType type) const;
 		MonoScriptClass& GetClass(const char* name);
-		MonoScriptClass& GetAttribute(const char* name);
 
 		MonoDomain* GetMonoDomain() const { return _appDomain; }
 

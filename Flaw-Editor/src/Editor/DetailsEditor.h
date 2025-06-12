@@ -64,6 +64,8 @@ namespace flaw {
 	private:
 		Application& _app;
 
+		Ref<Scene> _scene;
+
 		Entity _selectedEntt;
 	};
 }

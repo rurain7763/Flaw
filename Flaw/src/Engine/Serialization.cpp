@@ -8,6 +8,7 @@
 #include "AssetManager.h"
 #include "ParticleSystem.h"
 #include "Scripting.h"
+#include "MonoScriptSystem.h"
 
 namespace flaw {
 	void Serialize(YAML::Emitter& out, ProjectConfig& config) {
@@ -106,31 +107,36 @@ namespace flaw {
 
 		if (entity.HasComponent<flaw::MonoScriptComponent>()) {
 			auto& comp = entity.GetComponent<flaw::MonoScriptComponent>();
-			out << YAML::Key << "MonoScriptComponent";
+			out << YAML::Key << TypeName<flaw::MonoScriptComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Name" << YAML::Value << comp.name;
 
 			out << YAML::Key << "Fields" << YAML::Value << YAML::BeginMap;
-			auto obj = Scripting::GetTempMonoScriptObject(entity.GetUUID());
-			if (obj) {
-				obj->GetClass().EachFields([&out, &obj](std::string_view fieldName, MonoScriptClassField& field) {
+
+			auto& monoScriptSys = entity.GetScene().GetMonoScriptSystem();
+
+			if (monoScriptSys.IsMonoScriptInstanceExists(entity.GetUUID())) {
+				auto& obj = monoScriptSys.GetMonoScriptInstance(entity.GetUUID()).scriptObject;
+
+				obj.GetClass().EachFields([&out, &obj](std::string_view fieldName, MonoScriptClassField& field) {
 					auto monoClass = field.GetMonoClass();
 					if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
-						float value = field.GetValue<float>(obj.get());
+						float value = field.GetValue<float>(&obj);
 						out << YAML::Key << fieldName.data() << YAML::Value << value;
 					}
 					else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
-						int32_t value = field.GetValue<int32_t>(obj.get());
+						int32_t value = field.GetValue<int32_t>(&obj);
 						out << YAML::Key << fieldName.data() << YAML::Value << value;
 					}
 					else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
-						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(obj.get()));
+						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(&obj));
 						MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
 						AssetHandle current = handleField.GetValue<AssetHandle>(&prefabObj);
 						out << YAML::Key << fieldName.data() << YAML::Value << current;
 					}
 				});
 			}
+
 			out << YAML::EndMap;
 
 			out << YAML::EndMap;
@@ -506,36 +512,38 @@ namespace flaw {
 					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == TypeName<MonoScriptComponent>()) {
+					auto& monoScriptSys = entity.GetScene().GetMonoScriptSystem();
+
+					std::string scriptName = component.second["Name"].as<std::string>();
+
 					if (!entity.HasComponent<MonoScriptComponent>()) {
-						entity.AddComponent<MonoScriptComponent>();
+						entity.AddComponent<MonoScriptComponent>(scriptName.data());
 					}
-					auto& comp = entity.GetComponent<MonoScriptComponent>();
-					comp.name = component.second["Name"].as<std::string>();
 
-					auto fieldsNode = component.second["Fields"];
-
-					auto obj = Scripting::CreateTempMonoScriptObject(entity.GetUUID(), comp.name.c_str());
-					if (!obj) {
+					if (!monoScriptSys.IsMonoScriptInstanceExists(entity.GetUUID()) && !monoScriptSys.CreateMonoScriptInstance(entity.GetUUID(), scriptName.c_str())) {
 						continue;
 					}
+
+					auto& obj = monoScriptSys.GetMonoScriptInstance(entity.GetUUID()).scriptObject;
  
+					auto fieldsNode = component.second["Fields"];
 					for (const auto& field : fieldsNode) {
 						std::string fieldName = field.first.as<std::string>();
 						auto fieldValue = field.second;
 
-						auto field = obj->GetClass().GetField(fieldName.c_str());
+						auto field = obj.GetClass().GetField(fieldName.c_str());
 						if (field) {
 							auto monoClass = field.GetMonoClass();
 							if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
 								float value = fieldValue.as<float>();
-								field.SetValue(obj.get(), &value);
+								field.SetValue(&obj, &value);
 							}
 							else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
 								int32_t value = fieldValue.as<int32_t>();
-								field.SetValue(obj.get(), &value);
+								field.SetValue(&obj, &value);
 							}
 							else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
-								MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(obj.get()));
+								MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(&obj));
 								MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
 								AssetHandle current = fieldValue.as<AssetHandle>();
 								handleField.SetValue(&prefabObj, &current);

@@ -63,12 +63,12 @@ namespace Flaw
         internal extern static void GetLinearVelocity_RigidBody2D(ulong id, out Vec2 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool GetKeyDown(KeyCode keyCode);
+        internal extern static bool GetKeyDown_Input(KeyCode keyCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool GetKeyUp(KeyCode keyCode);
+        internal extern static bool GetKeyUp_Input(KeyCode keyCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool GetKey(KeyCode keyCode);
+        internal extern static bool GetKey_Input(KeyCode keyCode);
     }
 }

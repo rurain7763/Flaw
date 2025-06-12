@@ -16,14 +16,6 @@ namespace flaw {
 		mono_free(t);
 	}
 
-	float GetDeltaTime() {
-		return Time::DeltaTime();
-	}
-
-	float GetTimeSinceStart() {
-		return Scripting::GetTimeSinceStart();
-	}
-
 	void DestroyEntity(UUID uuid) {
 		Scripting::GetScene().DestroyEntityByUUID(uuid);
 	}
@@ -68,8 +60,8 @@ namespace flaw {
 
 		if (entity.HasComponent<TransformComponent>()) {
 			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.dirty = true;
 			comp.position = position;
+			comp.dirty = true;
 		}
 	}
 
@@ -89,8 +81,8 @@ namespace flaw {
 
 		if (entity.HasComponent<TransformComponent>()) {
 			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.dirty = true;
 			comp.rotation = rotation;
+			comp.dirty = true;
 		}
 	}
 
@@ -110,8 +102,8 @@ namespace flaw {
 
 		if (entity.HasComponent<TransformComponent>()) {
 			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.dirty = true;
 			comp.scale = scale;
+			comp.dirty = true;
 		}
 	}
 
@@ -145,15 +137,15 @@ namespace flaw {
 		}
 	}
 
-	bool GetKeyDown(KeyCode key) {
+	bool GetKeyDown_Input(KeyCode key) {
 		return Input::GetKeyDown(key);
 	}
 
-	bool GetKeyUp(KeyCode key) {
+	bool GetKeyUp_Input(KeyCode key) {
 		return Input::GetKeyUp(key);
 	}
 
-	bool GetKey(KeyCode key) {
+	bool GetKey_Input(KeyCode key) {
 		return Input::GetKey(key);
 	}
 }

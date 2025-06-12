@@ -10,10 +10,7 @@
 
 namespace flaw {
 	void LogInfo(MonoString* text);
-	
-	float GetDeltaTime();
-	float GetTimeSinceStart();
-	
+		
 	void DestroyEntity(UUID uuid);
 	uint64_t FindEntityByName(MonoString* name);
 
@@ -30,7 +27,7 @@ namespace flaw {
 	void SetBodyType_RigidBody2D(UUID uuid, int32_t bodyType);
 	void GetLinearVelocity_RigidBody2D(UUID uuid, vec2& velocity);
 
-	bool GetKeyDown(KeyCode key);
-	bool GetKeyUp(KeyCode key);
-	bool GetKey(KeyCode key);
+	bool GetKeyDown_Input(KeyCode key);
+	bool GetKeyUp_Input(KeyCode key);
+	bool GetKey_Input(KeyCode key);
 }

@@ -18,6 +18,7 @@ namespace flaw {
 	class LandscapeSystem;
 	class ShadowSystem;
 	class AnimationSystem;
+	class MonoScriptSystem;
 
 	class Scene {
 	public:
@@ -54,6 +55,7 @@ namespace flaw {
 		LandscapeSystem& GetLandscapeSystem() { return *_landscapeSystem; }
 		ShadowSystem& GetShadowSystem() { return *_shadowSystem; }
 		AnimationSystem& GetAnimationSystem() { return *_animationSystem; }
+		MonoScriptSystem& GetMonoScriptSystem() { return *_monoScriptSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -71,6 +73,7 @@ namespace flaw {
 		Scope<LandscapeSystem> _landscapeSystem;
 		Scope<ShadowSystem> _shadowSystem;
 		Scope<AnimationSystem> _animationSystem;
+		Scope<MonoScriptSystem> _monoScriptSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

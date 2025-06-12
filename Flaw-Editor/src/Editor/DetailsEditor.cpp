@@ -16,6 +16,7 @@ namespace flaw {
 	}
 
 	void DetailsEditor::SetScene(const Ref<Scene>& scene) {
+		_scene = scene;
 		_selectedEntt = Entity();
 	}
 
@@ -107,17 +108,17 @@ namespace flaw {
 				ImGui::DragFloat("Friction", &rigidbody2DComp.friction, 0.1f);
 				ImGui::DragFloat("Restitution", &rigidbody2DComp.restitution, 0.1f);
 				ImGui::DragFloat("Restitution Threshold", &rigidbody2DComp.restitutionThreshold, 0.1f);
-				});
+			});
 
 			DrawComponent<BoxCollider2DComponent>(_selectedEntt, [](BoxCollider2DComponent& boxCollider2DComp) {
 				ImGui::DragFloat2("Offset", glm::value_ptr(boxCollider2DComp.offset), 0.1f);
 				ImGui::DragFloat2("Size", glm::value_ptr(boxCollider2DComp.size), 0.1f);
-				});
+			});
 
 			DrawComponent<CircleCollider2DComponent>(_selectedEntt, [](CircleCollider2DComponent& circleCollider2DComp) {
 				ImGui::DragFloat2("Offset", glm::value_ptr(circleCollider2DComp.offset), 0.1f);
 				ImGui::DragFloat("Radius", &circleCollider2DComp.radius, 0.1f);
-				});
+			});
 
 			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
 				std::vector<std::string> scriptNames;
@@ -141,8 +142,10 @@ namespace flaw {
 					index++;
 				}
 
+				auto& monoScriptSys = _scene->GetMonoScriptSystem();
+
 				if (EditorHelper::DrawCombo("Script", selectedScriptIndex, scriptNames)) {
-					Scripting::DestroyTempMonoScriptObject(_selectedEntt.GetUUID());
+					monoScriptSys.DestroyMonoScriptInstance(_selectedEntt.GetUUID());
 					monoScriptComp.name = scriptNames[selectedScriptIndex];
 				}
 
@@ -150,28 +153,29 @@ namespace flaw {
 					return;
 				}
 
-				auto tempMonoScriptObject = Scripting::GetTempMonoScriptObject(_selectedEntt.GetUUID());
-				if (!tempMonoScriptObject) {
-					tempMonoScriptObject = Scripting::CreateTempMonoScriptObject(_selectedEntt.GetUUID(), monoScriptComp.name.c_str());
+				if (!monoScriptSys.IsMonoScriptInstanceExists(_selectedEntt.GetUUID())) {
+					monoScriptSys.CreateMonoScriptInstance(_selectedEntt.GetUUID(), monoScriptComp.name.c_str());
 				}
 
-				tempMonoScriptObject->GetClass().EachFields([this, &tempMonoScriptObject](std::string_view fieldName, MonoScriptClassField& field) {
+				auto& obj = monoScriptSys.GetMonoScriptInstance(_selectedEntt.GetUUID()).scriptObject;
+
+				obj.GetClass().EachFields([this, &obj](std::string_view fieldName, MonoScriptClassField& field) {
 					auto monoClass = field.GetMonoClass();
 
 					if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
-						float value = field.GetValue<float>(tempMonoScriptObject.get());
+						float value = field.GetValue<float>(&obj);
 						if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
-							field.SetValue(tempMonoScriptObject.get(), &value);
+							field.SetValue(&obj, &value);
 						}
 					}
 					else if (monoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
-						int32_t value = field.GetValue<int32_t>(tempMonoScriptObject.get());
+						int32_t value = field.GetValue<int32_t>(&obj);
 						if (ImGui::DragInt(fieldName.data(), &value, 1)) {
-							field.SetValue(tempMonoScriptObject.get(), &value);
+							field.SetValue(&obj, &value);
 						}
 					}
 					else if (monoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
-						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(tempMonoScriptObject.get()));
+						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(&obj));
 						MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
 
 						AssetHandle current = handleField.GetValue<AssetHandle>(&prefabObj);

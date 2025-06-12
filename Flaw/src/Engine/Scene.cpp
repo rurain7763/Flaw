@@ -12,6 +12,7 @@
 #include "LandscapeSystem.h"
 #include "ShadowSystem.h"
 #include "AnimationSystem.h"
+#include "MonoScriptSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -40,10 +41,12 @@ namespace flaw {
 		_registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
 		_registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
 		_registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
-
+		
 		_animationSystem = CreateScope<AnimationSystem>(_app, *this);
 		_registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*_animationSystem);
 		_registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*_animationSystem);
+
+		_monoScriptSystem = CreateScope<MonoScriptSystem>(_app, *this);
 
 		_renderSystem = CreateScope<RenderSystem>(*this);
 
@@ -269,7 +272,7 @@ namespace flaw {
 			}
 		}
 
-		Scripting::OnStart(this);
+		_monoScriptSystem->OnStart();
 	}
 
 	void Scene::OnUpdate() {
@@ -283,8 +286,7 @@ namespace flaw {
 	}
 
 	void Scene::OnEnd() {
-		Scripting::OnEnd();
-
+		_monoScriptSystem->OnEnd();
 		_physics2DWorld.reset();
 	}
 
@@ -330,7 +332,7 @@ namespace flaw {
 
 	void Scene::UpdateScript() {
 		// update mono scripts
-		Scripting::OnUpdate();
+		_monoScriptSystem->OnUpdate();
 
 		// update native scripts
 		for (auto&& [entity, scriptable] : _registry.view<NativeScriptComponent>().each()) {
@@ -427,6 +429,7 @@ namespace flaw {
 
 		scene->_parentMap = _parentMap;
 		scene->_childMap = _childMap;
+		scene->_monoScriptSystem->CloneMonoScriptInstances(_monoScriptSystem->GetMonoInstances());
 
 		return scene;
 	}

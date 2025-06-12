@@ -194,7 +194,7 @@ namespace flaw {
 		mono_runtime_object_init(_obj);
 	}
 
-	void MonoScriptObject::CallMethod(MonoMethod* method, void** args, int32_t argCount) {
+	void MonoScriptObject::CallMethod(MonoMethod* method, void** args, int32_t argCount) const {
 		MonoObject* exception = nullptr;
 		MonoObject* result = mono_runtime_invoke(method, _obj, args, &exception);
 
@@ -206,7 +206,7 @@ namespace flaw {
 		}
 	}
 
-	static void DeepCloneFields(MonoScriptObject& source, MonoScriptObject& target, uint32_t fieldFlags) {
+	static void DeepCloneFields(const MonoScriptObject& source, MonoScriptObject& target, uint32_t fieldFlags) {
 		source.GetClass().EachFieldsRecursive([&source, &target, fieldFlags](std::string_view fieldName, MonoScriptClassField& field) {
 			auto targetField = target.GetClass().GetField(fieldName.data());
 			if (!targetField) {
@@ -239,14 +239,14 @@ namespace flaw {
 		}, fieldFlags);
 	}
 
-	MonoScriptObject MonoScriptObject::Clone(uint32_t fieldFlags) {
+	MonoScriptObject MonoScriptObject::Clone(uint32_t fieldFlags) const {
 		MonoScriptObject clone(_domain, _clss);
 		clone.Instantiate();
 		DeepCloneFields(*this, clone, fieldFlags);
 		return clone;
 	}
 
-	static void CreateTreeNodeRecurcive(MonoScriptObject* obj, Ref<MonoScriptObjectTreeNodeObject> node) {
+	static void CreateTreeNodeRecurcive(const MonoScriptObject* obj, Ref<MonoScriptObjectTreeNodeObject> node) {
 		obj->GetClass().EachFieldsRecursive([&node, obj](std::string_view fieldName, MonoScriptClassField& field) {
 			MonoScriptClass fieldClass(obj->GetMonoDomain(), field.GetMonoClass());
 
@@ -273,7 +273,7 @@ namespace flaw {
 		});
 	}
 
-	Ref<MonoScriptObjectTreeNode> MonoScriptObject::ToTree() {
+	Ref<MonoScriptObjectTreeNode> MonoScriptObject::ToTree() const {
 		bool isClass = mono_type_get_type(mono_class_get_type(_clss)) == MONO_TYPE_CLASS;
 
 		Ref<MonoScriptObjectTreeNode> rootNode = CreateRef<MonoScriptObjectTreeNodeObject>();
