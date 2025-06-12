@@ -27,6 +27,9 @@ namespace Flaw
         internal extern static object GetComponentInstance(ulong id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void DestroyEntity(ulong id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static ulong FindEntityByName(string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

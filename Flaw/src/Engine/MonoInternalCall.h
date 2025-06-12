@@ -14,6 +14,7 @@ namespace flaw {
 	float GetDeltaTime();
 	float GetTimeSinceStart();
 	
+	void DestroyEntity(UUID uuid);
 	uint64_t FindEntityByName(MonoString* name);
 
 	uint64_t CreateEntity_Prefab(AssetHandle prefab);

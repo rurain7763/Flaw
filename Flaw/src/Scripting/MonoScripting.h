@@ -86,20 +86,21 @@ namespace flaw {
 		void EachFields(const std::function<void(std::string_view, MonoScriptClassField&)>& callback, uint32_t flags = MonoFieldFlag::MonoFieldFlag_Public);
 		void EachFieldsRecursive(const std::function<void(std::string_view, MonoScriptClassField&)>& callback, uint32_t flags = MonoFieldFlag::MonoFieldFlag_Public);
 
-		MonoMethod* GetMethodRecurcive(const char* methodName, int32_t argCount);
+		int32_t GetInstanceSize() const;
 
-		MonoType* GetMonoType() const;
-		MonoReflectionType* GetReflectionType() const;
+		MonoMethod* GetMethodRecurcive(const char* methodName, int32_t argCount);
 
 		std::string_view GetTypeName() const;
 
+		MonoType* GetMonoType() const { return _monoType; }
+		MonoReflectionType* GetReflectionType() const { return _reflectionType; }
 		MonoDomain* GetMonoDomain() const { return _domain; }
-		MonoClass* GetMonoClass() const { return _clss; }
+		MonoClass* GetMonoClass() const { return _monoClass; }
 
-		explicit operator bool() const { return _clss != nullptr; }
+		explicit operator bool() const { return _monoClass != nullptr; }
 
 		bool operator==(const MonoScriptClass& other) const {
-			return _clss == other._clss;
+			return _monoClass == other._monoClass;
 		}
 
 		bool operator!=(const MonoScriptClass& other) const {
@@ -108,7 +109,24 @@ namespace flaw {
 
 	private:
 		MonoDomain* _domain;
-		MonoClass* _clss;
+		MonoClass* _monoClass;
+		MonoType* _monoType;
+		MonoReflectionType* _reflectionType;
+	};
+
+	struct MonoScriptObjectTreeNode {
+		std::string name;
+		std::string typeName;
+
+		virtual ~MonoScriptObjectTreeNode() = default;
+	};
+
+	struct MonoScriptObjectTreeNodeObject : public MonoScriptObjectTreeNode {
+		std::vector<Ref<MonoScriptObjectTreeNode>> elements;
+	};
+
+	struct MonoScriptObjectTreeNodeValue : public MonoScriptObjectTreeNode {
+		std::vector<int8_t> valueData;
 	};
 
 	class MonoScriptObject {
@@ -123,6 +141,9 @@ namespace flaw {
 		void CallMethod(MonoMethod* method, void** args = nullptr, int32_t argCount = 0);
 
 		MonoScriptObject Clone(uint32_t fieldFlags = MonoFieldFlag_Public);
+
+		Ref<MonoScriptObjectTreeNode> ToTree();
+		void ApplyTree(const Ref<MonoScriptObjectTreeNode>& treeNode);
 
 		bool IsValid() const { return _obj != nullptr; }
 
@@ -149,6 +170,7 @@ namespace flaw {
 	enum class MonoSystemType {
 		Int32,
 		Float,
+		Attribute,
 	};
 
 	class MonoScriptDomain {
@@ -160,10 +182,9 @@ namespace flaw {
 
 		void AddMonoAssembly(const char* assemblyPath, bool loadPdb = false);
 
+		void AddAllSubClassesOf(const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex);
 		void AddAllSubClassesOf(int32_t baseClassAssemblyIndex, const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex);
 
-		void AddAllAttributesOf(int32_t assemblyIndex, const char* attributeNameSpace);
-		
 		void PrintMonoAssemblyInfo(int32_t assemblyIndex);
 
 		bool IsClassExists(const char* name);
@@ -177,14 +198,15 @@ namespace flaw {
 		MonoDomain* GetMonoDomain() const { return _appDomain; }
 
 		const std::unordered_map<std::string, MonoScriptClass>& GetMonoScriptClasses() const { return _monoScriptClasses; }
-		const std::unordered_map<std::string, MonoScriptClass>& GetMonoScriptAttributes() const { return _monoScriptAttributes; }
+
+	private:
+		void AddAllSubClassesOfImpl(MonoClass* baseClass, int32_t searchClassAssemblyIndex);
 
 	private:
 		MonoDomain* _appDomain;
 		std::vector<MonoAssembly*> _assemblies;
 
 		std::unordered_map<std::string, MonoScriptClass> _monoScriptClasses;
-		std::unordered_map<std::string, MonoScriptClass> _monoScriptAttributes;
 	};
 }
 

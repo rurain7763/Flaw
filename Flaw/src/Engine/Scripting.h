@@ -30,6 +30,9 @@ namespace flaw {
 		static void DestroyTempMonoScriptObject(const UUID& uuid);
 		static Ref<MonoScriptObject> GetTempMonoScriptObject(const UUID& uuid);
 
+		static Ref<MonoScriptObject> CreateRuntimeMonoScriptObject(const UUID& uuid, const char* name);
+		static void DestroyRuntimeMonoScriptObject(const UUID& uuid);
+
 		static bool IsMonoComponent(const MonoScriptClass& monoClass);
 		static bool IsEngineComponent(MonoReflectionType* type);
 		static bool HasComponent(UUID uuid, MonoReflectionType* type);
@@ -42,9 +45,8 @@ namespace flaw {
 		static float GetTimeSinceStart();
 
 	private:
-		static Ref<MonoScriptObject> CreateMonoScriptObjectImpl(const UUID& uuid, const char* name);
-
-	private:
 		static void LoadMonoScripts();
+
+		static Ref<MonoScriptObject> CreateMonoScriptObjectImpl(const UUID& uuid, const char* name);
 	};
 }

@@ -8,13 +8,15 @@ namespace flaw {
 	DetailsEditor::DetailsEditor(Application& app)
 		: _app(app)
 	{
-		auto& eventDispatcher = _app.GetEventDispatcher();
-		eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
+		_app.GetEventDispatcher().Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
 	}
 
 	DetailsEditor::~DetailsEditor() {
-		auto& eventDispatcher = _app.GetEventDispatcher();
-		eventDispatcher.UnregisterAll(PID(this));
+		_app.GetEventDispatcher().UnregisterAll(PID(this));
+	}
+
+	void DetailsEditor::SetScene(const Ref<Scene>& scene) {
+		_selectedEntt = Entity();
 	}
 
 	void DetailsEditor::OnRender() {

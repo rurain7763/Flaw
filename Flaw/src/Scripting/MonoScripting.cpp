@@ -19,6 +19,10 @@ namespace flaw {
 		, _parentClass(parentClss)
 		, _field(fieldClass)
 	{
+		if (!_field) {
+			return;
+		}
+
 		_monoType = mono_field_get_type(_field);
 		_monoClass = mono_class_from_mono_type(_monoType);
 	}
@@ -60,31 +64,34 @@ namespace flaw {
 	}
 
 	std::string_view MonoScriptClassField::GetTypeName() const {
-		return mono_type_get_name(_monoType);
+		return mono_type_get_name_full(_monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
 	}
 
 	MonoScriptClass::MonoScriptClass(MonoDomain* appDomain, MonoClass* clss)
 		: _domain(appDomain)
-		, _clss(clss) 
+		, _monoClass(clss) 
 	{
+		if (_monoClass) {
+			_monoType = mono_class_get_type(_monoClass);
+			_reflectionType = mono_type_get_object(appDomain, _monoType);
+		}
 	}
 
 	bool MonoScriptClass::IsSubClassOf(MonoScriptClass* baseClass) const {
-		return mono_class_is_subclass_of(_clss, baseClass->GetMonoClass(), false);
+		return mono_class_is_subclass_of(_monoClass, baseClass->GetMonoClass(), false);
 	}
 
 	bool MonoScriptClass::IsSubClassOf(MonoClass* baseClass) const {
-		return mono_class_is_subclass_of(_clss, baseClass, false);
+		return mono_class_is_subclass_of(_monoClass, baseClass, false);
 	}
 
 	MonoScriptClassField MonoScriptClass::GetField(const char* fieldName) {
-		MonoClassField* field = mono_class_get_field_from_name(_clss, fieldName);
-		FASSERT(field, "Field not found");
-		return MonoScriptClassField(_domain, _clss, field);
+		MonoClassField* field = mono_class_get_field_from_name(_monoClass, fieldName);
+		return MonoScriptClassField(_domain, _monoClass, field);
 	}
 
 	MonoScriptClassField MonoScriptClass::GetFieldRecursive(const char* fieldName) {
-		MonoClass* clss = _clss;
+		MonoClass* clss = _monoClass;
 		MonoClassField* field = nullptr;
 
 		while (clss) {
@@ -95,24 +102,24 @@ namespace flaw {
 			clss = mono_class_get_parent(clss);
 		}
 
-		throw std::runtime_error(fmt::format("Field '{}' not found in class hierarchy", fieldName));
+		return MonoScriptClassField(_domain, nullptr, nullptr);
 	}
 
 	void MonoScriptClass::EachFields(const std::function<void(std::string_view, MonoScriptClassField&)>& callback, uint32_t flags) {
 		void* iter = nullptr;
-		while (MonoClassField* field = mono_class_get_fields(_clss, &iter)) {
+		while (MonoClassField* field = mono_class_get_fields(_monoClass, &iter)) {
 			const char* fieldName = mono_field_get_name(field);
 			const uint32_t fieldFlags = mono_field_get_flags(field);
 
 			if (fieldFlags & flags) {
-				MonoScriptClassField fieldRef(_domain, _clss, field);
+				MonoScriptClassField fieldRef(_domain, _monoClass, field);
 				callback(fieldName, fieldRef);
 			}
 		}
 	}
 
 	void MonoScriptClass::EachFieldsRecursive(const std::function<void(std::string_view, MonoScriptClassField&)>& callback, uint32_t flags) {
-		MonoClass* clss = _clss;
+		MonoClass* clss = _monoClass;
 		while (clss) {
 			void* iter = nullptr;
 			while (MonoClassField* field = mono_class_get_fields(clss, &iter)) {
@@ -127,8 +134,12 @@ namespace flaw {
 		}
 	}
 
+	int32_t MonoScriptClass::GetInstanceSize() const {
+		return mono_class_instance_size(_monoClass) - sizeof(MonoObject);
+	}
+
 	MonoMethod* MonoScriptClass::GetMethodRecurcive(const char* methodName, int32_t argCount) {
-		MonoClass* clss = _clss;
+		MonoClass* clss = _monoClass;
 		MonoMethod* method = mono_class_get_method_from_name(clss, methodName, argCount);
 		
 		while (!method) {
@@ -142,16 +153,8 @@ namespace flaw {
 		return method;
 	}
 
-	MonoType* MonoScriptClass::GetMonoType() const {
-		return mono_class_get_type(_clss);
-	}
-
-	MonoReflectionType* MonoScriptClass::GetReflectionType() const {
-		return mono_type_get_object(mono_domain_get(), GetMonoType());
-	}
-
 	std::string_view MonoScriptClass::GetTypeName() const {
-		return mono_class_get_name(_clss);
+		return mono_type_get_name_full(_monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
 	}
 
 	MonoScriptObject::MonoScriptObject(MonoDomain* domain, MonoClass* clss)
@@ -241,6 +244,111 @@ namespace flaw {
 		clone.Instantiate();
 		DeepCloneFields(*this, clone, fieldFlags);
 		return clone;
+	}
+
+	static void CreateTreeNodeRecurcive(MonoScriptObject* obj, Ref<MonoScriptObjectTreeNodeObject> node) {
+		obj->GetClass().EachFieldsRecursive([&node, obj](std::string_view fieldName, MonoScriptClassField& field) {
+			MonoScriptClass fieldClass(obj->GetMonoDomain(), field.GetMonoClass());
+
+			if (field.IsClass()) {
+				MonoScriptObject childObj(&fieldClass, field.GetValue<MonoObject*>(obj));
+				if (!childObj.IsValid()) {
+					return;
+				}
+
+				auto elmNode = CreateRef<MonoScriptObjectTreeNodeObject>();
+				elmNode->name = fieldName.data();
+				elmNode->typeName = fieldClass.GetTypeName();
+				CreateTreeNodeRecurcive(&childObj, elmNode);
+				node->elements.push_back(elmNode);
+			}
+			else {
+				auto valueNode = CreateRef<MonoScriptObjectTreeNodeValue>();
+				valueNode->name = fieldName.data();
+				valueNode->typeName = fieldClass.GetTypeName();
+				valueNode->valueData.resize(fieldClass.GetInstanceSize());
+				field.GetValue(obj, valueNode->valueData.data());
+				node->elements.push_back(valueNode);
+			}
+		});
+	}
+
+	Ref<MonoScriptObjectTreeNode> MonoScriptObject::ToTree() {
+		bool isClass = mono_type_get_type(mono_class_get_type(_clss)) == MONO_TYPE_CLASS;
+
+		Ref<MonoScriptObjectTreeNode> rootNode = CreateRef<MonoScriptObjectTreeNodeObject>();
+
+		if (isClass) {
+			auto objNode = CreateRef<MonoScriptObjectTreeNodeObject>();
+			objNode->name = "";
+			objNode->typeName = mono_type_get_name_full(mono_class_get_type(_clss), MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+			CreateTreeNodeRecurcive(this, objNode);
+			rootNode = objNode;
+		}
+		else {
+			auto valueNode = CreateRef<MonoScriptObjectTreeNodeValue>();
+			valueNode->name = "";
+			valueNode->typeName = mono_type_get_name_full(mono_class_get_type(_clss), MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+			valueNode->valueData.resize(mono_class_instance_size(_clss) - sizeof(MonoObject));
+			void* data = mono_object_unbox(_obj);
+			std::memcpy(valueNode->valueData.data(), data, valueNode->valueData.size());
+			rootNode = valueNode;
+		}
+
+		return rootNode;
+	}
+
+	static void ApplyTreeNodeRecurcive(MonoScriptObject* obj, Ref<MonoScriptObjectTreeNodeObject> node) {
+		for (const auto& child : node->elements) {
+			auto field = obj->GetClass().GetField(child->name.c_str());
+			if (!field) {
+				continue;
+			}
+
+			auto fieldClassName = field.GetTypeName();
+			if (fieldClassName != child->typeName) {
+				continue;
+			}
+
+			if (auto objectNode = std::dynamic_pointer_cast<MonoScriptObjectTreeNodeObject>(child)) {
+				MonoScriptObject childObj(obj->GetMonoDomain(), field.GetMonoClass(), field.GetValue<MonoObject*>(obj));
+				if (!childObj.IsValid()) {
+					childObj.Instantiate();
+					field.SetValue(obj, childObj.GetMonoObject());
+				}
+				ApplyTreeNodeRecurcive(&childObj, objectNode);
+			}
+			else if (auto valueNode = std::dynamic_pointer_cast<MonoScriptObjectTreeNodeValue>(child)) {
+				MonoScriptClass fieldClass(obj->GetMonoDomain(), field.GetMonoClass());
+				if (fieldClass.GetInstanceSize() != valueNode->valueData.size()) {
+					continue;
+				}
+				field.SetValue(obj, valueNode->valueData.data());
+			}
+		}
+	}
+
+	void MonoScriptObject::ApplyTree(const Ref<MonoScriptObjectTreeNode>& treeNode) {
+		bool isClass = mono_type_get_type(mono_class_get_type(_clss)) == MONO_TYPE_CLASS;
+
+		if (isClass) {
+			auto objNode = std::dynamic_pointer_cast<MonoScriptObjectTreeNodeObject>(treeNode);
+			if (!objNode) {
+				throw std::runtime_error("Invalid tree node type for class object");
+			}
+			ApplyTreeNodeRecurcive(this, objNode);
+		}
+		else {
+			auto valueNode = std::dynamic_pointer_cast<MonoScriptObjectTreeNodeValue>(treeNode);
+			if (!valueNode) {
+				throw std::runtime_error("Invalid tree node type for value object");
+			}
+			if (valueNode->valueData.size() != mono_class_instance_size(_clss) - sizeof(MonoObject)) {
+				throw std::runtime_error("Value data size mismatch");
+			}
+			void* data = mono_object_unbox(_obj);
+			std::memcpy(data, valueNode->valueData.data(), valueNode->valueData.size());
+		}
 	}
 
 	void MonoScripting::Init() {
@@ -340,12 +448,7 @@ namespace flaw {
 		_assemblies.push_back(assembly);
 	}
 
-	void MonoScriptDomain::AddAllSubClassesOf(int32_t baseClassAssemblyIndex, const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex) {
-		MonoClass* baseClass = mono_class_from_name(mono_assembly_get_image(_assemblies[baseClassAssemblyIndex]), baseClassNameSpace, baseClassName);
-		if (!baseClass) {
-			throw std::runtime_error("Base class not found");
-		}
-
+	void MonoScriptDomain::AddAllSubClassesOfImpl(MonoClass* baseClass, int32_t searchClassAssemblyIndex) {
 		MonoImage* image = mono_assembly_get_image(_assemblies[searchClassAssemblyIndex]);
 		const MonoTableInfo* table = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
 		uint32_t rows = mono_table_info_get_rows(table);
@@ -364,41 +467,29 @@ namespace flaw {
 			}
 
 			if (mono_class_is_subclass_of(clss, baseClass, false)) {
-				std::string fullName = fmt::format("{}.{}", nameSpace, name);
+				std::string fullName = mono_type_get_name_full(mono_class_get_type(clss), MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
 				_monoScriptClasses[fullName] = MonoScriptClass(_appDomain, clss);
 			}
 		}
 	}
 
-	void MonoScriptDomain::AddAllAttributesOf(int32_t assemblyIndex, const char* attributeNameSpace) {
+	void MonoScriptDomain::AddAllSubClassesOf(const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex) {
 		MonoImage* corlibImage = mono_get_corlib();
-		MonoClass* attributeClass = mono_class_from_name(corlibImage, "System", "Attribute");
-
-		MonoImage* image = mono_assembly_get_image(_assemblies[assemblyIndex]);
-		const MonoTableInfo* table = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
-		uint32_t rows = mono_table_info_get_rows(table);
-		for (int32_t i = 0; i < rows; i++) {
-			uint32_t cols[MONO_TYPEDEF_SIZE];
-			mono_metadata_decode_row(table, i, cols, MONO_TYPEDEF_SIZE);
-
-			// Get namespace and type name
-			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
-			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
-
-			if (strcmp(nameSpace, attributeNameSpace) != 0) {
-				continue; // Skip if namespace does not match
-			}
-
-			MonoClass* clss = mono_class_from_name(image, nameSpace, name);
-			if (!clss) {
-				continue;
-			}
-
-			if (mono_class_is_subclass_of(clss, attributeClass, false)) {
-				std::string fullName = fmt::format("{}.{}", nameSpace, name);
-				_monoScriptAttributes[fullName] = MonoScriptClass(_appDomain, clss);
-			}
+		MonoClass* baseClass = mono_class_from_name(corlibImage, baseClassNameSpace, baseClassName);
+		if (!baseClass) {
+			throw std::runtime_error("Base class not found");
 		}
+
+		AddAllSubClassesOfImpl(baseClass, searchClassAssemblyIndex);
+	}
+
+	void MonoScriptDomain::AddAllSubClassesOf(int32_t baseClassAssemblyIndex, const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex) {
+		MonoClass* baseClass = mono_class_from_name(mono_assembly_get_image(_assemblies[baseClassAssemblyIndex]), baseClassNameSpace, baseClassName);
+		if (!baseClass) {
+			throw std::runtime_error("Base class not found");
+		}
+
+		AddAllSubClassesOfImpl(baseClass, searchClassAssemblyIndex);
 	}
 
 	void MonoScriptDomain::PrintMonoAssemblyInfo(int32_t assemblyIndex) {
@@ -417,7 +508,7 @@ namespace flaw {
 			}
 		}
 	}
-
+	
 	bool MonoScriptDomain::IsClassExists(const char* name) {
 		return _monoScriptClasses.find(name) != _monoScriptClasses.end();
 	}
@@ -464,6 +555,14 @@ namespace flaw {
 				}
 				return floatClass;
 			}
+			case MonoSystemType::Attribute: {
+				static MonoScriptClass attributeClass(nullptr, nullptr);
+				if (!attributeClass) {
+					MonoClass* clss = mono_class_from_name(corlibImage, "System", "Attribute");
+					attributeClass = MonoScriptClass(_appDomain, clss);
+				}
+				return attributeClass;
+			}
 		}
 
 		throw std::runtime_error("Unknown MonoSystemType");
@@ -476,14 +575,5 @@ namespace flaw {
 		}
 
 		throw std::runtime_error(fmt::format("Mono script class not found: {}", name));
-	}
-
-	MonoScriptClass& MonoScriptDomain::GetAttribute(const char* name) {
-		auto it = _monoScriptAttributes.find(name);
-		if (it != _monoScriptAttributes.end()) {
-			return it->second;
-		}
-
-		throw std::runtime_error(fmt::format("Mono script attribute not found: {}", name));
 	}
 }

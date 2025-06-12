@@ -1,10 +1,13 @@
-﻿using System;
-
-namespace Flaw
+﻿namespace Flaw
 {
     public class EntityComponent
     {
         internal Entity entity;
+
+        public Entity Owner
+        {
+            get { return entity; }
+        }
 
         public EntityComponent()
         {
@@ -28,7 +31,7 @@ namespace Flaw
 
         public Entity FindEntityByName(string name)
         {
-            return entity.FindEntityByName(name);
+            return Entity.FindEntityByName(name);
         }
     }
 }

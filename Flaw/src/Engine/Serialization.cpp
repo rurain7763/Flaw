@@ -514,9 +514,9 @@ namespace flaw {
 
 					auto fieldsNode = component.second["Fields"];
 
-					auto obj = Scripting::GetTempMonoScriptObject(entity.GetUUID());
+					auto obj = Scripting::CreateTempMonoScriptObject(entity.GetUUID(), comp.name.c_str());
 					if (!obj) {
-						obj = Scripting::CreateTempMonoScriptObject(entity.GetUUID(), comp.name.c_str());
+						continue;
 					}
  
 					for (const auto& field : fieldsNode) {

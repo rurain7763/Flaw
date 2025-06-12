@@ -55,6 +55,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(LogInfo);
 		ADD_INTERNAL_CALL(GetDeltaTime);
 		ADD_INTERNAL_CALL(GetTimeSinceStart);
+		ADD_INTERNAL_CALL(DestroyEntity);
 		ADD_INTERNAL_CALL(FindEntityByName);
 		ADD_INTERNAL_CALL(CreateEntity_Prefab);
 		ADD_INTERNAL_CALL(GetPosition_Transform);
@@ -74,12 +75,25 @@ namespace flaw {
 	}
 
 	void Scripting::Reload() {
-		g_monoScriptDomain.reset();
-		g_hasComponentFuncs.clear();
-		g_monoRuntimeObjects.clear();
+		std::vector<std::pair<UUID, Ref<MonoScriptObjectTreeNode>>> backupNodes;
+		for (const auto& [uuid, obj] : g_monoTempObjects) {
+			backupNodes.push_back({ uuid, obj->ToTree() });
+		}
+
 		g_monoTempObjects.clear();
+		g_monoRuntimeObjects.clear();
+		g_hasComponentFuncs.clear();
+		g_monoScriptDomain.reset();
 
 		LoadMonoScripts();
+
+		for (const auto& [uuid, backupNode] : backupNodes) {
+			auto obj = CreateTempMonoScriptObject(uuid, backupNode->typeName.c_str());
+			if (!obj) {
+				continue;
+			}
+			obj->ApplyTree(backupNode);
+		}
 	}
 
 	void Scripting::LoadMonoScripts() {
@@ -88,9 +102,9 @@ namespace flaw {
 
 		g_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		g_monoScriptDomain->PrintMonoAssemblyInfo(0);
+		g_monoScriptDomain->AddAllSubClassesOf("System", "Attribute", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "Asset", 0);
-		g_monoScriptDomain->AddAllAttributesOf(0, "Flaw");
 
 		auto& projectConfig = Project::GetConfig();
 		std::string projectMonoAssemblyPath = fmt::format("{}/Binaries/{}.dll", projectConfig.path, projectConfig.name);
@@ -131,6 +145,36 @@ namespace flaw {
 		g_monoScriptDomain.reset();
 
 		MonoScripting::Cleanup();
+	}
+
+	static void CreatePublicFieldsInObjectRecursive(MonoScriptObject& object) {
+		object.GetClass().EachFields([&object](std::string_view fieldName, MonoScriptClassField& field) {
+			if (field.IsClass()) {
+				MonoScriptObject fieldMonoObj(object.GetMonoDomain(), field.GetMonoClass(), field.GetValue<MonoObject*>(&object));
+
+				if (!fieldMonoObj.IsValid()) {
+					fieldMonoObj.Instantiate();
+					field.SetValue(&object, fieldMonoObj.GetMonoObject());
+				}
+
+				CreatePublicFieldsInObjectRecursive(fieldMonoObj);
+			}
+		});
+	}
+
+	Ref<MonoScriptObject> Scripting::CreateMonoScriptObjectImpl(const UUID& uuid, const char* name) {
+		if (!g_monoScriptDomain->IsClassExists(name)) {
+			Log::Error("Mono script class not found: %s", name);
+			return nullptr;
+		}
+
+		UUID copy = uuid;
+		void* args[] = { &copy };
+
+		auto instance = g_monoScriptDomain->CreateInstance(name, args, 1);
+		CreatePublicFieldsInObjectRecursive(instance);
+
+		return CreateRef<MonoScriptObject>(instance);
 	}
 
 	void Scripting::OnStart(Scene* scene) {
@@ -181,11 +225,13 @@ namespace flaw {
 	void Scripting::OnUpdate() {
 		for (auto& [entity, entityComp, scriptComp] : g_scene->GetRegistry().view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = g_monoRuntimeObjects.find(entityComp.uuid);
-			if (it == g_monoRuntimeObjects.end() || !it->second.updateMethod) {
+			if (it == g_monoRuntimeObjects.end()) {
 				continue;
 			}
 
-			it->second.scriptObject->CallMethod(it->second.updateMethod);
+			if (it->second.updateMethod) {
+				it->second.scriptObject->CallMethod(it->second.updateMethod);
+			}
 		}
 
 		// TODO: how to handle removed objects and created objects on runtime?
@@ -242,50 +288,48 @@ namespace flaw {
 		}
 	}
 
-	static void CreatePublicFieldsInObjectRecursive(MonoScriptObject& object) {
-		object.GetClass().EachFields([&object](std::string_view fieldName, MonoScriptClassField& field) {
-			if (field.IsClass()) {
-				auto typeName = field.GetTypeName();
-
-				if (!g_monoScriptDomain->IsClassExists(typeName.data())) {
-					return;
-				}
-				
-				MonoObject* fieldObj = field.GetValue<MonoObject*>(&object);
-				
-				if (!fieldObj) {
-					auto fieldInstance = g_monoScriptDomain->CreateInstance(typeName.data());
-					field.SetValue(&object, fieldInstance.GetMonoObject());
-					fieldObj = fieldInstance.GetMonoObject();
-				}
-
-				MonoScriptObject fieldMonoObj(object.GetMonoDomain(), field.GetMonoClass(), fieldObj);
-				CreatePublicFieldsInObjectRecursive(fieldMonoObj);
-			}
-		});
-	}
-
-	Ref<MonoScriptObject> Scripting::CreateMonoScriptObjectImpl(const UUID& uuid, const char* name) {
-		if (!g_monoScriptDomain->IsClassExists(name)) {
-			Log::Error("Mono script class not found: %s", name);
-			return nullptr;
-		}
-
-		UUID copy = uuid;
-		void* args[] = { &copy };
-
-		auto instance = g_monoScriptDomain->CreateInstance(name, args, 1);
-		CreatePublicFieldsInObjectRecursive(instance);
-
-		return CreateRef<MonoScriptObject>(instance);
-	}
-
 	Ref<MonoScriptObject> Scripting::GetTempMonoScriptObject(const UUID& uuid) {
 		auto it = g_monoTempObjects.find(uuid);
 		if (it != g_monoTempObjects.end()) {
 			return it->second;
 		}
 		return nullptr;
+	}
+
+	Ref<MonoScriptObject> Scripting::CreateRuntimeMonoScriptObject(const UUID& uuid, const char* name) {
+		auto obj = CreateMonoScriptObjectImpl(uuid, name);
+		if (!obj) {
+			return nullptr;
+		}
+
+		auto objClass = obj->GetClass();
+		auto createMethod = objClass.GetMethodRecurcive("OnCreate", 0);
+		auto startMethod = objClass.GetMethodRecurcive("OnStart", 0);
+		auto updateMethod = objClass.GetMethodRecurcive("OnUpdate", 0);
+
+		if (createMethod) {
+			obj->CallMethod(createMethod);
+		}
+
+		if (startMethod) {
+			obj->CallMethod(startMethod);
+		}
+
+		g_monoRuntimeObjects[uuid] = { obj, updateMethod };
+
+		return obj;
+	}
+
+	void Scripting::DestroyRuntimeMonoScriptObject(const UUID& uuid) {
+		auto it = g_monoRuntimeObjects.find(uuid);
+		if (it != g_monoRuntimeObjects.end()) {
+			auto objClass = it->second.scriptObject->GetClass();
+			auto destroyMethod = objClass.GetMethodRecurcive("OnDestroy", 0);
+			if (destroyMethod) {
+				it->second.scriptObject->CallMethod(destroyMethod);
+			}
+			g_monoRuntimeObjects.erase(it);
+		}
 	}
 
 	bool Scripting::IsMonoComponent(const MonoScriptClass& monoClass) {

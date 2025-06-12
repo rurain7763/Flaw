@@ -32,7 +32,7 @@ namespace flaw {
 		_landscapeSystem = CreateScope<LandscapeSystem>(*this);
 		_registry.on_construct<LandscapeComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
 		_registry.on_destroy<LandscapeComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
-
+		
 		_shadowSystem = CreateScope<ShadowSystem>(*this);
 		_registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
 		_registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
@@ -91,6 +91,14 @@ namespace flaw {
 		}
 
 		DestroyEntityRecursive(entity);
+	}
+
+	void Scene::DestroyEntityByUUID(const UUID& uuid) {
+		auto it = _entityMap.find(uuid);
+		if (it != _entityMap.end()) {
+			Entity entity(it->second, this);
+			DestroyEntity(entity);
+		}
 	}
 
 	void Scene::DestroyEntityRecursive(Entity entity) {

@@ -51,7 +51,21 @@ namespace Flaw
             return null;
         }
 
-        public Entity FindEntityByName(string name)
+        public void Destroy()
+        {
+            Destroy(this);
+        }
+
+        public static void Destroy(Entity entity)
+        {
+            if (entity.id != ulong.MaxValue)
+            {
+                InternalCalls.DestroyEntity(entity.id);
+                entity.id = ulong.MaxValue; // Mark as destroyed
+            }
+        }
+
+        public static Entity FindEntityByName(string name)
         {
             ulong id = InternalCalls.FindEntityByName(name);
             if (id != ulong.MaxValue)

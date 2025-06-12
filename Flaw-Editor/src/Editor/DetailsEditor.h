@@ -10,6 +10,8 @@ namespace flaw {
 		DetailsEditor(Application& app);
 		~DetailsEditor();
 
+		void SetScene(const Ref<Scene>& scene);
+
 		void OnRender();
 
 	private:

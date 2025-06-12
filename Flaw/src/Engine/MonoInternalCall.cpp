@@ -24,6 +24,10 @@ namespace flaw {
 		return Scripting::GetTimeSinceStart();
 	}
 
+	void DestroyEntity(UUID uuid) {
+		Scripting::GetScene().DestroyEntityByUUID(uuid);
+	}
+
 	uint64_t FindEntityByName(MonoString* name) {
 		uint64_t found = std::numeric_limits<uint64_t>::max();
 

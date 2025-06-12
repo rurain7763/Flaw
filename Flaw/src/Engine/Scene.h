@@ -27,6 +27,7 @@ namespace flaw {
 		Entity CreateEntity(const char* name = "Entity");
 		Entity CreateEntityByUUID(const UUID& uuid, const char* name = "Entity");
 		void DestroyEntity(Entity entity);
+		void DestroyEntityByUUID(const UUID& uuid);
 		Entity CloneEntity(const Entity& srcEntt, bool sameUUID = false);
 
 		Entity FindEntityByName(const char* name);
