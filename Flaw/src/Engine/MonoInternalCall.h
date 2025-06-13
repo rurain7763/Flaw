@@ -15,6 +15,7 @@ namespace flaw {
 	uint64_t FindEntityByName(MonoString* name);
 
 	uint64_t CreateEntity_Prefab(AssetHandle prefab);
+	uint64_t CreateEntityWithTransform_Prefab(AssetHandle prefab, vec3& position, vec3& rotation, vec3& scale);
 	
 	void GetPosition_Transform(UUID uuid, vec3& position);
 	void SetPosition_Transform(UUID uuid, vec3& position);

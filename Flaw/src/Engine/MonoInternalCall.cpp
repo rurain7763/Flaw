@@ -39,8 +39,17 @@ namespace flaw {
 			Log::Error("Prefab asset not found with handle: %llu", prefab);
 			return UUID();
 		}
-
 		Entity entity = prefabAsset->GetPrefab()->CreateEntity(Scripting::GetScene());
+		return entity.GetUUID();
+	}
+
+	uint64_t CreateEntityWithTransform_Prefab(AssetHandle prefab, vec3& position, vec3& rotation, vec3& scale) {
+		auto prefabAsset = AssetManager::GetAsset<PrefabAsset>(prefab);
+		if (!prefabAsset) {
+			Log::Error("Prefab asset not found with handle: %llu", prefab);
+			return UUID();
+		}
+		Entity entity = prefabAsset->GetPrefab()->CreateEntity(Scripting::GetScene(), position, rotation, scale);
 		return entity.GetUUID();
 	}
 

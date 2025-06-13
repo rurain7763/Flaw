@@ -43,6 +43,9 @@
     <Filter Include="Physics">
       <UniqueIdentifier>{888B590D-F46A-D8A8-FD82-637F69E13E0A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Physics\PhysicsX">
+      <UniqueIdentifier>{927693A3-7E6F-B2F5-A7A1-977A93F99101}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Platform">
       <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
     </Filter>
@@ -73,6 +76,9 @@
     <ClInclude Include="src\ECS\ECS.h">
       <Filter>ECS</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\AnimationSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Application.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -83,6 +89,9 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Assets.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Camera.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Components.h">
@@ -103,13 +112,28 @@
     <ClInclude Include="src\Engine\LayerRegistry.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\Material.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Mesh.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\MonoInternalCall.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\MonoScriptSystem.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\ParticleSystem.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\Physics.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Platform.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Prefab.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Project.h">
@@ -137,6 +161,9 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\ShadowSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Skeleton.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\SkyBoxSystem.h">
@@ -254,6 +281,15 @@
     <ClInclude Include="src\Physics\Physics2D.h">
       <Filter>Physics</Filter>
     </ClInclude>
+    <ClInclude Include="src\Physics\PhysicsContext.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Physics\PhysicsX\Helper.h">
+      <Filter>Physics\PhysicsX</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Physics\PhysicsX\PhysXContext.h">
+      <Filter>Physics\PhysicsX</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\FileDialogs.h">
       <Filter>Platform</Filter>
     </ClInclude>
@@ -305,24 +341,26 @@
     <ClInclude Include="src\Utils\Raycast.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\Search.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
     <ClInclude Include="src\Utils\SerializationArchive.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\ThreadPool.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\UUID.h">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Engine\Material.h" />
-    <ClInclude Include="src\Engine\Skeleton.h" />
-    <ClInclude Include="src\Engine\AnimationSystem.h" />
-    <ClInclude Include="src\Utils\Search.h" />
-    <ClInclude Include="src\Utils\ThreadPool.h" />
-    <ClInclude Include="src\Engine\Camera.h" />
-    <ClInclude Include="src\Engine\MonoInternalCall.h" />
-    <ClInclude Include="src\Engine\Prefab.h" />
-    <ClInclude Include="src\Engine\MonoScriptSystem.h" />
+    <ClInclude Include="src\Engine\PhysicsSystem.h" />
+    <ClInclude Include="src\Physics\Physics.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Engine\AnimationSystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
@@ -330,6 +368,9 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Assets.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Camera.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Entity.cpp">
@@ -347,10 +388,22 @@
     <ClCompile Include="src\Engine\LayerRegistry.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\MonoInternalCall.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\MonoScriptSystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\ParticleSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Physics.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Platform.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Prefab.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Project.cpp">
@@ -375,6 +428,9 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\ShadowSystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Skeleton.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp">
@@ -446,6 +502,9 @@
     <ClCompile Include="src\Model\Model.cpp">
       <Filter>Model</Filter>
     </ClCompile>
+    <ClCompile Include="src\Physics\PhysicsX\PhysXContext.cpp">
+      <Filter>Physics\PhysicsX</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
@@ -473,16 +532,13 @@
     <ClCompile Include="src\Utils\Raycast.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="src\Utils\ThreadPool.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
     <ClCompile Include="src\Utils\UUID.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\Skeleton.cpp" />
-    <ClCompile Include="src\Engine\AnimationSystem.cpp" />
-    <ClCompile Include="src\Utils\ThreadPool.cpp" />
-    <ClCompile Include="src\Engine\Camera.cpp" />
-    <ClCompile Include="src\Engine\MonoInternalCall.cpp" />
-    <ClCompile Include="src\Engine\Prefab.cpp" />
-    <ClCompile Include="src\Engine\MonoScriptSystem.cpp" />
+    <ClCompile Include="src\Engine\PhysicsSystem.cpp" />
   </ItemGroup>
 </Project>

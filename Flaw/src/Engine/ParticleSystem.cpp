@@ -37,6 +37,16 @@ namespace flaw {
 		_graphicsPipeline = Graphics::CreateGraphicsPipeline();
 		_graphicsPipeline->SetShader(shader);
 		_graphicsPipeline->SetDepthTest(DepthTest::Less, false);
+
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*this);
+		registry.on_destroy<ParticleComponent>().connect<&ParticleSystem::UnregisterEntity>(*this);
+	}
+
+	ParticleSystem::~ParticleSystem() {
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<ParticleComponent>().disconnect<&ParticleSystem::RegisterEntity>(*this);
+		registry.on_destroy<ParticleComponent>().disconnect<&ParticleSystem::UnregisterEntity>(*this);
 	}
 
 	void ParticleSystem::Update(const Ref<ConstantBuffer>& globalConstantsCB) {

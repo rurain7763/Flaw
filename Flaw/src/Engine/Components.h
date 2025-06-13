@@ -9,6 +9,7 @@
 #include "Font/Font.h"
 #include "Asset.h"
 #include "Sound/SoundChannel.h"
+#include "Physics/Physics.h"
 
 namespace flaw {
 	struct EntityComponent {
@@ -17,6 +18,7 @@ namespace flaw {
 
 		EntityComponent() = default;
 		EntityComponent(const char* name) : name(name) {}
+		EntityComponent(const UUID& uuid, const char* name) : uuid(uuid), name(name) {}
 		EntityComponent(const EntityComponent& other) = default;
 	};
 
@@ -149,7 +151,6 @@ namespace flaw {
 		}
 	};
 
-	// 2D physics
 	struct Rigidbody2DComponent {
 		enum class BodyType : int32_t {
 			Static,
@@ -204,6 +205,38 @@ namespace flaw {
 
 		CircleCollider2DComponent() = default;
 		CircleCollider2DComponent(const CircleCollider2DComponent& other) = default;
+	};
+
+	struct RigidbodyComponent {
+		PhysicsBodyType bodyType = PhysicsBodyType::Static;
+		float density = 1.0f;
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
+		RigidbodyComponent() = default;
+		RigidbodyComponent(const RigidbodyComponent& other) = default;
+	};
+
+	struct BoxColliderComponent {
+		vec3 size = vec3(1.0f);
+
+		BoxColliderComponent() = default;
+		BoxColliderComponent(const BoxColliderComponent& other) = default;
+	};
+
+	struct SphereColliderComponent {
+		float radius = 0.5f;
+
+		SphereColliderComponent() = default;
+		SphereColliderComponent(const SphereColliderComponent& other) = default;
+	};
+
+	struct MeshColliderComponent {
+		AssetHandle mesh;
+
+		MeshColliderComponent() = default;
+		MeshColliderComponent(const MeshColliderComponent& other) = default;
 	};
 
 	struct TextComponent {

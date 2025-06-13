@@ -176,6 +176,7 @@ namespace flaw {
 	class ParticleSystem {
 	public:
 		ParticleSystem(Scene& scene);
+		~ParticleSystem();
 
 		void Update(const Ref<ConstantBuffer>& globalConstantsCB);
 		void Render(const Ref<ConstantBuffer>& vpMatricesCB, const Ref<ConstantBuffer>& globalConstantsCB);

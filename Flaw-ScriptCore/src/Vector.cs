@@ -57,20 +57,11 @@ namespace Flaw
             this.z = z;
         }
 
-        public static Vec3 Forward
-        {
-            get { return new Vec3(0, 0, 1); }
-        }
-
-        public static Vec3 Up
-        {
-            get { return new Vec3(0, 1, 0); }
-        }
-
-        public static Vec3 Right
-        {
-            get { return new Vec3(1, 0, 0); }
-        }
+        public static readonly Vec3 Forward = new Vec3(0, 0, 1);
+        public static readonly Vec3 Up = new Vec3(0, 1, 0);
+        public static readonly Vec3 Right = new Vec3(1, 0, 0);
+        public static readonly Vec3 Zero = new Vec3(0, 0, 0);
+        public static readonly Vec3 One = new Vec3(1, 1, 1);
 
         public float Length()
         {

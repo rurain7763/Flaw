@@ -12,6 +12,7 @@ namespace flaw {
 		Prefab(const int8_t* data);
 
 		Entity CreateEntity(Scene& scene);
+		Entity CreateEntity(Scene& scene, const vec3& position, const vec3& rotation = vec3(0.f), const vec3& scale = vec3(1.f));
 
 		static std::vector<int8_t> ExportData(Entity entity);
 

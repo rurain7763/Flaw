@@ -120,6 +120,30 @@ namespace flaw {
 				ImGui::DragFloat("Radius", &circleCollider2DComp.radius, 0.1f);
 			});
 
+			DrawComponent<RigidbodyComponent>(_selectedEntt, [](RigidbodyComponent& rigidbodyComp) {
+				int32_t bodyTypeSelected = (int32_t)rigidbodyComp.bodyType;
+				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
+					rigidbodyComp.bodyType = (PhysicsBodyType)bodyTypeSelected;
+				}
+
+				ImGui::DragFloat("Density", &rigidbodyComp.density, 0.1f);
+				ImGui::DragFloat("Static Friction", &rigidbodyComp.staticFriction, 0.1f);
+				ImGui::DragFloat("Dynamic Friction", &rigidbodyComp.dynamicFriction, 0.1f);
+				ImGui::DragFloat("Restitution", &rigidbodyComp.restitution, 0.1f);
+			});
+
+			DrawComponent<BoxColliderComponent>(_selectedEntt, [](BoxColliderComponent& boxColliderComp) {
+				ImGui::DragFloat3("Size", glm::value_ptr(boxColliderComp.size), 0.1f);
+			});
+
+			DrawComponent<SphereColliderComponent>(_selectedEntt, [](SphereColliderComponent& sphereColliderComp) {
+				ImGui::DragFloat("Radius", &sphereColliderComp.radius, 0.1f);
+			});
+
+			DrawComponent<MeshColliderComponent>(_selectedEntt, [](MeshColliderComponent& meshColliderComp) {
+				// TODO: Implement MeshColliderComponent details
+			});
+
 			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
 				std::vector<std::string> scriptNames;
 				int32_t selectedScriptIndex = -1;
@@ -479,6 +503,10 @@ namespace flaw {
 				DrawAddComponentItem<Rigidbody2DComponent>(_selectedEntt);
 				DrawAddComponentItem<BoxCollider2DComponent>(_selectedEntt);
 				DrawAddComponentItem<CircleCollider2DComponent>(_selectedEntt);
+				DrawAddComponentItem<RigidbodyComponent>(_selectedEntt);
+				DrawAddComponentItem<BoxColliderComponent>(_selectedEntt);
+				DrawAddComponentItem<SphereColliderComponent>(_selectedEntt);
+				DrawAddComponentItem<MeshColliderComponent>(_selectedEntt);
 				DrawAddComponentItem<MonoScriptComponent>(_selectedEntt);
 				DrawAddComponentItem<TextComponent>(_selectedEntt);
 				DrawAddComponentItem<SoundListenerComponent>(_selectedEntt);

@@ -268,6 +268,16 @@ namespace flaw {
             );
         }
 
+		if (_selectedEntt.HasComponent<BoxColliderComponent>()) {
+			BoxColliderComponent& boxColliderComp = _selectedEntt.GetComponent<BoxColliderComponent>();
+			DebugRender::DrawCube(transComp.worldTransform * ModelMatrix(vec3(0.0f), vec3(0.0f), boxColliderComp.size), vec3(0.0, 1.0, 0.0));
+		}
+
+		if (_selectedEntt.HasComponent<SphereColliderComponent>()) {
+			SphereColliderComponent& sphereColliderComp = _selectedEntt.GetComponent<SphereColliderComponent>();
+			DebugRender::DrawSphere(transComp.worldTransform, sphereColliderComp.radius + 0.01f, vec3(0.0, 1.0, 0.0));
+		}
+
         if (_selectedEntt.HasComponent<PointLightComponent>()) {
             PointLightComponent& pointLightComp = _selectedEntt.GetComponent<PointLightComponent>();
             DebugRender::DrawSphere(transComp.worldTransform, pointLightComp.range, vec3(0.0, 1.0, 0.0));

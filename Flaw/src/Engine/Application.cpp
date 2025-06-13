@@ -14,6 +14,7 @@
 #include "Fonts.h"
 #include "Sounds.h"
 #include "Renderer2D.h"
+#include "Physics.h"
 
 namespace flaw {
 	Application::Application(const ApplicationProps& props) 
@@ -36,6 +37,7 @@ namespace flaw {
 		Renderer2D::Init();
 		Fonts::Init();
 		Sounds::Init();
+		Physics::Init();
 		AssetManager::Init();
 		Scripting::Init(*this);
 
@@ -59,6 +61,7 @@ namespace flaw {
 
 		Scripting::Cleanup();
 		AssetManager::Cleanup();
+		Physics::Cleanup();
 		Sounds::Cleanup();
 		Fonts::Cleanup();
 		Renderer2D::Cleanup();
@@ -106,6 +109,7 @@ namespace flaw {
 				}
 			}
 
+			Physics::Update();
 			Sounds::Update();
 			Input::Update();
 

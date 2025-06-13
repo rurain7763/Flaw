@@ -19,6 +19,16 @@ namespace flaw {
 		_landscapeShader->AddInputElement<float>("NORMAL", 3);
 		_landscapeShader->AddInputElement<float>("BINORMAL", 3);
 		_landscapeShader->CreateInputLayout();
+
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<LandscapeComponent>().connect<&LandscapeSystem::RegisterEntity>(*this);
+		registry.on_destroy<LandscapeComponent>().connect<&LandscapeSystem::UnregisterEntity>(*this);
+	}
+
+	LandscapeSystem::~LandscapeSystem() {
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<LandscapeComponent>().disconnect<&LandscapeSystem::RegisterEntity>(*this);
+		registry.on_destroy<LandscapeComponent>().disconnect<&LandscapeSystem::UnregisterEntity>(*this);
 	}
 
 	void LandscapeSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {

@@ -57,7 +57,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>FL_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;D:\Vendor\vcpkg\installed\x64-windows\include\Imath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;D:\Vendor\vcpkg\installed\x64-windows\include\Imath;D:\Vendor\vcpkg\installed\x64-windows\include\physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -70,7 +70,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16d.lib;freetyped.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;fmodL_vc.lib;assimp-vc143-mtd.lib;OpenEXR-3_3_d.lib;Imath-3_1_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXCooking_64.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16d.lib;freetyped.lib;fmtd.lib;spdlogd.lib;yaml-cppd.lib;fmodL_vc.lib;assimp-vc143-mtd.lib;OpenEXR-3_3_d.lib;Imath-3_1_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\debug\lib;Vendor\lib\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -80,7 +80,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>FL_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;D:\Vendor\vcpkg\installed\x64-windows\include\Imath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;D:\Vendor\vcpkg\installed\x64-windows\include\Imath;D:\Vendor\vcpkg\installed\x64-windows\include\physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -97,34 +97,35 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16.lib;freetype.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;fmod_vc.lib;assimp-vc143-mt.lib;OpenEXR-3_3.lib;Imath-3_1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>box2d.lib;libmono-static-sgen.lib;msdfgen-core.lib;msdfgen-ext.lib;msdf-atlas-gen.lib;skia.dll.lib;version.lib;bcrypt.lib;PhysX_64.lib;PhysXCommon_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXCooking_64.lib;d3d11.lib;Ws2_32.lib;winmm.lib;libpng16.lib;freetype.lib;fmt.lib;spdlog.lib;yaml-cpp.lib;fmod_vc.lib;assimp-vc143-mt.lib;OpenEXR-3_3.lib;Imath-3_1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\Vendor\vcpkg\installed\x64-windows\lib;Vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Engine\AnimationSystem.h" />
-    <ClInclude Include="src\Engine\Camera.h" />
-    <ClInclude Include="src\Engine\MonoInternalCall.h" />
-    <ClInclude Include="src\Engine\MonoScriptSystem.h" />
-    <ClInclude Include="src\Engine\Prefab.h" />
-    <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Core.h" />
     <ClInclude Include="src\Debug\Instrumentor.h" />
     <ClInclude Include="src\ECS\ECS.h" />
+    <ClInclude Include="src\Engine\AnimationSystem.h" />
     <ClInclude Include="src\Engine\Application.h" />
     <ClInclude Include="src\Engine\Asset.h" />
     <ClInclude Include="src\Engine\AssetManager.h" />
     <ClInclude Include="src\Engine\Assets.h" />
+    <ClInclude Include="src\Engine\Camera.h" />
     <ClInclude Include="src\Engine\Components.h" />
     <ClInclude Include="src\Engine\Entity.h" />
     <ClInclude Include="src\Engine\Fonts.h" />
     <ClInclude Include="src\Engine\Graphics.h" />
-    <ClInclude Include="src\Engine\Material.h" />
     <ClInclude Include="src\Engine\LandscapeSystem.h" />
     <ClInclude Include="src\Engine\LayerRegistry.h" />
+    <ClInclude Include="src\Engine\Material.h" />
     <ClInclude Include="src\Engine\Mesh.h" />
+    <ClInclude Include="src\Engine\MonoInternalCall.h" />
+    <ClInclude Include="src\Engine\MonoScriptSystem.h" />
     <ClInclude Include="src\Engine\ParticleSystem.h" />
+    <ClInclude Include="src\Engine\Physics.h" />
+    <ClInclude Include="src\Engine\PhysicsSystem.h" />
     <ClInclude Include="src\Engine\Platform.h" />
+    <ClInclude Include="src\Engine\Prefab.h" />
     <ClInclude Include="src\Engine\Project.h" />
     <ClInclude Include="src\Engine\RenderQueue.h" />
     <ClInclude Include="src\Engine\RenderSystem.h" />
@@ -134,6 +135,7 @@
     <ClInclude Include="src\Engine\Scripting.h" />
     <ClInclude Include="src\Engine\Serialization.h" />
     <ClInclude Include="src\Engine\ShadowSystem.h" />
+    <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Sounds.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
@@ -172,7 +174,11 @@
     <ClInclude Include="src\Log\Log.h" />
     <ClInclude Include="src\Math\Math.h" />
     <ClInclude Include="src\Model\Model.h" />
+    <ClInclude Include="src\Physics\Physics.h" />
     <ClInclude Include="src\Physics\Physics2D.h" />
+    <ClInclude Include="src\Physics\PhysicsContext.h" />
+    <ClInclude Include="src\Physics\PhysicsX\Helper.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXContext.h" />
     <ClInclude Include="src\Platform\FileDialogs.h" />
     <ClInclude Include="src\Platform\FileSystem.h" />
     <ClInclude Include="src\Platform\FileWatch.h" />
@@ -192,26 +198,28 @@
     <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
+    <ClInclude Include="src\Utils\ThreadPool.h" />
     <ClInclude Include="src\Utils\UUID.h" />
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Utils\ThreadPool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
-    <ClCompile Include="src\Engine\MonoInternalCall.cpp" />
-    <ClCompile Include="src\Engine\MonoScriptSystem.cpp" />
-    <ClCompile Include="src\Engine\Prefab.cpp" />
-    <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />
     <ClCompile Include="src\Engine\Assets.cpp" />
+    <ClCompile Include="src\Engine\Camera.cpp" />
     <ClCompile Include="src\Engine\Entity.cpp" />
     <ClCompile Include="src\Engine\Fonts.cpp" />
     <ClCompile Include="src\Engine\Graphics.cpp" />
     <ClCompile Include="src\Engine\LandscapeSystem.cpp" />
     <ClCompile Include="src\Engine\LayerRegistry.cpp" />
+    <ClCompile Include="src\Engine\MonoInternalCall.cpp" />
+    <ClCompile Include="src\Engine\MonoScriptSystem.cpp" />
     <ClCompile Include="src\Engine\ParticleSystem.cpp" />
+    <ClCompile Include="src\Engine\Physics.cpp" />
+    <ClCompile Include="src\Engine\PhysicsSystem.cpp" />
     <ClCompile Include="src\Engine\Platform.cpp" />
+    <ClCompile Include="src\Engine\Prefab.cpp" />
     <ClCompile Include="src\Engine\Project.cpp" />
     <ClCompile Include="src\Engine\RenderQueue.cpp" />
     <ClCompile Include="src\Engine\RenderSystem.cpp" />
@@ -220,9 +228,9 @@
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\ShadowSystem.cpp" />
+    <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
-    <ClCompile Include="src\Engine\Camera.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
@@ -244,6 +252,7 @@
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />
     <ClCompile Include="src\Model\Model.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXContext.cpp" />
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp" />
@@ -253,11 +262,11 @@
     <ClCompile Include="src\Sound\FMod\FModSoundsContext.cpp" />
     <ClCompile Include="src\Time\Time.cpp" />
     <ClCompile Include="src\Utils\Raycast.cpp" />
+    <ClCompile Include="src\Utils\ThreadPool.cpp" />
     <ClCompile Include="src\Utils\UUID.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\Utils\ThreadPool.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

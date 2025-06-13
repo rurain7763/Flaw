@@ -12,6 +12,15 @@ namespace flaw {
 		: _app(app)
 		, _scene(scene)
 	{
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*this);
+		registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*this);
+	}
+
+	AnimationSystem::~AnimationSystem() {
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<SkeletalMeshComponent>().disconnect<&AnimationSystem::RegisterEntity>(*this);
+		registry.on_destroy<SkeletalMeshComponent>().disconnect<&AnimationSystem::UnregisterEntity>(*this);
 	}
 
 	void AnimationSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {

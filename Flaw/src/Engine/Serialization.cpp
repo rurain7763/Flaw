@@ -105,6 +105,42 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::RigidbodyComponent>()) {
+			auto& comp = entity.GetComponent<flaw::RigidbodyComponent>();
+			out << YAML::Key << TypeName<flaw::RigidbodyComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "BodyType" << YAML::Value << (int32_t)comp.bodyType;
+			out << YAML::Key << "StaticFriction" << YAML::Value << comp.staticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << comp.dynamicFriction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.restitution;
+			out << YAML::Key << "Density" << YAML::Value << comp.density;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::BoxColliderComponent>()) {
+			auto& comp = entity.GetComponent<flaw::BoxColliderComponent>();
+			out << YAML::Key << TypeName<flaw::BoxColliderComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Size" << YAML::Value << comp.size;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::SphereColliderComponent>()) {
+			auto& comp = entity.GetComponent<flaw::SphereColliderComponent>();
+			out << YAML::Key << TypeName<flaw::SphereColliderComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Radius" << YAML::Value << comp.radius;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::MeshColliderComponent>()) {
+			auto& comp = entity.GetComponent<flaw::MeshColliderComponent>();
+			out << YAML::Key << TypeName<flaw::MeshColliderComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<flaw::MonoScriptComponent>()) {
 			auto& comp = entity.GetComponent<flaw::MonoScriptComponent>();
 			out << YAML::Key << TypeName<flaw::MonoScriptComponent>().data();
@@ -510,6 +546,38 @@ namespace flaw {
 					auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 					comp.offset = component.second["Offset"].as<vec2>();
 					comp.radius = component.second["Radius"].as<float>();
+				}
+				else if (name == TypeName<RigidbodyComponent>()) {
+					if (!entity.HasComponent<RigidbodyComponent>()) {
+						entity.AddComponent<RigidbodyComponent>();
+					}
+					auto& comp = entity.GetComponent<RigidbodyComponent>();
+					comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
+					comp.staticFriction = component.second["StaticFriction"].as<float>();
+					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+					comp.restitution = component.second["Restitution"].as<float>();
+					comp.density = component.second["Density"].as<float>();
+				}
+				else if (name == TypeName<BoxColliderComponent>()) {
+					if (!entity.HasComponent<BoxColliderComponent>()) {
+						entity.AddComponent<BoxColliderComponent>();
+					}
+					auto& comp = entity.GetComponent<BoxColliderComponent>();
+					comp.size = component.second["Size"].as<vec3>();
+				}
+				else if (name == TypeName<SphereColliderComponent>()) {
+					if (!entity.HasComponent<SphereColliderComponent>()) {
+						entity.AddComponent<SphereColliderComponent>();
+					}
+					auto& comp = entity.GetComponent<SphereColliderComponent>();
+					comp.radius = component.second["Radius"].as<float>();
+				}
+				else if (name == TypeName<MeshColliderComponent>()) {
+					if (!entity.HasComponent<MeshColliderComponent>()) {
+						entity.AddComponent<MeshColliderComponent>();
+					}
+					auto& comp = entity.GetComponent<MeshColliderComponent>();
+					comp.mesh = component.second["Mesh"].as<uint64_t>();
 				}
 				else if (name == TypeName<MonoScriptComponent>()) {
 					auto& monoScriptSys = entity.GetScene().GetMonoScriptSystem();

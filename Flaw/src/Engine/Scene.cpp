@@ -13,6 +13,7 @@
 #include "ShadowSystem.h"
 #include "AnimationSystem.h"
 #include "MonoScriptSystem.h"
+#include "PhysicsSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -25,29 +26,12 @@ namespace flaw {
 		: _app(app)
 	{
 		_particleSystem = CreateScope<ParticleSystem>(*this);
-		_registry.on_construct<ParticleComponent>().connect<&ParticleSystem::RegisterEntity>(*_particleSystem);
-		_registry.on_destroy<ParticleComponent>().connect<&ParticleSystem::UnregisterEntity>(*_particleSystem);
-
 		_skyBoxSystem = CreateScope<SkyBoxSystem>(*this);
-
-		_landscapeSystem = CreateScope<LandscapeSystem>(*this);
-		_registry.on_construct<LandscapeComponent>().connect<&LandscapeSystem::RegisterEntity>(*_landscapeSystem);
-		_registry.on_destroy<LandscapeComponent>().connect<&LandscapeSystem::UnregisterEntity>(*_landscapeSystem);
-		
-		_shadowSystem = CreateScope<ShadowSystem>(*this);
-		_registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
-		_registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
-		_registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
-		_registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
-		_registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*_shadowSystem);
-		_registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*_shadowSystem);
-		
+		_landscapeSystem = CreateScope<LandscapeSystem>(*this);		
+		_shadowSystem = CreateScope<ShadowSystem>(*this);		
 		_animationSystem = CreateScope<AnimationSystem>(_app, *this);
-		_registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*_animationSystem);
-		_registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*_animationSystem);
-
 		_monoScriptSystem = CreateScope<MonoScriptSystem>(_app, *this);
-
+		_physicsSystem = CreateScope<PhysicsSystem>(*this);
 		_renderSystem = CreateScope<RenderSystem>(*this);
 
 		_app.GetEventDispatcher().Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) {
@@ -62,25 +46,28 @@ namespace flaw {
 	}
 
 	Entity Scene::CreateEntity(const char* name) {
+		return CreateEntity(vec3(0.f), vec3(0.f), vec3(1.f), name);
+	}
+
+	Entity Scene::CreateEntity(const vec3& position, const vec3& rotation, const vec3& scale, const char* name) {
 		Entity entity(_registry.create(), this);
-		entity.AddComponent<TransformComponent>();
+		entity.AddComponent<TransformComponent>(position, rotation, scale);
 
-		auto& enttComp = entity.AddComponent<EntityComponent>(name);
-		enttComp.uuid.Generate();
+		UUID uuid;
+		uuid.Generate();
+		entity.AddComponent<EntityComponent>(uuid, name);
 
-		_entityMap[enttComp.uuid] = (entt::entity)(uint32_t)entity;
-
+		_entityMap[uuid] = (entt::entity)(uint32_t)entity;
+		
 		return entity;
 	}
 
 	Entity Scene::CreateEntityByUUID(const UUID& uuid, const char* name) {
 		Entity entity(_registry.create(), this);
 		entity.AddComponent<TransformComponent>();
+		entity.AddComponent<EntityComponent>(uuid, name);
 
-		auto& enttComp = entity.AddComponent<EntityComponent>(name);
-		enttComp.uuid = uuid;
-
-		_entityMap[enttComp.uuid] = (entt::entity)(uint32_t)entity;
+		_entityMap[uuid] = (entt::entity)(uint32_t)entity;
 
 		return entity;
 	}
@@ -162,6 +149,10 @@ namespace flaw {
 		CopyComponentIfExists<Rigidbody2DComponent>(srcEntt, cloned);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntt, cloned);
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, cloned);
+		CopyComponentIfExists<RigidbodyComponent>(srcEntt, cloned);
+		CopyComponentIfExists<BoxColliderComponent>(srcEntt, cloned);
+		CopyComponentIfExists<SphereColliderComponent>(srcEntt, cloned);
+		CopyComponentIfExists<MeshColliderComponent>(srcEntt, cloned);
 		CopyComponentIfExists<NativeScriptComponent>(srcEntt, cloned);
 		CopyComponentIfExists<MonoScriptComponent>(srcEntt, cloned);
 		CopyComponentIfExists<TextComponent>(srcEntt, cloned);
@@ -272,12 +263,15 @@ namespace flaw {
 			}
 		}
 
-		_monoScriptSystem->OnStart();
+		_physicsSystem->Start();
+		_monoScriptSystem->Start();
 	}
 
 	void Scene::OnUpdate() {
+		_monoScriptSystem->Update();
 		UpdateScript();
 		UpdatePhysics2D();
+		_physicsSystem->Update();
 		UpdateTransform();
 		UpdateSound();
 		_renderSystem->Update();
@@ -286,7 +280,8 @@ namespace flaw {
 	}
 
 	void Scene::OnEnd() {
-		_monoScriptSystem->OnEnd();
+		_monoScriptSystem->End();
+		_physicsSystem->End();
 		_physics2DWorld.reset();
 	}
 
@@ -331,9 +326,6 @@ namespace flaw {
 	}
 
 	void Scene::UpdateScript() {
-		// update mono scripts
-		_monoScriptSystem->OnUpdate();
-
 		// update native scripts
 		for (auto&& [entity, scriptable] : _registry.view<NativeScriptComponent>().each()) {
 			if (scriptable.instance == nullptr) {

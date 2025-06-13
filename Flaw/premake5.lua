@@ -23,6 +23,7 @@ project "Flaw"
         "./Vendor/include",
         vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include",
         vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include/Imath",
+        vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/include/physx",
     }
     
     links {
@@ -33,7 +34,12 @@ project "Flaw"
         "msdf-atlas-gen.lib",
         "skia.dll.lib",
         "version.lib",
-        "bcrypt.lib"
+        "bcrypt.lib",
+        "PhysX_64.lib",
+        "PhysXCommon_64.lib",
+        "PhysXExtensions_static_64.lib",
+        "PhysXFoundation_64.lib",
+        "PhysXCooking_64.lib",
     }
 
     filter "action:vs*"

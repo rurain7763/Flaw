@@ -54,7 +54,7 @@ namespace flaw {
 		_monoInstances.erase(it);
 	}
 
-	void MonoScriptSystem::OnStart() {
+	void MonoScriptSystem::Start() {
 		auto& registry = _scene.GetRegistry();
 
 		Scripting::SetActiveMonoScriptSystem(this);
@@ -87,7 +87,7 @@ namespace flaw {
 		}
 	}
 
-	void MonoScriptSystem::OnUpdate() {
+	void MonoScriptSystem::Update() {
 		for (auto&& [entity, enttComp, monoScriptComp] : _scene.GetRegistry().view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = _monoInstances.find(enttComp.uuid);
 			if (it == _monoInstances.end()) {
@@ -102,7 +102,7 @@ namespace flaw {
 		_timeSinceStart += Time::DeltaTime();
 	}
 
-	void MonoScriptSystem::OnEnd() {
+	void MonoScriptSystem::End() {
 		auto& registry = _scene.GetRegistry();
 
 		for (auto&& [entity, enttComp, monoScriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {

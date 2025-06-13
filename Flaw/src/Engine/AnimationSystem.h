@@ -47,6 +47,7 @@ namespace flaw {
 	class AnimationSystem {
 	public:
 		AnimationSystem(Application& app, Scene& scene);
+		~AnimationSystem();
 
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);

@@ -20,6 +20,7 @@ namespace flaw {
 	void Time::Update() {
 		uint64_t now = GetTimeSinceEpoch();
 		deltaTime = (now - start) * 1e-9f;
+		deltaTime = std::min(deltaTime, 0.1f); // Cap delta time to prevent large spikes
 
 		currentFrameCount++;
 		time += deltaTime;

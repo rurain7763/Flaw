@@ -19,6 +19,7 @@ namespace flaw {
 	class ShadowSystem;
 	class AnimationSystem;
 	class MonoScriptSystem;
+	class PhysicsSystem;
 
 	class Scene {
 	public:
@@ -26,6 +27,7 @@ namespace flaw {
 		~Scene();
 
 		Entity CreateEntity(const char* name = "Entity");
+		Entity CreateEntity(const vec3& position, const vec3& rotation = vec3(0.f), const vec3& scale = vec3(1.f), const char* name = "Entity");
 		Entity CreateEntityByUUID(const UUID& uuid, const char* name = "Entity");
 		void DestroyEntity(Entity entity);
 		void DestroyEntityByUUID(const UUID& uuid);
@@ -74,6 +76,7 @@ namespace flaw {
 		Scope<ShadowSystem> _shadowSystem;
 		Scope<AnimationSystem> _animationSystem;
 		Scope<MonoScriptSystem> _monoScriptSystem;
+		Scope<PhysicsSystem> _physicsSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

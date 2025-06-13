@@ -20,6 +20,7 @@ namespace flaw {
 	class LandscapeSystem {
 	public:
 		LandscapeSystem(Scene& scene);
+		~LandscapeSystem();
 
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);

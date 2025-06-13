@@ -55,6 +55,24 @@ namespace flaw {
 		sbDesc.accessFlags = AccessFlag::Write;
 
 		_lightVPMatricesSB = Graphics::CreateStructuredBuffer(sbDesc);
+
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
+	}
+
+	ShadowSystem::~ShadowSystem() {
+		auto& registry = _scene.GetRegistry();
+		registry.on_construct<DirectionalLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<DirectionalLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<PointLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<PointLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<SpotLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
+		registry.on_destroy<SpotLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
 	}
 
 	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height) {

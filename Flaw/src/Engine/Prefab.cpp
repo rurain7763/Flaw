@@ -16,9 +16,7 @@ namespace flaw {
 		auto entities = node["Entities"];
 		for (const auto& entityNode : entities) {
 			UUID uuid = entityNode["Entity"].as<UUID>();
-			_componentCreators[uuid] = [entityNode](Entity& entity) {
-				Deserialize(entityNode, entity);
-			};
+			_componentCreators[uuid] = [entityNode](Entity& entity) { Deserialize(entityNode, entity); };
 		}
 
 		auto parentMapNode = node["ParentMap"];
@@ -34,8 +32,10 @@ namespace flaw {
 
 		std::unordered_map<UUID, UUID> newUUIDs;
 		for (const auto& [uuid, creator] : _componentCreators) {
+			bool isRoot = !_parentMap[uuid].IsValid();
+
 			Entity entt = scene.CreateEntity();
-			if (!_parentMap[uuid].IsValid()) {
+			if (isRoot) {
 				root = entt;
 			}
 
@@ -59,6 +59,18 @@ namespace flaw {
 				Log::Error("Failed to set parent for entity with UUID: %s", childUUID);
 			}
 		}
+
+		return root;
+	}
+
+	Entity Prefab::CreateEntity(Scene& scene, const vec3& position, const vec3& rotation, const vec3& scale) {
+		Entity root = CreateEntity(scene);
+
+		// NOTE: because creator set transform to default, we need to set it again
+		auto& transComp = root.GetComponent<TransformComponent>();
+		transComp.position = position;
+		transComp.rotation = rotation;
+		transComp.scale = scale;
 
 		return root;
 	}

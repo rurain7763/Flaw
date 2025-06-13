@@ -102,6 +102,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(DestroyEntity);
 		ADD_INTERNAL_CALL(FindEntityByName);
 		ADD_INTERNAL_CALL(CreateEntity_Prefab);
+		ADD_INTERNAL_CALL(CreateEntityWithTransform_Prefab);
 		ADD_INTERNAL_CALL(GetPosition_Transform);
 		ADD_INTERNAL_CALL(SetPosition_Transform);
 		ADD_INTERNAL_CALL(GetRotation_Transform);

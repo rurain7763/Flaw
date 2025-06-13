@@ -14,6 +14,9 @@
     <ClInclude Include="src\Editor\DetailsEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
+    <ClInclude Include="src\Editor\Editor.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
     <ClInclude Include="src\Editor\EditorHelper.h">
       <Filter>Editor</Filter>
     </ClInclude>
@@ -41,6 +44,9 @@
     <ClInclude Include="src\Editor\LogEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
+    <ClInclude Include="src\Editor\MaterialEditor.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
     <ClInclude Include="src\Editor\OutlinerEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
@@ -55,8 +61,6 @@
     <ClInclude Include="src\EditorLayer.h" />
     <ClInclude Include="src\EditorTypes.h" />
     <ClInclude Include="src\FlawEditor.h" />
-    <ClInclude Include="src\Editor\MaterialEditor.h" />
-    <ClInclude Include="src\Editor\Editor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetDatabase.cpp" />
@@ -88,6 +92,9 @@
     <ClCompile Include="src\Editor\LogEditor.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="src\Editor\MaterialEditor.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
     <ClCompile Include="src\Editor\OutlinerEditor.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
@@ -101,6 +108,5 @@
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Editor\MaterialEditor.cpp" />
   </ItemGroup>
 </Project>

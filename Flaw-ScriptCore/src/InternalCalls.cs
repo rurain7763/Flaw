@@ -36,6 +36,9 @@ namespace Flaw
         internal extern static ulong CreateEntity_Prefab(ulong handle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static ulong CreateEntityWithTransform_Prefab(ulong handle, ref Vec3 position, ref Vec3 rotation, ref Vec3 scale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static void GetPosition_Transform(ulong id, out Vec3 position);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

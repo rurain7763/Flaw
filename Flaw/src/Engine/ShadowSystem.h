@@ -44,6 +44,7 @@ namespace flaw {
 	class ShadowSystem {
 	public:
 		ShadowSystem(Scene& scene);
+		~ShadowSystem();
 
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);

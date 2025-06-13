@@ -25,9 +25,9 @@ namespace flaw {
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
-		void OnStart();
-		void OnUpdate();
-		void OnEnd();
+		void Start();
+		void Update();
+		void End();
 
 		bool CreateMonoScriptInstance(const UUID& uuid, const char* name);
 		void DestroyMonoScriptInstance(const UUID& uuid);

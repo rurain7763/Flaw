@@ -98,9 +98,9 @@
     <ClInclude Include="src\DebugRender.h" />
     <ClInclude Include="src\Editor\ContentBrowserEditor.h" />
     <ClInclude Include="src\Editor\DetailsEditor.h" />
+    <ClInclude Include="src\Editor\Editor.h" />
     <ClInclude Include="src\Editor\EditorHelper.h" />
     <ClInclude Include="src\Editor\GraphEditor.h" />
-    <ClInclude Include="src\Editor\Editor.h" />
     <ClInclude Include="src\Editor\ImCurveEdit.h" />
     <ClInclude Include="src\Editor\ImGradient.h" />
     <ClInclude Include="src\Editor\ImGuizmo.h" />
@@ -130,9 +130,9 @@
     <ClCompile Include="src\Editor\ImSequencer.cpp" />
     <ClCompile Include="src\Editor\LandscapeEditor.cpp" />
     <ClCompile Include="src\Editor\LogEditor.cpp" />
+    <ClCompile Include="src\Editor\MaterialEditor.cpp" />
     <ClCompile Include="src\Editor\OutlinerEditor.cpp" />
     <ClCompile Include="src\Editor\ParticleComponentDrawer.cpp" />
-    <ClCompile Include="src\Editor\MaterialEditor.cpp" />
     <ClCompile Include="src\Editor\ViewportEditor.cpp" />
     <ClCompile Include="src\EditorCamera.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />
