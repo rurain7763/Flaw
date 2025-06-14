@@ -224,18 +224,18 @@ namespace flaw {
 		commandQueue.Execute();
 	}
 
-	void Renderer2D::DrawQuad(const uint32_t id, const mat4& transform, const vec4& color) {
+	void Renderer2D::DrawQuad(const entt::entity id, const mat4& transform, const vec4& color) {
 		uint32_t textureID = 0xFFFFFFFF;
 
-		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), vec2(0.0f, 0.0f), color, textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), vec2(1.0f, 0.0f), color, textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), vec2(1.0f, 1.0f), color, textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), vec2(0.0f, 1.0f), color, textureID, id });
+		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), vec2(0.0f, 0.0f), color, textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), vec2(1.0f, 0.0f), color, textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), vec2(1.0f, 1.0f), color, textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), vec2(0.0f, 1.0f), color, textureID, (uint32_t)id });
 
 		g_quadIndexCount += 6;
 	}
 
-	void Renderer2D::DrawQuad(const uint32_t id, const mat4& transform, const Ref<Texture2D>& texture) {	
+	void Renderer2D::DrawQuad(const entt::entity id, const mat4& transform, const Ref<Texture2D>& texture) {
 		uint32_t textureID;
 		if (g_quadTextures.find(texture) == g_quadTextures.end()) {
 			textureID = g_quadTextures.size();
@@ -245,49 +245,49 @@ namespace flaw {
 			textureID = g_quadTextures[texture];
 		}
 
-		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), vec2(0.0f, 0.0f), vec4(1.0f), textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), vec2(1.0f, 0.0f), vec4(1.0f), textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), vec2(1.0f, 1.0f), vec4(1.0f), textureID, id });
-		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), vec2(0.0f, 1.0f), vec4(1.0f), textureID, id });
+		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), vec2(0.0f, 0.0f), vec4(1.0f), textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), vec2(1.0f, 0.0f), vec4(1.0f), textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), vec2(1.0f, 1.0f), vec4(1.0f), textureID, (uint32_t)id });
+		g_quadVertices.push_back({ vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), vec2(0.0f, 1.0f), vec4(1.0f), textureID, (uint32_t)id });
 
 		g_quadIndexCount += 6;
 	}
 
-	void Renderer2D::DrawCircle(const uint32_t id, const mat4& transform,  const vec4& color, const float thickness) {
-		g_circleVertices.push_back({ vec3(-0.5f, 0.5f, 0.0f), vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, id });
-		g_circleVertices.push_back({ vec3(0.5f, 0.5f, 0.0f), vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, id });
-		g_circleVertices.push_back({ vec3(0.5f, -0.5f, 0.0f), vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, id });
-		g_circleVertices.push_back({ vec3(-0.5f, -0.5f, 0.0f), vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, id });
+	void Renderer2D::DrawCircle(const entt::entity id, const mat4& transform,  const vec4& color, const float thickness) {
+		g_circleVertices.push_back({ vec3(-0.5f, 0.5f, 0.0f), vec3(transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, (uint32_t)id });
+		g_circleVertices.push_back({ vec3(0.5f, 0.5f, 0.0f), vec3(transform * vec4(0.5f, 0.5f, 0.0f, 1.0f)), thickness, color, (uint32_t)id });
+		g_circleVertices.push_back({ vec3(0.5f, -0.5f, 0.0f), vec3(transform * vec4(0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, (uint32_t)id });
+		g_circleVertices.push_back({ vec3(-0.5f, -0.5f, 0.0f), vec3(transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f)), thickness, color, (uint32_t)id });
 
 		g_circleIndexCount += 6;
 	}
 
-	void Renderer2D::DrawLine(const uint32_t id, const vec3& start, const vec3& end, const vec4& color) {
-		g_lineVertices.push_back({ start, color, id });
-		g_lineVertices.push_back({ end, color, id });
+	void Renderer2D::DrawLine(const entt::entity id, const vec3& start, const vec3& end, const vec4& color) {
+		g_lineVertices.push_back({ start, color, (uint32_t)id });
+		g_lineVertices.push_back({ end, color, (uint32_t)id });
 
 		g_lineIndexCount += 2;
 	}
 
-	void Renderer2D::DrawLineRect(const uint32_t id, const mat4& transform, const vec4& color) {
+	void Renderer2D::DrawLineRect(const entt::entity id, const mat4& transform, const vec4& color) {
 		vec3 p0 = transform * vec4(-0.5f, 0.5f, 0.0f, 1.0f);
 		vec3 p1 = transform * vec4(0.5f, 0.5f, 0.0f, 1.0f);
 		vec3 p2 = transform * vec4(0.5f, -0.5f, 0.0f, 1.0f);
 		vec3 p3 = transform * vec4(-0.5f, -0.5f, 0.0f, 1.0f);
 
-		g_lineVertices.push_back({ p0, color, id });
-		g_lineVertices.push_back({ p1, color, id });
-		g_lineVertices.push_back({ p1, color, id });
-		g_lineVertices.push_back({ p2, color, id });
-		g_lineVertices.push_back({ p2, color, id });
-		g_lineVertices.push_back({ p3, color, id });
-		g_lineVertices.push_back({ p3, color, id });
-		g_lineVertices.push_back({ p0, color, id });
+		g_lineVertices.push_back({ p0, color, (uint32_t)id });
+		g_lineVertices.push_back({ p1, color, (uint32_t)id });
+		g_lineVertices.push_back({ p1, color, (uint32_t)id });
+		g_lineVertices.push_back({ p2, color, (uint32_t)id });
+		g_lineVertices.push_back({ p2, color, (uint32_t)id });
+		g_lineVertices.push_back({ p3, color, (uint32_t)id });
+		g_lineVertices.push_back({ p3, color, (uint32_t)id });
+		g_lineVertices.push_back({ p0, color, (uint32_t)id });
 
 		g_lineIndexCount += 8;
 	}
 
-	void Renderer2D::DrawString(const uint32_t id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const Ref<Texture2D>& fontAtlas, const vec4& color) {
+	void Renderer2D::DrawString(const entt::entity id, const mat4& transform, const std::wstring text, const Ref<Font>& font, const Ref<Texture2D>& fontAtlas, const vec4& color) {
 		float x = 0.0f;
 		float y = 0.0f;
 		float lineOffset = 0.0f;
@@ -351,10 +351,10 @@ namespace flaw {
 
 			quadMin += vec2(x, y); quadMax += vec2(x, y);
 
-			g_textVertices.push_back({ vec3(transform * vec4(quadMin.x, quadMax.y, 0.0f, 1.0f)), vec2(texcoordMin.x, texcoordMax.y), color, atlasID, id });
-			g_textVertices.push_back({ vec3(transform * vec4(quadMax.x, quadMax.y, 0.0f, 1.0f)), vec2(texcoordMax.x, texcoordMax.y), color, atlasID, id });
-			g_textVertices.push_back({ vec3(transform * vec4(quadMax.x, quadMin.y, 0.0f, 1.0f)), vec2(texcoordMax.x, texcoordMin.y), color, atlasID, id });
-			g_textVertices.push_back({ vec3(transform * vec4(quadMin.x, quadMin.y, 0.0f, 1.0f)), vec2(texcoordMin.x, texcoordMin.y), color, atlasID, id });
+			g_textVertices.push_back({ vec3(transform * vec4(quadMin.x, quadMax.y, 0.0f, 1.0f)), vec2(texcoordMin.x, texcoordMax.y), color, atlasID, (uint32_t)id });
+			g_textVertices.push_back({ vec3(transform * vec4(quadMax.x, quadMax.y, 0.0f, 1.0f)), vec2(texcoordMax.x, texcoordMax.y), color, atlasID, (uint32_t)id });
+			g_textVertices.push_back({ vec3(transform * vec4(quadMax.x, quadMin.y, 0.0f, 1.0f)), vec2(texcoordMax.x, texcoordMin.y), color, atlasID, (uint32_t)id });
+			g_textVertices.push_back({ vec3(transform * vec4(quadMin.x, quadMin.y, 0.0f, 1.0f)), vec2(texcoordMin.x, texcoordMin.y), color, atlasID, (uint32_t)id });
 
 			g_textIndexCount += 6;
 

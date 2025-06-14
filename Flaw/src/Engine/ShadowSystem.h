@@ -52,9 +52,9 @@ namespace flaw {
 		void Update();
 		void Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB);
 
-		DirectionalLightShadowMap& GetDirectionalLightShadowMap(const uint32_t& id) { return _directionalShadowMaps[id]; }
-		SpotLightShadowMap& GetSpotLightShadowMap(const uint32_t& id) { return _spotLightShadowMaps[id]; }
-		PointLightShadowMap& GetPointLightShadowMap(const uint32_t& id) { return _pointLightShadowMaps[id]; }
+		DirectionalLightShadowMap& GetDirectionalLightShadowMap(const entt::entity id) { return _directionalShadowMaps[id]; }
+		SpotLightShadowMap& GetSpotLightShadowMap(const entt::entity id) { return _spotLightShadowMaps[id]; }
+		PointLightShadowMap& GetPointLightShadowMap(const entt::entity id) { return _pointLightShadowMaps[id]; }
 
 	private:
 		Ref<GraphicsRenderPass> CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height);
@@ -80,8 +80,8 @@ namespace flaw {
 
 		RenderQueue _shadowMapRenderQueue;
 
-		std::unordered_map<uint32_t, DirectionalLightShadowMap> _directionalShadowMaps;
-		std::unordered_map<uint32_t, SpotLightShadowMap> _spotLightShadowMaps;
-		std::unordered_map<uint32_t, PointLightShadowMap> _pointLightShadowMaps;
+		std::unordered_map<entt::entity, DirectionalLightShadowMap> _directionalShadowMaps;
+		std::unordered_map<entt::entity, SpotLightShadowMap> _spotLightShadowMaps;
+		std::unordered_map<entt::entity, PointLightShadowMap> _pointLightShadowMaps;
 	};
 }

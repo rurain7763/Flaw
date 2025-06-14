@@ -54,7 +54,7 @@ namespace flaw {
 
 		void Update();
 
-		SkeletalAnimationData& GetSkeletalAnimationData(uint32_t entt) {
+		SkeletalAnimationData& GetSkeletalAnimationData(entt::entity entt) {
 			return *_skeletonAnimations[entt];
 		}
 
@@ -64,7 +64,7 @@ namespace flaw {
 		Application& _app;
 		Scene& _scene;
 
-		std::unordered_map<uint32_t, Ref<SkeletalAnimationData>> _skeletonAnimations;
+		std::unordered_map<entt::entity, Ref<SkeletalAnimationData>> _skeletonAnimations;
 	};
 }
 

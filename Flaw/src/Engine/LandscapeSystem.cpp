@@ -44,7 +44,7 @@ namespace flaw {
 		landscape.material->depthTest = DepthTest::Less;
 		landscape.material->depthWrite = true;
 
-		_landscapes[(uint32_t)entity] = landscape;
+		_landscapes[entity] = landscape;
 
 		landscapeComp.dirty = true;
 	}
@@ -72,7 +72,7 @@ namespace flaw {
 	}
 
 	void LandscapeSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_landscapes.erase((uint32_t)entity);
+		_landscapes.erase(entity);
 	}
 
 	void LandscapeSystem::Update() {
@@ -81,7 +81,7 @@ namespace flaw {
 				continue;
 			}
 
-			auto& landscape = _landscapes[(uint32_t)entity];
+			auto& landscape = _landscapes[entity];
 
 			landscape.mesh = CreateLandscapeMesh(landscapeComp.tilingX, landscapeComp.tilingY);
 
@@ -112,7 +112,7 @@ namespace flaw {
 
 	void LandscapeSystem::GatherRenderable(CameraRenderStage& stage) {
 		for (auto&& [entity, transComp, landscapeComp] : _scene.GetRegistry().view<TransformComponent, LandscapeComponent>().each()) {
-			auto& landscape = _landscapes[(uint32_t)entity];
+			auto& landscape = _landscapes[entity];
 
 			const MeshBoundingSphere& boundingSphere = landscape.mesh->GetBoundingSphere();
 

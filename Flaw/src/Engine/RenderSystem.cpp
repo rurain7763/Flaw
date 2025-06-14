@@ -413,7 +413,7 @@ namespace flaw {
 					continue;
 				}
 
-				auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((uint32_t)entity);
+				auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(entity);
 				auto boneMatrices = skeletalAnimData.GetBoneMatrices();
 				if (boneMatrices == nullptr) {
 					continue;
@@ -704,7 +704,7 @@ namespace flaw {
 		cmdQueue.Execute();
 
 		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
-			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap((uint32_t)entity);
+			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap(entity);
 			
 			DirectionalLightUniforms uniforms = {};
 			uniforms.view0 = shadowMap.lightVPMatrices[0].view;
@@ -754,7 +754,7 @@ namespace flaw {
 		cmdQueue.Execute();
 
 		for (auto&& [entity, transform, pointLightComp] : enttRegistry.view<TransformComponent, PointLightComponent>().each()) {
-			auto& shadowMap = shadowSys.GetPointLightShadowMap((uint32_t)entity);
+			auto& shadowMap = shadowSys.GetPointLightShadowMap(entity);
 
 			PointLightUniforms uniforms = {};
 			uniforms.lightColor = vec4(pointLightComp.color, 1.0);
@@ -790,7 +790,7 @@ namespace flaw {
 		cmdQueue.Execute();
 
 		for (auto&& [entity, transform, spotLightComp] : enttRegistry.view<TransformComponent, SpotLightComponent>().each()) {
-			auto& shadowmap = shadowSys.GetSpotLightShadowMap((uint32_t)entity);
+			auto& shadowmap = shadowSys.GetSpotLightShadowMap(entity);
 
 			SpotLightUniforms uniforms = {};
 			uniforms.view = shadowmap.lightVPMatrix.view;
@@ -912,17 +912,17 @@ namespace flaw {
 		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
 			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
 			if (!textureAsset) {
-				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, sprComp.color);
+				Renderer2D::DrawQuad(entity, transComp.worldTransform, sprComp.color);
 			}
 			else {
-				Renderer2D::DrawQuad((uint32_t)entity, transComp.worldTransform, textureAsset->GetTexture());
+				Renderer2D::DrawQuad(entity, transComp.worldTransform, textureAsset->GetTexture());
 			}
 		}
 
 		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
 			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
 			if (fontAsset) {
-				Renderer2D::DrawString((uint32_t)entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
+				Renderer2D::DrawString(entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
 			}
 		}
 		Renderer2D::End();

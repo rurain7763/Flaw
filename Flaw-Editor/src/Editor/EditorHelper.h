@@ -239,5 +239,37 @@ namespace flaw {
 				ImGui::EndDragDropTarget();
 			}
 		}
+
+		static void DrawEntityPayloadTarget(const char* label, Ref<Scene> scene, UUID uuid, const std::function<bool(Entity)>& checkComponent, const std::function<void(Entity)>& onEntityDropped) {
+			ImGui::Text("%s", label);
+
+			ImGui::SameLine();
+
+			Entity current = scene->FindEntityByUUID(uuid);
+
+			if (current) {
+				if (checkComponent(current)) {
+					ImGui::Text("%" PRIu64, uuid);
+				}
+				else {
+					ImGui::Text("Invalid");
+				}
+			}
+			else {
+				ImGui::Text("None");
+			}
+
+			if (ImGui::BeginDragDropTarget()) {
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
+				if (payload) {
+					entt::entity id = *(entt::entity*)payload->Data;
+					Entity entity(id, scene.get());
+					if (checkComponent(entity)) {
+						onEntityDropped(entity);
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
 	};
 }

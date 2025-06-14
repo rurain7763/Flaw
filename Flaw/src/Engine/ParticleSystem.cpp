@@ -54,7 +54,7 @@ namespace flaw {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
 		for (auto&& [entity, transComp, particleComp] : registry.view<entt::entity, TransformComponent, ParticleComponent>().each()) {
-			ParticleResources& compResources = _entityResourceMap[(uint32_t)entity];
+			ParticleResources& compResources = _entityResourceMap[entity];
 
 			particleComp.timer += Time::DeltaTime();
 
@@ -66,15 +66,15 @@ namespace flaw {
 			_particleUniform.startColor = particleComp.startColor;
 			_particleUniform.startSize = particleComp.startSize;
 
-			HandleEmissionModule((uint32_t)entity, compResources, particleComp);
-			HandleRandomSpeedModule((uint32_t)entity, compResources, particleComp);
-			HandleRandomColorModule((uint32_t)entity, compResources, particleComp);
-			HandleColorOverLifetimeModule((uint32_t)entity, compResources, particleComp);
-			HandleRandomSizeModule((uint32_t)entity, compResources, particleComp);
-			HandleSizeOverLifetimeModule((uint32_t)entity, compResources, particleComp);
-			HandleShapeModule((uint32_t)entity, compResources, particleComp);
-			HandleNoiseModule((uint32_t)entity, compResources, particleComp);
-			HandleRendererModule((uint32_t)entity, compResources, particleComp);
+			HandleEmissionModule(entity, compResources, particleComp);
+			HandleRandomSpeedModule(entity, compResources, particleComp);
+			HandleRandomColorModule(entity, compResources, particleComp);
+			HandleColorOverLifetimeModule(entity, compResources, particleComp);
+			HandleRandomSizeModule(entity, compResources, particleComp);
+			HandleSizeOverLifetimeModule(entity, compResources, particleComp);
+			HandleShapeModule(entity, compResources, particleComp);
+			HandleNoiseModule(entity, compResources, particleComp);
+			HandleRendererModule(entity, compResources, particleComp);
 
 			compResources.particleUniformBuffer->Update(&_particleUniform, sizeof(ParticleUniform));
 
@@ -90,7 +90,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleEmissionModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleEmissionModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::Emission) {
 			auto emModule = GetModule<EmissionModule>(entity);
 			if (!emModule) {
@@ -134,7 +134,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleRandomSpeedModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleRandomSpeedModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::RandomSpeed) {
 			auto rndSpdModule = GetModule<RandomSpeedModule>(entity);
 			if (!rndSpdModule) {
@@ -151,7 +151,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleRandomColorModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleRandomColorModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::RandomColor) {
 			auto rcModule = GetModule<RandomColorModule>(entity);
 			if (!rcModule) {
@@ -168,7 +168,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleColorOverLifetimeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleColorOverLifetimeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::ColorOverLifetime) {
 			auto coltModule = GetModule<ColorOverLifetimeModule>(entity);
 			if (!coltModule) {
@@ -189,7 +189,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleRandomSizeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleRandomSizeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::RandomSize) {
 			auto rsModule = GetModule<RandomSizeModule>(entity);
 			if (!rsModule) {
@@ -206,7 +206,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleSizeOverLifetimeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleSizeOverLifetimeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::SizeOverLifetime) {
 			auto soltModule = GetModule<SizeOverLifetimeModule>(entity);
 			if (!soltModule) {
@@ -224,7 +224,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleShapeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleShapeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::Shape) {
 			auto shapeModule = GetModule<ShapeModule>(entity);
 			if (!shapeModule) {
@@ -248,7 +248,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleNoiseModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleNoiseModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::Noise) {
 			auto noiseModule = GetModule<NoiseModule>(entity);
 			if (!noiseModule) {
@@ -265,7 +265,7 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::HandleRendererModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp) {
+	void ParticleSystem::HandleRendererModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp) {
 		if (particleComp.modules & ParticleComponent::ModuleType::Renderer) {
 			auto rendererModule = GetModule<RendererModule>(entity);
 			if (!rendererModule) {
@@ -292,7 +292,7 @@ namespace flaw {
 		cmdQueue.SetVertexBuffer(_vertexBuffer);
 
 		for (auto&& [entity, particleComp] : registry.view<entt::entity, ParticleComponent>().each()) {
-			auto it = _entityResourceMap.find((uint32_t)entity);
+			auto it = _entityResourceMap.find(entity);
 			if (it == _entityResourceMap.end()) {
 				continue;
 			}
@@ -310,7 +310,7 @@ namespace flaw {
 	}
 
 	void ParticleSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
-		auto it = _entityResourceMap.find((uint32_t)entity);
+		auto it = _entityResourceMap.find(entity);
 
 		if (it == _entityResourceMap.end()) {
 			StructuredBuffer::Descriptor particleUniformSBDesc = {};
@@ -327,7 +327,7 @@ namespace flaw {
 			particleSBDesc.bindFlags = BindFlag::UnorderedAccess | BindFlag::ShaderResource;
 			particleSBDesc.initialData = particles.data();
 
-			_entityResourceMap[(uint32_t)entity] = {
+			_entityResourceMap[entity] = {
 				std::unordered_map<ParticleComponent::ModuleType, Ref<Module>>(),
 				Graphics::CreateStructuredBuffer(particleUniformSBDesc),
 				Graphics::CreateStructuredBuffer(particleSBDesc)
@@ -336,6 +336,6 @@ namespace flaw {
 	}
 
 	void ParticleSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_entityResourceMap.erase((uint32_t)entity);
+		_entityResourceMap.erase(entity);
 	}
 }

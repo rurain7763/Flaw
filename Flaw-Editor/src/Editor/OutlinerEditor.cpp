@@ -129,8 +129,8 @@ namespace flaw {
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
-				uint32_t id = *(uint32_t*)payload->Data;
-				Entity draggedEntity((entt::entity)id, _scene.get());
+				entt::entity id = *(entt::entity*)payload->Data;
+				Entity draggedEntity(id, _scene.get());
 				draggedEntity.UnsetParent();
 			}
 			ImGui::EndDragDropTarget();
@@ -167,18 +167,18 @@ namespace flaw {
 		}
 
 		char label[256];
-		sprintf_s(label, "%s##%d", goc.name.c_str(), (uint32_t)entity);
+		sprintf_s(label, "%s##%d", goc.name.c_str(), (entt::entity)entity);
 
 		bool open = ImGui::TreeNodeEx(label, flags);
 
-		if (ImGui::IsItemClicked()) {
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsItemHovered()) {
 			_selectedEntt = entity;
 			_eventDispatcher.Dispatch<OnSelectEntityEvent>(_selectedEntt);
 		}
 
 		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-			uint32_t id = (uint32_t)entity;
-			ImGui::SetDragDropPayload("ENTITY_ID", &id, sizeof(uint32_t));
+			entt::entity id = entity;
+			ImGui::SetDragDropPayload("ENTITY_ID", &id, sizeof(entt::entity));
 			ImGui::Text("%s", goc.name.c_str());
 			ImGui::EndDragDropSource();
 		}
@@ -186,8 +186,8 @@ namespace flaw {
 		Entity needToSetParent;
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
-				uint32_t id = *(uint32_t*)payload->Data;
-				needToSetParent = Entity((entt::entity)id, _scene.get());
+				entt::entity id = *(entt::entity*)payload->Data;
+				needToSetParent = Entity(id, _scene.get());
 			}
 			ImGui::EndDragDropTarget();
 		}

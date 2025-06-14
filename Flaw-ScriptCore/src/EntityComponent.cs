@@ -33,5 +33,31 @@
         {
             return Entity.FindEntityByName(name);
         }
+
+        public static bool operator ==(EntityComponent left, EntityComponent right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null) return false;
+            return left.entity.id == right.entity.id;
+        }
+
+        public static bool operator !=(EntityComponent left, EntityComponent right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is EntityComponent other)
+            {
+                return this == other;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return entity.id.GetHashCode();
+        }
     }
 }

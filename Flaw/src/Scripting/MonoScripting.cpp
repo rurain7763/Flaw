@@ -185,13 +185,55 @@ namespace flaw {
 	{
 	}
 
+	MonoScriptObject::MonoScriptObject(MonoScriptClassField* field)
+		: _domain(field->GetMonoDomain())
+		, _clss(field->GetMonoClass())
+		, _obj(nullptr)
+	{
+	}
+
+	MonoScriptObject::MonoScriptObject(MonoScriptClassField* field, MonoObject* obj)
+		: _domain(field->GetMonoDomain())
+		, _clss(field->GetMonoClass())
+		, _obj(obj)
+	{
+	}
+
 	void MonoScriptObject::Instantiate() {
 		_obj = mono_object_new(_domain, _clss);
 		if (!_obj) {
 			throw std::runtime_error("mono_object_new failed");
 		}
-
 		mono_runtime_object_init(_obj);
+	}
+
+	void MonoScriptObject::Instantiate(void** constructorArgs, int32_t argCount) {
+		MonoClass* clss = _clss;
+		MonoMethod* ctor = mono_class_get_method_from_name(clss, ".ctor", argCount);
+
+		while (!ctor) {
+			clss = mono_class_get_parent(clss);
+			if (!clss) {
+				break;
+			}
+			ctor = mono_class_get_method_from_name(clss, ".ctor", argCount);
+		}
+
+		if (!ctor) {
+			throw std::runtime_error("Constructor not found");
+		}
+
+		_obj = mono_object_new(_domain, _clss);
+		if (!_obj) {
+			throw std::runtime_error("mono_object_new failed");
+		}
+		mono_runtime_object_init(_obj);
+
+		MonoObject* exception = nullptr;
+		mono_runtime_invoke(ctor, _obj, constructorArgs, &exception);
+		if (exception) {
+			throw std::runtime_error("Exception during object instantiation");
+		}
 	}
 
 	void MonoScriptObject::CallMethod(MonoMethod* method, void** args, int32_t argCount) const {
@@ -351,47 +393,6 @@ namespace flaw {
 		}
 	}
 
-	void MonoScripting::Init() {
-		// TODO: this should be configurable from outside
-		mono_set_dirs("C:/Program Files/Mono/lib/", "C:/Program Files/Mono/etc/");
-
-#if _DEBUG
-		const char* argv[] = {
-			"--debugger-agent=transport=dt_socket,address=127.0.0.1:55555,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
-			"--soft-breakpoints"
-		};
-
-		mono_jit_parse_options(2, (char**)argv);
-		mono_debug_init(MONO_DEBUG_FORMAT_MONO);
-#endif
-
-		auto rootDomain = mono_jit_init("FlawJITRuntime");
-		if (!rootDomain) {
-			throw std::runtime_error("mono_jit_init failed");
-		}
-
-#if _DEBUG
-		mono_debug_domain_create(rootDomain);
-#endif
-	}
-
-	void MonoScripting::Cleanup() {
-		auto rootDomain = mono_get_root_domain();
-		if (!rootDomain) {
-			return;
-		}
-
-		mono_jit_cleanup(rootDomain);
-
-#if _DEBUG
-		mono_debug_cleanup();
-#endif
-	}
-
-	void MonoScripting::RegisterInternalCall(const char* name, void* func) {
-		mono_add_internal_call(name, func);
-	}
-
 	MonoScriptDomain::MonoScriptDomain() {
 		char appDomainName[] = "FlawScriptRuntime";
 		_appDomain = mono_domain_create_appdomain(appDomainName, nullptr);
@@ -513,29 +514,6 @@ namespace flaw {
 		return _monoScriptClasses.find(name) != _monoScriptClasses.end();
 	}
 
-	MonoScriptObject MonoScriptDomain::CreateInstance(const char* name) {
-		MonoScriptObject obj(&_monoScriptClasses[name]);
-		obj.Instantiate();
-		return obj;
-	}
-
-	MonoScriptObject MonoScriptDomain::CreateInstance(const char* name, void** constructorArgs, int32_t argCount) {
-		auto it = _monoScriptClasses.find(name);
-		if (it == _monoScriptClasses.end()) {
-			Log::Error("Mono script class not found: %s", name);
-			return nullptr;
-		}
-
-		auto scriptClass = it->second;
-		auto constructorMethod = scriptClass.GetMethodRecurcive(".ctor", argCount);
-
-		MonoScriptObject obj(&scriptClass);
-		obj.Instantiate();
-		obj.CallMethod(constructorMethod, constructorArgs, argCount);
-
-		return obj;
-	}
-
 	MonoScriptClass& MonoScriptDomain::GetSystemClass(MonoSystemType type) const {
 		MonoImage* corlibImage = mono_get_corlib();
 		switch (type) {
@@ -575,5 +553,46 @@ namespace flaw {
 		}
 
 		throw std::runtime_error(fmt::format("Mono script class not found: {}", name));
+	}
+
+	void MonoScripting::Init() {
+		// TODO: this should be configurable from outside
+		mono_set_dirs("C:/Program Files/Mono/lib/", "C:/Program Files/Mono/etc/");
+
+#if _DEBUG
+		const char* argv[] = {
+			"--debugger-agent=transport=dt_socket,address=127.0.0.1:55555,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
+			"--soft-breakpoints"
+		};
+
+		mono_jit_parse_options(2, (char**)argv);
+		mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+#endif
+
+		auto rootDomain = mono_jit_init("FlawJITRuntime");
+		if (!rootDomain) {
+			throw std::runtime_error("mono_jit_init failed");
+		}
+
+#if _DEBUG
+		mono_debug_domain_create(rootDomain);
+#endif
+	}
+
+	void MonoScripting::Cleanup() {
+		auto rootDomain = mono_get_root_domain();
+		if (!rootDomain) {
+			return;
+		}
+
+		mono_jit_cleanup(rootDomain);
+
+#if _DEBUG
+		mono_debug_cleanup();
+#endif
+	}
+
+	void MonoScripting::RegisterInternalCall(const char* name, void* func) {
+		mono_add_internal_call(name, func);
 	}
 }

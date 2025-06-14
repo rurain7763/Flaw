@@ -7,9 +7,9 @@
 #include "Application.h"
 #include "Project.h"
 #include "MonoInternalCall.h"
-#include "Entity.h"
 #include "Time/Time.h"
 #include "MonoScriptSystem.h"
+#include "Entity.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -17,11 +17,6 @@
 
 namespace flaw {
 	#define ADD_INTERNAL_CALL(func) MonoScripting::RegisterInternalCall("Flaw.InternalCalls::"#func, func)
-
-	struct MonoRuntimeObject {
-		Ref<MonoScriptObject> scriptObject;
-		MonoMethod* updateMethod;
-	};
 
 	static Scope<filewatch::FileWatch<std::string>> g_scriptAsmWatcher;
 
@@ -41,7 +36,7 @@ namespace flaw {
 		}
 	}
 
-	void Scripting::LoadMonoScripts() {
+	void Scripting::LoadMonoScripting() {
 		g_monoScriptDomain = CreateScope<MonoScriptDomain>();
 		g_monoScriptDomain->SetToCurrent();
 
@@ -119,7 +114,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetMousePosition_Input);
 		ADD_INTERNAL_CALL(Raycast_Physics);
 
-		LoadMonoScripts();
+		LoadMonoScripting();
 	}
 
 	void Scripting::Reload() {
@@ -136,7 +131,7 @@ namespace flaw {
 		}
 
 		g_hasComponentFuncs.clear();
-		LoadMonoScripts();
+		LoadMonoScripting();
 
 		for (auto* system : g_monoScriptSystems) {
 			auto& backupNodes = backupTrees[system];
@@ -177,15 +172,27 @@ namespace flaw {
 		case MonoAssetType::Prefab:
 			return g_monoScriptDomain->GetClass("Flaw.Prefab");
 		}
+
+		throw std::runtime_error("Unsupported MonoAssetType");
 	}
 
 	MonoScriptClass& Scripting::GetMonoClass(const char* name) {
 		return g_monoScriptDomain->GetClass(name);
 	}
 
+	const std::function<bool(const Entity&)>& Scripting::GetHasEngineComponentFunc(const MonoScriptClass& clss) {
+		auto it = g_hasComponentFuncs.find(clss.GetMonoType());
+		FASSERT(it != g_hasComponentFuncs.end(), "Component type not found");
+		return it->second;
+	}
+
 	bool Scripting::IsMonoComponent(const MonoScriptClass& monoClass) {
 		auto entityComponentMonoClass = g_monoScriptDomain->GetClass("Flaw.EntityComponent");
 		return entityComponentMonoClass != monoClass && monoClass.IsSubClassOf(&entityComponentMonoClass);
+	}
+
+	bool Scripting::IsMonoProjectComponent(const MonoScriptClass& monoClass) {
+		return IsMonoComponent(monoClass) && !IsEngineComponent(monoClass.GetReflectionType());
 	}
 
 	bool Scripting::IsEngineComponent(MonoReflectionType* type) {
@@ -196,8 +203,12 @@ namespace flaw {
 	bool Scripting::HasComponent(UUID uuid, MonoReflectionType* type) {
 		MonoType* monoType = mono_reflection_type_get_type(type);
 		FASSERT(g_hasComponentFuncs.find(monoType) != g_hasComponentFuncs.end(), "Component type not found");
-		auto entity = g_activeMonoScriptSys->GetScene().FindEntityByUUID(uuid);
-		FASSERT(entity, "Entity not found with UUID");
+
+		Entity entity = g_activeMonoScriptSys->GetScene().FindEntityByUUID(uuid);
+		if (!entity) {
+			return false;
+		}
+
 		return g_hasComponentFuncs.at(monoType)(entity);
 	}
 

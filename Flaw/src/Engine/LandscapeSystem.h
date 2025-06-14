@@ -28,7 +28,7 @@ namespace flaw {
 		void Update();
 		void GatherRenderable(CameraRenderStage& stage);
 
-		Landscape& GetLandscape(uint32_t landscapeID) { return _landscapes.at(landscapeID); }
+		Landscape& GetLandscape(entt::entity landscapeID) { return _landscapes.at(landscapeID); }
 
 	private:
 		Ref<Mesh> CreateLandscapeMesh(uint32_t tilingX, uint32_t tilingY);
@@ -41,6 +41,6 @@ namespace flaw {
 
 		Ref<GraphicsShader> _landscapeShader;
 
-		std::map<uint32_t, Landscape> _landscapes;
+		std::map<entt::entity, Landscape> _landscapes;
 	};
 }

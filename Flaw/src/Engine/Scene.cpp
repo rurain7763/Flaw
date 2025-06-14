@@ -57,7 +57,7 @@ namespace flaw {
 		uuid.Generate();
 		entity.AddComponent<EntityComponent>(uuid, name);
 
-		_entityMap[uuid] = (entt::entity)(uint32_t)entity;
+		_entityMap[uuid] = (entt::entity)entity;
 		
 		return entity;
 	}
@@ -67,7 +67,7 @@ namespace flaw {
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<EntityComponent>(uuid, name);
 
-		_entityMap[uuid] = (entt::entity)(uint32_t)entity;
+		_entityMap[uuid] = (entt::entity)entity;
 
 		return entity;
 	}
@@ -108,7 +108,7 @@ namespace flaw {
 		_parentMap.erase(entityUUID);
 		_entityMap.erase(entityUUID);
 
-		_registry.destroy((entt::entity)(uint32_t)entity);
+		_registry.destroy((entt::entity)entity);
 	}
 
 	template <typename T>

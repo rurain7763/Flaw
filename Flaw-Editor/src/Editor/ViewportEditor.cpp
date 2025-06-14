@@ -121,11 +121,11 @@ namespace flaw {
             );
 
             if (ImGui::IsWindowHovered() && !ImGuizmo::IsOver() && Input::GetMouseButtonDown(MouseButton::Left)) {
-                uint32_t id = MousePicking(remap.x, remap.y);
+                entt::entity id = (entt::entity)MousePicking(remap.x, remap.y);
 
 			    _selectedEntt = Entity();
                 for (auto&& [entity] : _scene->GetRegistry().view<entt::entity>().each()) {
-                    if ((uint32_t)entity == id) {
+                    if (entity == id) {
                         _selectedEntt = Entity(entity, _scene.get());
                         break;
                     }
@@ -247,7 +247,7 @@ namespace flaw {
             BoxCollider2DComponent& boxColliderComp = _selectedEntt.GetComponent<BoxCollider2DComponent>();
 
             Renderer2D::DrawLineRect(
-                (uint32_t)_selectedEntt,
+                _selectedEntt,
                 transComp.worldTransform * ModelMatrix(vec3(boxColliderComp.offset, 0.0), vec3(0.0), vec3(boxColliderComp.size * 2.0f, 1.0)),
                 vec4(0.0, 1.0, 0.0, 1.0)
             );
@@ -260,7 +260,7 @@ namespace flaw {
             const float offsetZ = dot(transComp.GetWorldFront(), toCamera) < 0 ? -0.001f : 0.001f;
 
             Renderer2D::DrawCircle(
-                (uint32_t)_selectedEntt,
+                _selectedEntt,
                 transComp.worldTransform * ModelMatrix(vec3(circleColliderComp.offset, offsetZ), vec3(0.0), vec3(circleColliderComp.radius * 2.0f, circleColliderComp.radius * 2.0f, 1.0)),
                 vec4(0.0, 1.0, 0.0, 1.0),
                 0.02f

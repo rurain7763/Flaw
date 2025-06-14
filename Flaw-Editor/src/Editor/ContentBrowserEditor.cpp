@@ -218,8 +218,8 @@ namespace flaw {
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
-				uint32_t id = *(uint32_t*)payload->Data;
-				Entity draggedEntity((entt::entity)id, _scene.get());
+				entt::entity id = *(entt::entity*)payload->Data;
+				Entity draggedEntity(id, _scene.get());
 
 				PrefabCreateSettings prefabSettings;
 				prefabSettings.destPath = _currentDirectory.generic_string() + "/" + draggedEntity.GetName() + ".asset";

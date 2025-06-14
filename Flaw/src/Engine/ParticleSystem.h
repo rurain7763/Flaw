@@ -216,7 +216,7 @@ namespace flaw {
 		}
 
 		template<typename T>
-		Ref<T> AddModule(const uint32_t entity) {
+		Ref<T> AddModule(const entt::entity entity) {
 			auto it = _entityResourceMap.find(entity);
 			if (it != _entityResourceMap.end()) {
 				auto& compResources = it->second;
@@ -231,7 +231,7 @@ namespace flaw {
 		}
 
 		template<typename T>
-		void RemoveModule(const uint32_t entity) {
+		void RemoveModule(const entt::entity entity) {
 			auto it = _entityResourceMap.find(entity);
 			if (it != _entityResourceMap.end()) {
 				auto& compResources = it->second;
@@ -241,7 +241,7 @@ namespace flaw {
 		}
 
 		template<typename T>
-		Ref<T> GetModule(const uint32_t entity) {
+		Ref<T> GetModule(const entt::entity entity) {
 			auto it = _entityResourceMap.find(entity);
 			if (it != _entityResourceMap.end()) {
 				auto& compResources = it->second;
@@ -255,15 +255,15 @@ namespace flaw {
 		}
 
 	private:
-		void HandleEmissionModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleRandomSpeedModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleRandomColorModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleColorOverLifetimeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleRandomSizeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleSizeOverLifetimeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleShapeModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleNoiseModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
-		void HandleRendererModule(uint32_t entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleEmissionModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleRandomSpeedModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleRandomColorModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleColorOverLifetimeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleRandomSizeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleSizeOverLifetimeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleShapeModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleNoiseModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
+		void HandleRendererModule(entt::entity entity, ParticleResources& compResources, ParticleComponent& particleComp);
 
 	private:
 		constexpr static uint32_t MaxParticleBufferSize = 1024;
@@ -278,6 +278,6 @@ namespace flaw {
 
 		ParticleUniform _particleUniform;
 
-		std::unordered_map<uint32_t, ParticleResources> _entityResourceMap;
+		std::unordered_map<entt::entity, ParticleResources> _entityResourceMap;
 	};
 }

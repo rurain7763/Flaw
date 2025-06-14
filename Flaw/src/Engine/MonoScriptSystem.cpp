@@ -42,7 +42,7 @@ namespace flaw {
 
 		auto it = _monoInstances.find(enttComp.uuid);
 		if (it == _monoInstances.end()) {
-			return; // Instance does not exist
+			return;
 		}
 
 		auto& instance = it->second;
@@ -135,26 +135,22 @@ namespace flaw {
 	}
 
 	bool MonoScriptSystem::CreateMonoScriptInstance(const UUID& uuid, const char* name) {
-		auto& domain = Scripting::GetMonoScriptDomain();
+		auto& monoClass = Scripting::GetMonoClass(name);
 
-		if (!domain.IsClassExists(name)) {
-			return false;
-		}
+		MonoScriptInstance& instance = _monoInstances[uuid];
+		instance.scriptObject = MonoScriptObject(&monoClass);
 
 		UUID copy = uuid;
 		void* args[] = { &copy };
+		instance.scriptObject.Instantiate(args, 1);
+		CreatePublicFieldsInObjectRecursive(instance.scriptObject);
 
-		auto obj = domain.CreateInstance(name, args, 1);
-		CreatePublicFieldsInObjectRecursive(obj);
+		instance.createMethod = monoClass.GetMethodRecurcive("OnCreate", 0);
+		instance.startMethod = monoClass.GetMethodRecurcive("OnStart", 0);
+		instance.updateMethod = monoClass.GetMethodRecurcive("OnUpdate", 0);
+		instance.destroyMethod = monoClass.GetMethodRecurcive("OnDestroy", 0);
 
-		MonoScriptInstance& instance = _monoInstances[uuid];
-		instance.scriptObject = obj;
-		instance.createMethod = obj.GetClass().GetMethodRecurcive("OnCreate", 0);
-		instance.startMethod = obj.GetClass().GetMethodRecurcive("OnStart", 0);
-		instance.updateMethod = obj.GetClass().GetMethodRecurcive("OnUpdate", 0);
-		instance.destroyMethod = obj.GetClass().GetMethodRecurcive("OnDestroy", 0);
-
-		return true;
+		return instance.scriptObject.IsValid();
 	}
 
 	void MonoScriptSystem::DestroyMonoScriptInstance(const UUID& uuid) {
@@ -172,6 +168,19 @@ namespace flaw {
 		}
 
 		throw std::runtime_error("Mono script instance not found for UUID");
+	}
+
+	bool MonoScriptSystem::HasComponent(const UUID& uuid, const MonoScriptClass& compClass) const {
+		if (Scripting::IsMonoComponent(compClass)) {
+			return _monoInstances.find(uuid) != _monoInstances.end();
+		}
+		else {
+			Entity entity = _scene.FindEntityByUUID(uuid);
+			if (!entity) {
+				return false;
+			}
+			return Scripting::GetHasEngineComponentFunc(compClass)(entity);
+		}
 	}
 
 	void MonoScriptSystem::CloneMonoScriptInstances(const std::unordered_map<UUID, MonoScriptInstance>& instances) {

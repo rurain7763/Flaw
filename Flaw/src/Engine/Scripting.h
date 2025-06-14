@@ -8,6 +8,7 @@ namespace flaw {
 	class Application;
 	class Scene;
 	class MonoScriptSystem;
+	class Entity;
 
 	enum class MonoAssetType {
 		Prefab,
@@ -27,19 +28,23 @@ namespace flaw {
 		static MonoScriptClass& GetMonoAssetClass(MonoAssetType type);
 		static MonoScriptClass& GetMonoClass(const char* name);
 
+		static const std::function<bool(const Entity&)>& GetHasEngineComponentFunc(const MonoScriptClass& clss);
+
 		static bool IsMonoComponent(const MonoScriptClass& monoClass);
-		static bool IsEngineComponent(MonoReflectionType* type);
-		static bool HasComponent(UUID uuid, MonoReflectionType* type);
-		static bool IsComponentInstanceExists(UUID uuid);
-		static MonoObject* GetComponentInstance(UUID uuid);
-		static float GetDeltaTime();
-		static float GetTimeSinceStart();
+		static bool IsMonoProjectComponent(const MonoScriptClass& monoClass);
 
 		static MonoScriptDomain& GetMonoScriptDomain();
 		static Application& GetApplication();
 		static Scene& GetScene();
 
 	private:
-		static void LoadMonoScripts();
+		static void LoadMonoScripting();
+
+		static bool IsEngineComponent(MonoReflectionType* type);
+		static bool HasComponent(UUID uuid, MonoReflectionType* type);
+		static bool IsComponentInstanceExists(UUID uuid);
+		static MonoObject* GetComponentInstance(UUID uuid);
+		static float GetDeltaTime();
+		static float GetTimeSinceStart();
 	};
 }

@@ -45,6 +45,8 @@ namespace flaw {
 			return value;
 		}
 
+		MonoDomain* GetMonoDomain() const { return _domain; }
+
 		MonoClass* GetParentMonoClass() const { return _parentClass; }
 
 		MonoClass* GetMonoClass() const { return _monoClass; }
@@ -137,8 +139,11 @@ namespace flaw {
 		MonoScriptObject(MonoDomain* domain, MonoClass* clss, MonoObject* obj);
 		MonoScriptObject(MonoScriptClass* clss);
 		MonoScriptObject(MonoScriptClass* clss, MonoObject* obj);
+		MonoScriptObject(MonoScriptClassField* field);
+		MonoScriptObject(MonoScriptClassField* field, MonoObject* obj);
 
 		void Instantiate();
+		void Instantiate(void** constructorArgs, int32_t argCount);
 
 		void CallMethod(MonoMethod* method, void** args = nullptr, int32_t argCount = 0) const;
 
@@ -159,14 +164,6 @@ namespace flaw {
 		MonoDomain* _domain;
 		MonoClass* _clss;
 		MonoObject* _obj;
-	};
-
-	class MonoScripting {
-	public:
-		static void Init();
-		static void Cleanup();
-
-		static void RegisterInternalCall(const char* name, void* func);
 	};
 
 	enum class MonoSystemType {
@@ -190,8 +187,6 @@ namespace flaw {
 		void PrintMonoAssemblyInfo(int32_t assemblyIndex);
 
 		bool IsClassExists(const char* name);
-		MonoScriptObject CreateInstance(const char* name);
-		MonoScriptObject CreateInstance(const char* name, void** constructorArgs, int32_t argCount);
 
 		MonoScriptClass& GetSystemClass(MonoSystemType type) const;
 		MonoScriptClass& GetClass(const char* name);
@@ -208,6 +203,14 @@ namespace flaw {
 		std::vector<MonoAssembly*> _assemblies;
 
 		std::unordered_map<std::string, MonoScriptClass> _monoScriptClasses;
+	};
+
+	class MonoScripting {
+	public:
+		static void Init();
+		static void Cleanup();
+
+		static void RegisterInternalCall(const char* name, void* func);
 	};
 }
 

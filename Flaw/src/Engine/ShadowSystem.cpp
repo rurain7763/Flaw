@@ -152,7 +152,7 @@ namespace flaw {
 
 	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		if (registry.any_of<DirectionalLightComponent>(entity)) {
-			auto& shadowMap = _directionalShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _directionalShadowMaps[entity];
 
 			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
 				shadowMap.renderPasses[i] = CreateDirectionalLightShadowMapRenderPass(ShadowMapSize >> i, ShadowMapSize >> i);
@@ -160,27 +160,27 @@ namespace flaw {
 		}
 
 		if (registry.any_of<SpotLightComponent>(entity)) {
-			auto& shadowMap = _spotLightShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _spotLightShadowMaps[entity];
 			shadowMap.renderPass = CreateSpotLightShadowMapRenderPass();
 		}
 
 		if (registry.any_of<PointLightComponent>(entity)) {
-			auto& shadowMap = _pointLightShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _pointLightShadowMaps[entity];
 			shadowMap.renderPass = CreatePointLightShadowMapRenderPass();
 		}
 	}
 
 	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_directionalShadowMaps.erase((uint32_t)entity);
-		_spotLightShadowMaps.erase((uint32_t)entity);
-		_pointLightShadowMaps.erase((uint32_t)entity);
+		_directionalShadowMaps.erase(entity);
+		_spotLightShadowMaps.erase(entity);
+		_pointLightShadowMaps.erase(entity);
 	}
 
 	void ShadowSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
-			auto& shadowMap = _directionalShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _directionalShadowMaps[entity];
 
 			// not calculating here, because we need to calculate tight bounding box for directional light
 			shadowMap.lightDirection = transComp.GetWorldFront();
@@ -192,7 +192,7 @@ namespace flaw {
 		}
 
 		for (auto&& [entity, transform, lightComp] : registry.view<TransformComponent, SpotLightComponent>().each()) {
-			auto& shadowMap = _spotLightShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _spotLightShadowMaps[entity];
 
 			shadowMap.lightVPMatrix.view = LookAt(transform.GetWorldPosition(), transform.GetWorldPosition() + transform.GetWorldFront(), Up);
 			shadowMap.lightVPMatrix.projection = Perspective(lightComp.outer * 2.0, 1.0f, 0.1f, lightComp.range);
@@ -202,7 +202,7 @@ namespace flaw {
 		}
 
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, PointLightComponent>().each()) {
-			auto& shadowMap = _pointLightShadowMaps[(uint32_t)entity];
+			auto& shadowMap = _pointLightShadowMaps[entity];
 
 			const vec3 faceDirections[6] = {
 				Right, -Right, Up, -Up, Forward, -Forward
@@ -246,7 +246,7 @@ namespace flaw {
 
 			Ref<Mesh> mesh = meshAsset->GetMesh();
 
-			auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((uint32_t)entity);
+			auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((entt::entity)entity);
 			auto boneMatrices = skeletalAnimData.GetBoneMatrices();
 			if (boneMatrices == nullptr) {
 				continue;

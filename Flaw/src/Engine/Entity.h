@@ -48,7 +48,7 @@ namespace flaw {
 		Scene& GetScene() const { return *_scene; }
 
 		operator bool() const { return _handle != entt::null && _scene && _scene->_registry.valid(_handle); }
-		operator uint32_t() const { return (uint32_t)_handle; }
+		operator entt::entity() const { return _handle; }
 
 		bool operator==(const Entity& other) const {
 			return _handle == other._handle && _scene == other._scene;

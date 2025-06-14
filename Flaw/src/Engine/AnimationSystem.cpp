@@ -28,12 +28,12 @@ namespace flaw {
 
 		if (registry.any_of<SkeletalMeshComponent>(entity)) {
 			auto& skeletalMeshComp = registry.get<SkeletalMeshComponent>(entity);
-			_skeletonAnimations[(uint32_t)entity] = CreateRef<SkeletalAnimationData>();
+			_skeletonAnimations[entity] = CreateRef<SkeletalAnimationData>();
 		}
 	}
 
 	void AnimationSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_skeletonAnimations.erase((uint32_t)entity);
+		_skeletonAnimations.erase(entity);
 	}
 
 	void AnimationSystem::Update() {
@@ -49,7 +49,7 @@ namespace flaw {
 			}
 
 			Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
-			auto skeletalAnimData = _skeletonAnimations[(uint32_t)entity];
+			auto skeletalAnimData = _skeletonAnimations[entity];
 			auto bindingPosMatricesSB = skeleton->GetBindingPosGPUBuffer();
 
 			if (skeletalAnimData->_bindingPosMatrices != bindingPosMatricesSB) {

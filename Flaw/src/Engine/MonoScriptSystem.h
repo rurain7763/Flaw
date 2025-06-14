@@ -34,6 +34,8 @@ namespace flaw {
 		bool IsMonoScriptInstanceExists(const UUID& uuid) const;
 		MonoScriptInstance& GetMonoScriptInstance(const UUID& uuid);
 
+		bool HasComponent(const UUID& uuid, const MonoScriptClass& compClass) const;
+
 		void CloneMonoScriptInstances(const std::unordered_map<UUID, MonoScriptInstance>& instances);
 
 		Scene& GetScene() const { return _scene; }
