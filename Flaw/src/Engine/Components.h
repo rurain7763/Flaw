@@ -112,6 +112,17 @@ namespace flaw {
 		}
 
 		CameraComponent(const CameraComponent& other) = default;
+
+		mat4 GetProjectionMatrix() const {
+			if (perspective) {
+				return Perspective(fov, aspectRatio, nearClip, farClip);
+			}
+			else {
+				const float height = orthoSize;
+				const float width = height * aspectRatio;
+				return Orthographic(-width, width, -height, height, nearClip, farClip);
+			}
+		}
 	};
 
 	struct NativeScriptComponent {

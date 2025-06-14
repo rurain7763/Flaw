@@ -13,5 +13,7 @@ namespace flaw {
 
 		static PhysicsActor* CreateActor(const ActorDescription& desc);
 		static void DestroyActor(PhysicsActor* actor);
+
+		static bool Raycast(const Ray& ray, RayHit& hit);
 	};
 }

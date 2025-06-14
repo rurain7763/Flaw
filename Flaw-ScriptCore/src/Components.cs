@@ -82,4 +82,14 @@
             }
         }
     }
+
+    public class CameraComponent : EntityComponent
+    {
+        public Vec3 ScreenToWorld(Vec2 screenPosition)
+        {
+            Vec3 worldPosition = new Vec3();
+            InternalCalls.ScreenToWorld_Camera(entity.id, ref screenPosition, out worldPosition);
+            return worldPosition;
+        }
+    }
 }

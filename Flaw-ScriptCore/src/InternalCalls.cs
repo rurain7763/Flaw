@@ -66,6 +66,9 @@ namespace Flaw
         internal extern static void GetLinearVelocity_RigidBody2D(ulong id, out Vec2 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void ScreenToWorld_Camera(ulong id, ref Vec2 screenPosition, out Vec3 worldPosition);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool GetKeyDown_Input(KeyCode keyCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -73,5 +76,11 @@ namespace Flaw
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool GetKey_Input(KeyCode keyCode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void GetMousePosition_Input(ref float x, ref float y);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static bool Raycast_Physics(ref Ray ray, out RayHit hit);
     }
 }

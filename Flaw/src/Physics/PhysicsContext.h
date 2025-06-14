@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Math/Math.h"
+#include "Utils/Raycast.h"
 
 namespace flaw {
 	struct PhysicsActor {
@@ -66,5 +67,7 @@ namespace flaw {
 
 		virtual PhysicsActor* CreateActor(const ActorDescription& desc) = 0;
 		virtual void DestroyActor(PhysicsActor* actor) = 0;
+
+		virtual bool Raycast(const Ray& ray, RayHit& hit) = 0;
 	};
 }

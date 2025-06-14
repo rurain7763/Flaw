@@ -28,4 +28,8 @@ namespace flaw {
 	void Physics::DestroyActor(PhysicsActor* actor) {
 		g_physicsContext->DestroyActor(actor);
 	}
+
+	bool Physics::Raycast(const Ray& ray, RayHit& hit) {
+		return g_physicsContext->Raycast(ray, hit);
+	}
 }

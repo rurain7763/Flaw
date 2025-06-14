@@ -23,6 +23,9 @@ namespace flaw {
 		Application(const ApplicationProps& props);
 		virtual ~Application();
 
+		void SetUserViewportFunc(const std::function<void(float& x, float& y, float& width, float& height)>& callback);
+		void GetViewport(float& x, float& y, float& width, float& height) const;
+
 		void PushLayer(Layer* layer);
 		void PushLayerAsOverlay(Layer* layer);
 		void RemoveLayer(Layer* layer);
@@ -46,6 +49,8 @@ namespace flaw {
 
 		bool _running;
 		bool _minimized;
+
+		std::function<void(float& x, float& y, float& width, float& height)> _userGetViewportFunc;
 
 		ThreadPool _threadPool;
 

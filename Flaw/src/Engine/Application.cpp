@@ -69,6 +69,25 @@ namespace flaw {
 		Platform::Cleanup();
 	}
 
+	void Application::SetUserViewportFunc(const std::function<void(float& x, float& y, float& width, float& height)>& callback) {
+		_userGetViewportFunc = callback;
+	}
+
+	void Application::GetViewport(float& x, float& y, float& width, float& height) const {
+		if (_userGetViewportFunc) {
+			_userGetViewportFunc(x, y, width, height);
+		}
+		else {
+			int32_t width, height;
+			Platform::GetFrameBufferSize(width, height);
+
+			x = 0;
+			y = 0;
+			width = static_cast<float>(width);
+			height = static_cast<float>(height);
+		}		
+	}
+
 	void Application::PushLayer(Layer* layer) {
 		_layerRegistry.PushLayer(layer);
 		layer->OnAttatch();

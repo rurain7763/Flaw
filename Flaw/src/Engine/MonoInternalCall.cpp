@@ -4,6 +4,7 @@
 #include "Scripting.h"
 #include "AssetManager.h"
 #include "Assets.h"
+#include "Physics.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -156,5 +157,32 @@ namespace flaw {
 
 	bool GetKey_Input(KeyCode key) {
 		return Input::GetKey(key);
+	}
+
+	void GetMousePosition_Input(float& x, float& y) {
+		x = Input::GetMouseX();
+		y = Input::GetMouseY();
+	}
+
+	bool Raycast_Physics(const Ray& ray, RayHit& hit) {
+		return Physics::Raycast(ray, hit);
+	}
+
+	void ScreenToWorld_Camera(UUID uuid, vec2& screenPos, vec3& worldPos) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		if (entity.HasComponent<CameraComponent>()) {
+			auto& transformComp = entity.GetComponent<TransformComponent>();
+			auto& cameraComp = entity.GetComponent<CameraComponent>();
+
+			vec4 viewPort;
+			Scripting::GetApplication().GetViewport(viewPort.x, viewPort.y, viewPort.z, viewPort.w);
+
+			mat4 viewMatrix = ViewMatrix(transformComp.position, transformComp.rotation);
+			mat4 projectionMatrix = cameraComp.GetProjectionMatrix();
+			
+			worldPos = ScreenToWorld(screenPos, viewPort, projectionMatrix, viewMatrix);
+		}
 	}
 }

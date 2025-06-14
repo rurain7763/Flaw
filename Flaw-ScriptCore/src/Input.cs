@@ -2,6 +2,16 @@
 {
     public static class Input
     {
+        public static Vec2 MousePosition
+        {
+            get 
+            {
+                Vec2 position = new Vec2();
+                InternalCalls.GetMousePosition_Input(ref position.x, ref position.y);
+                return position;
+            }
+        }
+
         public static bool GetKeyDown(KeyCode keyCode)
         {
             return InternalCalls.GetKeyDown_Input(keyCode);

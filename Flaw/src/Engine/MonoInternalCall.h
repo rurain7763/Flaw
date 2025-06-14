@@ -28,7 +28,12 @@ namespace flaw {
 	void SetBodyType_RigidBody2D(UUID uuid, int32_t bodyType);
 	void GetLinearVelocity_RigidBody2D(UUID uuid, vec2& velocity);
 
+	void ScreenToWorld_Camera(UUID uuid, vec2& screenPos, vec3& worldPos);
+
 	bool GetKeyDown_Input(KeyCode key);
 	bool GetKeyUp_Input(KeyCode key);
 	bool GetKey_Input(KeyCode key);
+	void GetMousePosition_Input(float& x, float& y);
+
+	bool Raycast_Physics(const Ray& ray, RayHit& hit);
 }

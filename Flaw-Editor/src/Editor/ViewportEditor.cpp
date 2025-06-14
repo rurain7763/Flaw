@@ -16,6 +16,13 @@ namespace flaw {
 		, _useEditorCamera(true)
 		, _selectionEnabled(true)
     {
+		app.SetUserViewportFunc([this](float& x, float& y, float& width, float& height) { 
+			x = _viewport.x;
+			y = _viewport.y;
+			width = _viewport.z;
+			height = _viewport.w;
+        });
+
         CreateRequiredTextures();
 
         _mvpConstantBuffer = _graphicsContext.CreateConstantBuffer(sizeof(MVPMatrices));
@@ -83,16 +90,8 @@ namespace flaw {
                 }
 
                 viewMatrix = ViewMatrix(transComp.position, transComp.rotation);
-                if (cameraComp.perspective) {
-					projectionMatrix = Perspective(cameraComp.fov, cameraComp.aspectRatio, cameraComp.nearClip, cameraComp.farClip);
-                    isPerspective = true;
-                }
-                else {
-					const float height = cameraComp.orthoSize;
-                    const float width = height * cameraComp.aspectRatio;
-					projectionMatrix = Orthographic(-width, width, -height, height, cameraComp.nearClip, cameraComp.farClip);
-					isPerspective = false;
-                }
+				projectionMatrix = cameraComp.GetProjectionMatrix();
+				isPerspective = cameraComp.perspective;
             }
         }
 

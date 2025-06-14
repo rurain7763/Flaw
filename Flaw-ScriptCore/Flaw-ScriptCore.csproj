@@ -21,7 +21,8 @@
     <OutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -33,7 +34,8 @@
     <OutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -51,6 +53,8 @@
     <Compile Include="src\InputCodes.cs" />
     <Compile Include="src\InternalCalls.cs" />
     <Compile Include="src\Log.cs" />
+    <Compile Include="src\Physics.cs" />
+    <Compile Include="src\Raycast.cs" />
     <Compile Include="src\Time.cs" />
     <Compile Include="src\Vector.cs" />
   </ItemGroup>

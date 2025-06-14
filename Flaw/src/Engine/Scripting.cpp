@@ -112,9 +112,12 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetBodyType_RigidBody2D);
 		ADD_INTERNAL_CALL(SetBodyType_RigidBody2D);
 		ADD_INTERNAL_CALL(GetLinearVelocity_RigidBody2D);
+		ADD_INTERNAL_CALL(ScreenToWorld_Camera);
 		ADD_INTERNAL_CALL(GetKeyDown_Input);
 		ADD_INTERNAL_CALL(GetKeyUp_Input);
 		ADD_INTERNAL_CALL(GetKey_Input);
+		ADD_INTERNAL_CALL(GetMousePosition_Input);
+		ADD_INTERNAL_CALL(Raycast_Physics);
 
 		LoadMonoScripts();
 	}

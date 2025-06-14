@@ -264,4 +264,19 @@ namespace flaw {
 	void PhysXContext::ReleaseID(uint32_t id) {
 		_freeIDs.push_back(id);
 	}
+
+	bool PhysXContext::Raycast(const Ray& ray, RayHit& hit) {
+		PxVec3 origin = Vec3ToPxVec3(ray.origin);
+		PxVec3 direction = Vec3ToPxVec3(ray.direction);
+
+		PxRaycastBuffer hitBuffer;
+		if (_scene->raycast(origin, direction, ray.length, hitBuffer)) {
+			hit.position = PxVec3ToVec3(hitBuffer.block.position);
+			hit.normal = PxVec3ToVec3(hitBuffer.block.normal);
+			hit.distance = hitBuffer.block.distance;
+			return true;
+		}
+
+		return false;
+	}
 }

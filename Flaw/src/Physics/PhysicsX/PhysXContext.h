@@ -45,6 +45,8 @@ namespace flaw {
 		PhysicsActor* CreateActor(const ActorDescription& desc) override;
 		void DestroyActor(PhysicsActor* actor) override;
 
+		bool Raycast(const Ray& ray, RayHit& hit) override;
+
 	private:
 		static PxFilterFlags CustomFilterShader(
 			PxFilterObjectAttributes attributes0, PxFilterData filterData0,
