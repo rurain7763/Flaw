@@ -143,7 +143,7 @@ namespace flaw {
 		if (IsAssetRegistered(handle)) {
 			return;
 		}
-
+		
 		// NOTE: Only register the asset, do not load it yet
 		g_registeredAssets[handle] = asset;
 	}
@@ -220,6 +220,12 @@ namespace flaw {
 
 	bool AssetManager::IsAssetRegistered(const AssetHandle& handle) {
 		return g_registeredAssets.find(handle) != g_registeredAssets.end();
+	}
+
+	void AssetManager::EachAssets(const std::function<void(const AssetHandle&, const Ref<Asset>&)>& func) {
+		for (const auto& [handle, asset] : g_registeredAssets) {
+			func(handle, asset);
+		}
 	}
 
 	AssetHandle AssetManager::GenerateNewAssetHandle() {

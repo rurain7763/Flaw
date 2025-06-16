@@ -421,7 +421,6 @@ namespace flaw {
 
 		scene->_parentMap = _parentMap;
 		scene->_childMap = _childMap;
-		scene->_monoScriptSystem->CloneMonoScriptInstances(_monoScriptSystem->GetMonoInstances());
 
 		return scene;
 	}

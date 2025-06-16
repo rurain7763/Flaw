@@ -449,6 +449,16 @@ namespace flaw {
 		_assemblies.push_back(assembly);
 	}
 
+	void MonoScriptDomain::AddClass(const char* nameSpace, const char* name, int32_t searchClassAssemblyIndex) {
+		MonoImage* image = mono_assembly_get_image(_assemblies[searchClassAssemblyIndex]);
+		MonoClass* clss = mono_class_from_name(image, nameSpace, name);
+		if (!clss) {
+			throw std::runtime_error(fmt::format("Class {}.{} not found", nameSpace, name));
+		}
+		std::string fullName = mono_type_get_name_full(mono_class_get_type(clss), MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+		_monoScriptClasses[fullName] = MonoScriptClass(_appDomain, clss);
+	}
+
 	void MonoScriptDomain::AddAllSubClassesOfImpl(MonoClass* baseClass, int32_t searchClassAssemblyIndex) {
 		MonoImage* image = mono_assembly_get_image(_assemblies[searchClassAssemblyIndex]);
 		const MonoTableInfo* table = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
@@ -504,8 +514,15 @@ namespace flaw {
 			// Get namespace and type name
 			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
 			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
-			if (nameSpace != nullptr && name != nullptr) {
-				Log::Info("%s.%s", nameSpace, name);
+
+			if (std::strcmp(name, "<Module>") == 0) {
+				continue; // Skip module class
+			}
+
+			MonoClass* clss = mono_class_from_name(image, nameSpace, name);
+			if (clss) {
+				std::string fullName = mono_type_get_name_full(mono_class_get_type(clss), MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+				Log::Info("Mono class: %s", fullName.c_str());
 			}
 		}
 	}

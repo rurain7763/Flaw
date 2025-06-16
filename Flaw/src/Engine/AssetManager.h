@@ -36,6 +36,8 @@ namespace flaw {
 		static Ref<T> GetAsset(const std::string_view& key) {
 			return std::dynamic_pointer_cast<T>(GetAsset(key));
 		}
+
+		static void EachAssets(const std::function<void(const AssetHandle&, const Ref<Asset>&)>& func);
 		
 		static AssetHandle GenerateNewAssetHandle();
 

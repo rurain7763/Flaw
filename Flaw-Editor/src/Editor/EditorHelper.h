@@ -17,6 +17,53 @@ namespace flaw {
 			ImGui::PopStyleColor(3);
 		}
 
+		template<typename T>
+		static bool DrawNumericInput(const char* label, T& value, T resetValue = 0, float step = 1.0f, float columnWidth = 100.f) {
+			bool dirty = false;
+			ImGui::PushID(label);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, columnWidth);
+
+			ImGui::Text(label);
+
+			ImGui::NextColumn();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+			if constexpr (std::is_same_v<T, float>) {
+				if (ImGui::DragFloat("##Input", &value, step)) {
+					dirty |= true;
+				}
+			}
+			else if constexpr (std::is_same_v<T, int32_t>) {
+				if (ImGui::DragInt("##Input", &value, step)) {
+					dirty |= true;
+				}
+			}
+			else if constexpr (std::is_same_v<T, uint32_t>) {
+				if (ImGui::DragInt("##Input", &value, step)) {
+					dirty |= true;
+				}
+			}
+
+			ImGui::SameLine();
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.05f, 0.1f, 1.0f));
+			if (ImGui::Button("Reset")) {
+				value = resetValue;
+				dirty |= true;
+			}
+			ImGui::PopStyleColor(3);
+			
+			ImGui::PopStyleVar();
+			ImGui::Columns(1);
+			ImGui::PopID();
+
+			return dirty;
+		}
+
 		static bool DrawInputText(const char* label, std::string& value) {
 			bool dirty = false;
 			ImGui::PushID(label);

@@ -3,35 +3,36 @@
 #include "Core.h"
 #include "Scripting/MonoScripting.h"
 #include "Utils/UUID.h"
+#include "Entity.h"
+#include "Asset.h"
 
 namespace flaw {
 	class Application;
 	class Scene;
 	class MonoScriptSystem;
-	class Entity;
 
-	enum class MonoAssetType {
-		Prefab,
-	};
 
 	class Scripting {
 	public:
+		constexpr static const char* EntityClassName = "Flaw.Entity";
+
 		static void Init(Application& app);
 		static void Reload();
 		static void Cleanup();
 
-		static void RegisterMonoScriptSystem(MonoScriptSystem* system);
-		static void UnregisterMonoScriptSystem(MonoScriptSystem* system);
 		static void SetActiveMonoScriptSystem(MonoScriptSystem* system);
 
 		static MonoScriptClass& GetMonoSystemClass(MonoSystemType type);
-		static MonoScriptClass& GetMonoAssetClass(MonoAssetType type);
+		static MonoScriptClass& GetMonoAssetClass(AssetType type);
 		static MonoScriptClass& GetMonoClass(const char* name);
 
-		static const std::function<bool(const Entity&)>& GetHasEngineComponentFunc(const MonoScriptClass& clss);
+		static bool HasMonoClass(const char* name);
 
 		static bool IsMonoComponent(const MonoScriptClass& monoClass);
 		static bool IsMonoProjectComponent(const MonoScriptClass& monoClass);
+		static bool IsMonoAsset(const MonoScriptClass& monoClass);
+
+		static bool HasEngineComponent(const Entity& entity, const char* compName);
 
 		static MonoScriptDomain& GetMonoScriptDomain();
 		static Application& GetApplication();
@@ -40,10 +41,9 @@ namespace flaw {
 	private:
 		static void LoadMonoScripting();
 
-		static bool IsEngineComponent(MonoReflectionType* type);
+		static MonoObject* GetEntity(UUID uuid);
 		static bool HasComponent(UUID uuid, MonoReflectionType* type);
-		static bool IsComponentInstanceExists(UUID uuid);
-		static MonoObject* GetComponentInstance(UUID uuid);
+		static MonoObject* GetComponentInstance(UUID uuid, MonoReflectionType* type);
 		static float GetDeltaTime();
 		static float GetTimeSinceStart();
 	};

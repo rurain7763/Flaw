@@ -180,7 +180,8 @@ namespace flaw {
 		void SetToCurrent();
 
 		void AddMonoAssembly(const char* assemblyPath, bool loadPdb = false);
-
+		
+		void AddClass(const char* nameSpace, const char* name, int32_t searchClassAssemblyIndex);
 		void AddAllSubClassesOf(const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex);
 		void AddAllSubClassesOf(int32_t baseClassAssemblyIndex, const char* baseClassNameSpace, const char* baseClassName, int32_t searchClassAssemblyIndex);
 

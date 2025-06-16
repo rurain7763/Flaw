@@ -9,7 +9,6 @@
 #include "MonoInternalCall.h"
 #include "Time/Time.h"
 #include "MonoScriptSystem.h"
-#include "Entity.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -18,21 +17,28 @@
 namespace flaw {
 	#define ADD_INTERNAL_CALL(func) MonoScripting::RegisterInternalCall("Flaw.InternalCalls::"#func, func)
 
+	struct EngineComponentConverter {
+		std::function<bool(const Entity&)> hasComponentFunc;
+	};
+
 	static Scope<filewatch::FileWatch<std::string>> g_scriptAsmWatcher;
 
 	static Scope<MonoScriptDomain> g_monoScriptDomain;
-	static std::unordered_map<MonoType*, std::function<bool(const Entity&)>> g_hasComponentFuncs;
+	static std::unordered_map<MonoType*, EngineComponentConverter> g_engineComponentConverters;
 
 	static Application* g_app;
-	static std::unordered_set<MonoScriptSystem*> g_monoScriptSystems;
 	static MonoScriptSystem* g_activeMonoScriptSys;
 
 	template <typename T>
-	static void RegisterComponent() {
+	static void RegisterEngineComponent() {
 		const std::string fullName = fmt::format("Flaw.{}", TypeName<T>());
 		if (g_monoScriptDomain->IsClassExists(fullName.c_str())) {
 			auto type = g_monoScriptDomain->GetClass(fullName.c_str()).GetMonoType();
-			g_hasComponentFuncs[type] = [](const Entity& entity) { return entity.HasComponent<T>(); };
+
+			EngineComponentConverter engineComp;
+			engineComp.hasComponentFunc = [](const Entity& entity) { return entity.HasComponent<T>(); };
+
+			g_engineComponentConverters[type] = engineComp;
 		}
 	}
 
@@ -42,6 +48,7 @@ namespace flaw {
 
 		g_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		g_monoScriptDomain->PrintMonoAssemblyInfo(0);
+		g_monoScriptDomain->AddClass("Flaw", "Entity", 0);
 		g_monoScriptDomain->AddAllSubClassesOf("System", "Attribute", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "Asset", 0);
@@ -54,14 +61,14 @@ namespace flaw {
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 1);
 
 		// Register components
-		RegisterComponent<TransformComponent>();
-		RegisterComponent<SpriteRendererComponent>();
-		RegisterComponent<NativeScriptComponent>();
-		RegisterComponent<MonoScriptComponent>();
-		RegisterComponent<Rigidbody2DComponent>();
-		RegisterComponent<BoxCollider2DComponent>();
-		RegisterComponent<CircleCollider2DComponent>();
-		RegisterComponent<CameraComponent>();
+		RegisterEngineComponent<TransformComponent>();
+		RegisterEngineComponent<SpriteRendererComponent>();
+		RegisterEngineComponent<NativeScriptComponent>();
+		RegisterEngineComponent<MonoScriptComponent>();
+		RegisterEngineComponent<Rigidbody2DComponent>();
+		RegisterEngineComponent<BoxCollider2DComponent>();
+		RegisterEngineComponent<CircleCollider2DComponent>();
+		RegisterEngineComponent<CameraComponent>();
 
 		g_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
 			projectMonoAssemblyPath.c_str(),
@@ -87,9 +94,8 @@ namespace flaw {
 		MonoScripting::Init();
 
 		// Register internal calls
-		ADD_INTERNAL_CALL(IsEngineComponent);
+		ADD_INTERNAL_CALL(GetEntity);
 		ADD_INTERNAL_CALL(HasComponent);
-		ADD_INTERNAL_CALL(IsComponentInstanceExists);
 		ADD_INTERNAL_CALL(GetComponentInstance);
 		ADD_INTERNAL_CALL(GetTimeSinceStart);
 		ADD_INTERNAL_CALL(LogInfo);
@@ -118,45 +124,13 @@ namespace flaw {
 	}
 
 	void Scripting::Reload() {
-		using MonoScriptInstanceBackUpTrees = std::vector<std::pair<UUID, Ref<MonoScriptObjectTreeNode>>>;
-
-		std::unordered_map<MonoScriptSystem*, MonoScriptInstanceBackUpTrees> backupTrees;
-		for (auto* system : g_monoScriptSystems) {
-			MonoScriptInstanceBackUpTrees backupNodes;
-			for (const auto& [uuid, instance] : system->_monoInstances) {
-				backupNodes.push_back({ uuid, instance.scriptObject.ToTree() });
-			}
-			backupTrees[system] = std::move(backupNodes);
-			system->_monoInstances.clear();
-		}
-
-		g_hasComponentFuncs.clear();
+		g_engineComponentConverters.clear();
 		LoadMonoScripting();
-
-		for (auto* system : g_monoScriptSystems) {
-			auto& backupNodes = backupTrees[system];
-			for (const auto& [uuid, backupNode] : backupNodes) {
-				std::string typeName = backupNode->typeName;
-				if (!system->CreateMonoScriptInstance(uuid, typeName.c_str())) {
-					continue;
-				}
-				system->GetMonoScriptInstance(uuid).scriptObject.ApplyTree(backupNode);
-			}			
-		}
 	}
 
 	void Scripting::Cleanup() {
 		g_monoScriptDomain.reset();
-
 		MonoScripting::Cleanup();
-	}
-
-	void Scripting::RegisterMonoScriptSystem(MonoScriptSystem* system) {
-		g_monoScriptSystems.insert(system);
-	}
-
-	void Scripting::UnregisterMonoScriptSystem(MonoScriptSystem* system) {
-		g_monoScriptSystems.erase(system);
 	}
 
 	void Scripting::SetActiveMonoScriptSystem(MonoScriptSystem* system) {
@@ -167,9 +141,9 @@ namespace flaw {
 		return g_monoScriptDomain->GetSystemClass(type);
 	}
 
-	MonoScriptClass& Scripting::GetMonoAssetClass(MonoAssetType type) {
+	MonoScriptClass& Scripting::GetMonoAssetClass(AssetType type) {
 		switch (type) {
-		case MonoAssetType::Prefab:
+		case AssetType::Prefab:
 			return g_monoScriptDomain->GetClass("Flaw.Prefab");
 		}
 
@@ -180,10 +154,8 @@ namespace flaw {
 		return g_monoScriptDomain->GetClass(name);
 	}
 
-	const std::function<bool(const Entity&)>& Scripting::GetHasEngineComponentFunc(const MonoScriptClass& clss) {
-		auto it = g_hasComponentFuncs.find(clss.GetMonoType());
-		FASSERT(it != g_hasComponentFuncs.end(), "Component type not found");
-		return it->second;
+	bool Scripting::HasMonoClass(const char* name) {
+		return g_monoScriptDomain->IsClassExists(name);
 	}
 
 	bool Scripting::IsMonoComponent(const MonoScriptClass& monoClass) {
@@ -192,32 +164,64 @@ namespace flaw {
 	}
 
 	bool Scripting::IsMonoProjectComponent(const MonoScriptClass& monoClass) {
-		return IsMonoComponent(monoClass) && !IsEngineComponent(monoClass.GetReflectionType());
+		return IsMonoComponent(monoClass) && g_engineComponentConverters.find(monoClass.GetMonoType()) == g_engineComponentConverters.end();
 	}
 
-	bool Scripting::IsEngineComponent(MonoReflectionType* type) {
-		MonoType* monoType = mono_reflection_type_get_type(type);
-		return g_hasComponentFuncs.find(monoType) != g_hasComponentFuncs.end();
+	bool Scripting::IsMonoAsset(const MonoScriptClass& monoClass) {
+		auto assetMonoClass = g_monoScriptDomain->GetClass("Flaw.Asset");
+		return assetMonoClass != monoClass && monoClass.IsSubClassOf(&assetMonoClass);
+	}
+
+	bool Scripting::HasEngineComponent(const Entity& entity, const char* compName) {
+		UUID uuid = entity.GetUUID();
+
+		MonoScriptClass& monoClass = GetMonoClass(compName);
+		auto it = g_engineComponentConverters.find(monoClass.GetMonoType());
+		if (it != g_engineComponentConverters.end()) {
+			return it->second.hasComponentFunc(entity);
+		}
+
+		return false;
+	}
+
+	MonoObject* Scripting::GetEntity(UUID uuid) {
+		if (!g_activeMonoScriptSys->IsMonoEntityExists(uuid)) {
+			Log::Error("Mono entity with UUID %lld does not exist", uuid);
+			return nullptr;
+		}
+
+		return g_activeMonoScriptSys->GetMonoEntity(uuid)->GetScriptObject().GetMonoObject();
 	}
 
 	bool Scripting::HasComponent(UUID uuid, MonoReflectionType* type) {
 		MonoType* monoType = mono_reflection_type_get_type(type);
-		FASSERT(g_hasComponentFuncs.find(monoType) != g_hasComponentFuncs.end(), "Component type not found");
+		const char* typeName = mono_type_get_name_full(monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
 
-		Entity entity = g_activeMonoScriptSys->GetScene().FindEntityByUUID(uuid);
-		if (!entity) {
+		if (!g_activeMonoScriptSys->IsMonoEntityExists(uuid)) {
 			return false;
 		}
 
-		return g_hasComponentFuncs.at(monoType)(entity);
+		auto monoEntity = g_activeMonoScriptSys->GetMonoEntity(uuid);
+
+		return monoEntity->HasComponent(typeName);
 	}
 
-	bool Scripting::IsComponentInstanceExists(UUID uuid) {
-		return g_activeMonoScriptSys->IsMonoScriptInstanceExists(uuid);
-	}
+	MonoObject* Scripting::GetComponentInstance(UUID uuid, MonoReflectionType* type) {
+		MonoType* monoType = mono_reflection_type_get_type(type);
 
-	MonoObject* Scripting::GetComponentInstance(UUID uuid) {
-		return g_activeMonoScriptSys->GetMonoScriptInstance(uuid).scriptObject.GetMonoObject();
+		if (!g_activeMonoScriptSys->IsMonoEntityExists(uuid)) {
+			Log::Error("Mono entity with UUID %lld does not exist", uuid);
+			return nullptr;
+		}
+
+		auto monoEntity = g_activeMonoScriptSys->GetMonoEntity(uuid);
+		const char* typeName = mono_type_get_name_full(monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+		if (!monoEntity->HasComponent(typeName)) {
+			Log::Error("Mono entity with UUID %lld does not have component %s", uuid, typeName);
+			return nullptr;
+		}
+
+		return monoEntity->GetComponent(typeName)->GetScriptObject().GetMonoObject();
 	}
 
 	float Scripting::GetDeltaTime() {

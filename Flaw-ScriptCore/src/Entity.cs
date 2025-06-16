@@ -19,36 +19,13 @@ namespace Flaw
         public bool HasComponent<T>() where T : EntityComponent, new()
         {
             Type type = typeof(T);
-
-            if (InternalCalls.IsEngineComponent(type))
-            {
-                return InternalCalls.HasComponent(id, type);
-            }
-            else
-            {
-                return InternalCalls.IsComponentInstanceExists(id);
-            }
+            return InternalCalls.HasComponent(id, type);
         }
 
         public T GetComponent<T>() where T : EntityComponent, new()
         {
             Type type = typeof(T);
-
-            if (InternalCalls.IsEngineComponent(type))
-            {
-                if (InternalCalls.HasComponent(id, type))
-                {
-                    T t = new T();
-                    t.entity = this;
-                    return t;
-                }
-            }
-            else if (InternalCalls.IsComponentInstanceExists(id))
-            {
-                return (T)InternalCalls.GetComponentInstance(id);
-            }
-            
-            return null;
+            return (T)InternalCalls.GetComponentInstance(id, type);
         }
 
         public void Destroy()

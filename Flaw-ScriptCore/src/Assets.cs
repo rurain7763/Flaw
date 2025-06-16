@@ -6,14 +6,19 @@ namespace Flaw
     {
         internal ulong handle;
 
-        public Asset()
+        internal Asset()
         {
             handle = ulong.MaxValue;
         }
 
-        public Asset(ulong handle)
+        internal Asset(ulong handle)
         {
             this.handle = handle;
+        }
+
+        public ulong Handle
+        {
+            get => handle;
         }
     }
 

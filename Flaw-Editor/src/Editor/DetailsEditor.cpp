@@ -150,9 +150,9 @@ namespace flaw {
 				int32_t index = 0;
 				for (const auto& [scriptName, scriptClass] : Scripting::GetMonoScriptDomain().GetMonoScriptClasses()) {
 					if (!Scripting::IsMonoProjectComponent(scriptClass)) {
-						continue; // Skip non-component scripts
+						continue; // Skip non-component scripts or non-user-defined scripts
 					}
-										
+			
 					scriptNames.push_back(scriptName);
 
 					if (scriptName == monoScriptComp.name) {
@@ -162,10 +162,7 @@ namespace flaw {
 					index++;
 				}
 
-				auto& monoScriptSys = _scene->GetMonoScriptSystem();
-
 				if (EditorHelper::DrawCombo("Script", selectedScriptIndex, scriptNames)) {
-					monoScriptSys.DestroyMonoScriptInstance(_selectedEntt.GetUUID());
 					monoScriptComp.name = scriptNames[selectedScriptIndex];
 				}
 
@@ -173,61 +170,153 @@ namespace flaw {
 					return;
 				}
 
-				if (!monoScriptSys.IsMonoScriptInstanceExists(_selectedEntt.GetUUID())) {
-					monoScriptSys.CreateMonoScriptInstance(_selectedEntt.GetUUID(), monoScriptComp.name.c_str());
+				MonoScriptClass& selectedScriptClass = Scripting::GetMonoClass(monoScriptComp.name.c_str());
+
+				auto& monoScriptSys = _scene->GetMonoScriptSystem();
+				MonoScriptObject scriptObj;
+				std::unordered_map<std::string, AssetHandle> assetRefs;
+				std::unordered_map<std::string, UUID> componentRefs;
+				std::unordered_map<std::string, UUID> entityRefs;
+				if (monoScriptSys.IsMonoEntityExists(_selectedEntt.GetUUID())) {
+					auto monoEntt = monoScriptSys.GetMonoEntity(_selectedEntt.GetUUID());
+					scriptObj = monoEntt->GetComponent(monoScriptComp.name.c_str())->GetScriptObject();
+				}
+				else {
+					scriptObj = MonoScriptObject(&selectedScriptClass);
+					scriptObj.Instantiate();
+
+					for (auto it = monoScriptComp.fields.begin(); it != monoScriptComp.fields.end(); ) {
+						auto& filedInfo = *it;
+						auto field = selectedScriptClass.GetField(filedInfo.fieldName.c_str());
+						if (!field || field.GetTypeName() != filedInfo.fieldType) {
+							it = monoScriptComp.fields.erase(it);
+							continue;
+						}
+
+						MonoScriptClass fieldClass(scriptObj.GetMonoDomain(), field.GetMonoClass());
+						if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
+							float value = filedInfo.As<float>();
+							field.SetValue(&scriptObj, &value);
+						}
+						else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
+							int32_t value = filedInfo.As<int32_t>();
+							field.SetValue(&scriptObj, &value);
+						}
+						else if (Scripting::IsMonoAsset(fieldClass)) {
+							AssetHandle assetHandle = filedInfo.As<AssetHandle>();
+							assetRefs[filedInfo.fieldName] = assetHandle;
+						}
+						else if (Scripting::IsMonoComponent(fieldClass)) {
+							UUID uuid = filedInfo.As<UUID>();
+							componentRefs[filedInfo.fieldName] = uuid;
+						}
+						else if (fieldClass == Scripting::GetMonoClass("Flaw.Entity")) {
+							UUID uuid = filedInfo.As<UUID>();
+							entityRefs[filedInfo.fieldName] = uuid;
+						}
+
+						it++;
+					}
 				}
 
-				auto& obj = monoScriptSys.GetMonoScriptInstance(_selectedEntt.GetUUID()).scriptObject;
+				std::vector<MonoScriptComponent::FieldInfo> newFieldInfos;
+				selectedScriptClass.EachFieldsRecursive([this, &scriptObj, &assetRefs, &componentRefs, &entityRefs, &newFieldInfos](std::string_view fieldName, MonoScriptClassField& field) {
+					MonoScriptClass fieldClass(field.GetMonoDomain(), field.GetMonoClass());
 
-				obj.GetClass().EachFields([this, &monoScriptSys, &obj](std::string_view fieldName, MonoScriptClassField& field) {
-					MonoScriptClass fieldClass(obj.GetMonoDomain(), field.GetMonoClass());
-					auto fieldMonoClass = field.GetMonoClass();
-					
-					if (fieldMonoClass == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
-						float value = field.GetValue<float>(&obj);
-						if (ImGui::DragFloat(fieldName.data(), &value, 0.1f)) {
-							field.SetValue(&obj, &value);
-						}
-					}
-					else if (fieldMonoClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
-						int32_t value = field.GetValue<int32_t>(&obj);
-						if (ImGui::DragInt(fieldName.data(), &value, 1)) {
-							field.SetValue(&obj, &value);
-						}
-					}
-					else if (fieldMonoClass == Scripting::GetMonoAssetClass(MonoAssetType::Prefab).GetMonoClass()) {
-						MonoScriptObject prefabObj(&Scripting::GetMonoAssetClass(MonoAssetType::Prefab), field.GetValue<MonoObject*>(&obj));
-						MonoScriptClassField handleField = prefabObj.GetClass().GetFieldRecursive("handle");
+					MonoScriptComponent::FieldInfo newFieldInfo;
+					newFieldInfo.fieldName = fieldName.data();
+					newFieldInfo.fieldType = field.GetTypeName();
 
-						AssetHandle current = handleField.GetValue<AssetHandle>(&prefabObj);
-						EditorHelper::DrawAssetPayloadTarget(fieldName.data(), current, [this, &prefabObj, &handleField](const char* filepath) {
+					if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
+						float value = field.GetValue<float>(&scriptObj);
+						if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0.0f, 0.1f)) {
+							field.SetValue(&scriptObj, &value);
+						}
+						newFieldInfo.SetValue(value);
+					}
+					else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
+						int32_t value = field.GetValue<int32_t>(&scriptObj);
+						if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0, 1)) {
+							field.SetValue(&scriptObj, &value);
+						}
+						newFieldInfo.SetValue(value);
+					}
+					else if (fieldClass == Scripting::GetMonoAssetClass(AssetType::Prefab)) {
+						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
+						auto handleField = fieldClass.GetFieldRecursive("handle");
+						AssetHandle handle;
+						if (fieldObj.IsValid()) {
+							handle = handleField.GetValue<AssetHandle>(&fieldObj);
+						}
+						else {
+							auto it = assetRefs.find(fieldName.data());
+							if (it != assetRefs.end()) { handle = it->second; }
+						}
+
+						EditorHelper::DrawAssetPayloadTarget(fieldName.data(), handle, [&handle](const char* filepath) {
 							AssetMetadata metadata;
 							if (AssetDatabase::GetAssetMetadata(filepath, metadata) && metadata.type == AssetType::Prefab) {
-								handleField.SetValue(&prefabObj, &metadata.handle);
+								handle = metadata.handle;
 							}
 						});
+
+						newFieldInfo.SetValue(handle);
 					}
 					else if (Scripting::IsMonoComponent(fieldClass)) {
-						MonoScriptObject componentObj(&fieldClass, field.GetValue<MonoObject*>(&obj));
+						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
+						auto entityIdField = fieldClass.GetFieldRecursive("entityId");
+						UUID uuid;
+						if (fieldObj.IsValid()) {
+							uuid = entityIdField.GetValue<UUID>(&fieldObj);
+						}
+						else {
+							auto it = componentRefs.find(fieldName.data());
+							if (it != componentRefs.end()) { 
+								uuid = it->second; 
+							}
+						}
 
-						MonoScriptClassField entityField = componentObj.GetClass().GetFieldRecursive("entity");
-						MonoScriptObject entityObj(&entityField, entityField.GetValue<MonoObject*>(&componentObj));
-
-						MonoScriptClassField uuidField = entityObj.GetClass().GetField("id");
-						
-						UUID currentUUID = uuidField.GetValue<UUID>(&entityObj);
-
-						auto checkEntity = [this, &monoScriptSys, &fieldClass](Entity entity) {
-							return monoScriptSys.HasComponent(entity.GetUUID(), fieldClass); 
+						auto checkComponents = [&newFieldInfo](Entity entity) {
+							if (entity.HasComponent<MonoScriptComponent>()) {
+								return entity.GetComponent<MonoScriptComponent>().name == newFieldInfo.fieldType;
+							}
+							else {
+								return Scripting::HasEngineComponent(entity, newFieldInfo.fieldType.c_str());
+							}
 						};
 
-						auto onDrop = [this, &entityObj, &uuidField](Entity entity) {
-							uuidField.SetValue(&entityObj, (void*)&entity.GetUUID()); 
-						};
+						auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
 
-						EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, currentUUID, checkEntity, onDrop);
+						EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkComponents, onDrop);
+
+						newFieldInfo.SetValue(uuid);
 					}
+					else if (fieldClass == Scripting::GetMonoClass(Scripting::EntityClassName)) {
+						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
+						auto idField = fieldClass.GetFieldRecursive("id");
+						UUID uuid;
+						if (fieldObj.IsValid()) {
+							uuid = idField.GetValue<UUID>(&fieldObj);
+						}
+						else {
+							auto it = entityRefs.find(fieldName.data());
+							if (it != entityRefs.end()) { 
+								uuid = it->second; 
+							}
+						}
+						
+						auto checkEntity = [](Entity entity) { return true; };
+						auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
+
+						EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkEntity, onDrop);
+
+						newFieldInfo.SetValue(uuid);
+					}
+
+					newFieldInfos.emplace_back(newFieldInfo);
 				});
+
+				monoScriptComp.fields = std::move(newFieldInfos);
 			});
 
 			DrawComponent<TextComponent>(_selectedEntt, [](TextComponent& textComp) {

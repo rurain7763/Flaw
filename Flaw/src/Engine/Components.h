@@ -150,16 +150,56 @@ namespace flaw {
 	};
 
 	struct MonoScriptComponent {
+		struct FieldInfo {
+			std::string fieldType;
+			std::string fieldName;
+			std::string fieldValue;
+
+			template<typename T>
+			T As() const {
+				if constexpr (std::is_same_v<T, int32_t>) {
+					return std::stoi(fieldValue);
+				}
+				else if constexpr (std::is_same_v<T, float>) {
+					return std::stof(fieldValue);
+				}
+				else if constexpr (std::is_same_v<T, std::string>) {
+					return fieldValue;
+				}
+				else if constexpr (std::is_same_v<T, UUID>) {
+					return std::stoull(fieldValue);
+				}
+				else {
+					static_assert(false, "Unsupported type for FieldInfo");
+				}
+			}
+
+			template<typename T>
+			void SetValue(const T& value) {
+				if constexpr (std::is_same_v<T, int32_t>) {
+					fieldValue = std::to_string(value);
+				}
+				else if constexpr (std::is_same_v<T, float>) {
+					fieldValue = std::to_string(value);
+				}
+				else if constexpr (std::is_same_v<T, std::string>) {
+					fieldValue = value;
+				}
+				else if constexpr (std::is_same_v<T, UUID>) {
+					fieldValue = std::to_string(value);
+				}
+				else {
+					static_assert(false, "Unsupported type for FieldInfo");
+				}
+			}
+		};
+
 		std::string name;
+		std::vector<FieldInfo> fields;
 
 		MonoScriptComponent() = default;
-		MonoScriptComponent(const char* name) : name(name) {}
+		MonoScriptComponent(const char* name, const std::vector<FieldInfo>& fields) : name(name), fields(fields) {}
 		MonoScriptComponent(const MonoScriptComponent& other) = default;
-
-		MonoScriptComponent& operator=(const MonoScriptComponent& other) {
-			name = other.name;
-			return *this;
-		}
 	};
 
 	struct Rigidbody2DComponent {

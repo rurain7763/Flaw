@@ -15,16 +15,13 @@ namespace Flaw
         internal extern static float GetTimeSinceStart();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool IsEngineComponent(Type type);
+        internal extern static object GetEntity(ulong id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool HasComponent(ulong id, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static bool IsComponentInstanceExists(ulong id);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal extern static object GetComponentInstance(ulong id);
+        internal extern static object GetComponentInstance(ulong id, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static void DestroyEntity(ulong id);
