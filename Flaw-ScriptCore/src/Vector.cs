@@ -103,5 +103,10 @@ namespace Flaw
         {
             return new Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
         }
+
+        public static Vec3 operator *(Vec3 a, float scalar)
+        {
+            return new Vec3(a.x * scalar, a.y * scalar, a.z * scalar);
+        }
     }
 }

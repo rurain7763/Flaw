@@ -276,12 +276,12 @@ namespace flaw {
 							}
 						}
 
-						auto checkComponents = [&newFieldInfo](Entity entity) {
-							if (entity.HasComponent<MonoScriptComponent>()) {
-								return entity.GetComponent<MonoScriptComponent>().name == newFieldInfo.fieldType;
+						auto checkComponents = [&fieldClass](Entity entity) {
+							if (Scripting::IsMonoProjectComponent(fieldClass)) {
+								return entity.HasComponent<MonoScriptComponent>() && entity.GetComponent<MonoScriptComponent>().name == fieldClass.GetTypeName();
 							}
 							else {
-								return Scripting::HasEngineComponent(entity, newFieldInfo.fieldType.c_str());
+								return Scripting::HasEngineComponent(entity, fieldClass.GetTypeName().data());
 							}
 						};
 

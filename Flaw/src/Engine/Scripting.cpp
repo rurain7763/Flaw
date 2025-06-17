@@ -110,6 +110,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(SetRotation_Transform);
 		ADD_INTERNAL_CALL(GetScale_Transform);
 		ADD_INTERNAL_CALL(SetScale_Transform);
+		ADD_INTERNAL_CALL(GetForward_Transform);
 		ADD_INTERNAL_CALL(GetBodyType_RigidBody2D);
 		ADD_INTERNAL_CALL(SetBodyType_RigidBody2D);
 		ADD_INTERNAL_CALL(GetLinearVelocity_RigidBody2D);

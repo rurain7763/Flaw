@@ -54,6 +54,9 @@ namespace Flaw
         internal extern static void SetScale_Transform(ulong id, ref Vec3 scale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void GetForward_Transform(ulong id, out Vec3 forward);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static void GetBodyType_RigidBody2D(ulong id, out int type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

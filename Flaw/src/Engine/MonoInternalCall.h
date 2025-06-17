@@ -23,6 +23,7 @@ namespace flaw {
 	void SetRotation_Transform(UUID uuid, vec3& rotation);
 	void GetScale_Transform(UUID uuid, vec3& scale);
 	void SetScale_Transform(UUID uuid, vec3& scale);
+	void GetForward_Transform(UUID uuid, vec3& forward);
 	
 	void GetBodyType_RigidBody2D(UUID uuid, int32_t& bodyType);
 	void SetBodyType_RigidBody2D(UUID uuid, int32_t bodyType);

@@ -117,6 +117,16 @@ namespace flaw {
 		}
 	}
 
+	void GetForward_Transform(UUID uuid, vec3& forward) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		if (entity.HasComponent<TransformComponent>()) {
+			auto& comp = entity.GetComponent<TransformComponent>();
+			forward = comp.GetWorldFront();
+		}
+	}
+
 	void GetBodyType_RigidBody2D(UUID uuid, int32_t& bodyType) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");

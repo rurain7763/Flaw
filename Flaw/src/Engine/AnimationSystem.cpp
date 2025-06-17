@@ -71,6 +71,7 @@ namespace flaw {
 				continue;
 			}
 
+			// TODO: Animation test
 #if false
 			if (animationHandles.size() >= 1) {
 				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[0]);

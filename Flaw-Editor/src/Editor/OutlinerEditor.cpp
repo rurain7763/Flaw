@@ -1,5 +1,6 @@
 #include "OutlinerEditor.h"
 #include "EditorEvents.h"
+#include "AssetDatabase.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -133,6 +134,19 @@ namespace flaw {
 				Entity draggedEntity(id, _scene.get());
 				draggedEntity.UnsetParent();
 			}
+
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+				const char* filePath = (const char*)payload->Data;
+
+				AssetMetadata metadata;
+				if (AssetDatabase::GetAssetMetadata(filePath, metadata)) {
+					if (metadata.type == AssetType::Prefab) {
+						auto prefabAsset = AssetManager::GetAsset<PrefabAsset>(metadata.handle);
+						prefabAsset->GetPrefab()->CreateEntity(*_scene);
+					}
+				}
+			}
+
 			ImGui::EndDragDropTarget();
 		}
 

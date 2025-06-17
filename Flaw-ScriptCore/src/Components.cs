@@ -40,6 +40,15 @@
             }
         }
 
+        public Vec3 Forward
+        {
+            get
+            {
+                InternalCalls.GetForward_Transform(entityId, out Vec3 forward);
+                return forward;
+            }
+        }
+
         public void LookAt(Vec3 target)
         {
             Vec3 dir = (target - Position).Normalized();
