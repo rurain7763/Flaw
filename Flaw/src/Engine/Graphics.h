@@ -63,18 +63,6 @@ namespace flaw {
 		float ambientIntensity;
 	};
 
-	struct MaterialConstants {
-		uint32_t reservedTextureBitMask = 0;
-		uint32_t cubeTextureBitMask = 0;
-		uint32_t textureArrayBitMask = 0;
-		uint32_t paddingMaterialConstants;
-
-		int32_t intConstants[4];
-		float floatConstants[4];
-		vec2 vec2Constants[4];
-		vec4 vec4Constants[4];
-	};
-
 	struct SkyLight {
 		vec3 color = vec3(0.0f);
 		float intensity = 0.0f;

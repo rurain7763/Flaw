@@ -431,28 +431,14 @@ namespace flaw {
 					ImGui::EndDragDropTarget();
 				}
 
-				if (ImGui::CollapsingHeader("Materials")) {
-					for (size_t i = 0; i < skeletalMeshComp.materials.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(skeletalMeshComp.materials[i])) {
-							ImGui::Text("Material %zu", i);
+				EditorHelper::DrawList<AssetHandle>("Materials", skeletalMeshComp.materials, [](AssetHandle& handle) {
+					return EditorHelper::DrawAssetPayloadTarget("Material", handle, [&handle](const char* filePath) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Material) {
+							handle = metadata.handle;
 						}
-						else {
-							ImGui::Text("Material Invalid##%d", i);
-						}
-						
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-								AssetMetadata metadata;
-								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-									if (metadata.type == AssetType::Material) {
-										skeletalMeshComp.materials[i] = metadata.handle;
-									}
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
-					}
-				}
+					});
+				});
 
 				if (AssetManager::IsAssetRegistered(skeletalMeshComp.skeleton)) {
 					ImGui::Text("Skeleton");

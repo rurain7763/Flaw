@@ -25,11 +25,9 @@ namespace flaw {
 
 	void AnimationSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		auto& enttComp = registry.get<EntityComponent>(entity);
+		auto& skeletalMeshComp = registry.get<SkeletalMeshComponent>(entity);
 
-		if (registry.any_of<SkeletalMeshComponent>(entity)) {
-			auto& skeletalMeshComp = registry.get<SkeletalMeshComponent>(entity);
-			_skeletonAnimations[entity] = CreateRef<SkeletalAnimationData>();
-		}
+		_skeletonAnimations[entity] = CreateRef<SkeletalAnimationData>();
 	}
 
 	void AnimationSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
@@ -64,17 +62,13 @@ namespace flaw {
 			}
 			skeletalAnimData->_bindingPosMatrices = bindingPosMatricesSB;
 
-			// TODO: temporary animation
 			skeletalAnimData->_boneMatricesSB = skeletalAnimData->_bindingPosMatrices;
-			const auto& animationHandles = skeletonAsset->GetAnimationHandles();
-			if (animationHandles.empty()) {
-				continue;
-			}
 
-			// TODO: Animation test
-#if false
-			if (animationHandles.size() >= 1) {
-				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[0]);
+#if true // TODO: Animation test		
+			const auto& animationHandles = skeletonAsset->GetAnimationHandles();
+
+			if (animationHandles.size() >= 2) {
+				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[1]);
 				if (animationAsset == nullptr) {
 					continue;
 				}

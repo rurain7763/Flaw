@@ -5,6 +5,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <inttypes.h>
+#include <filesystem>
 
 namespace flaw {
 	class EditorHelper {
@@ -259,7 +260,9 @@ namespace flaw {
 			ImGui::EndGroup();
 		}
 
-		static void DrawAssetPayloadTarget(const char* label, AssetHandle current, const std::function<void(const char*)>& onFileDropped) {
+		static bool DrawAssetPayloadTarget(const char* label, AssetHandle current, const std::function<void(const char*)>& onFileDropped) {
+			bool dirty = false;
+			
 			ImGui::Text("%s", label);
 
 			ImGui::SameLine();
@@ -282,9 +285,12 @@ namespace flaw {
 				if (payload) {
 					const char* filePath = (const char*)payload->Data;
 					onFileDropped(filePath);
+					dirty = true;
 				}
 				ImGui::EndDragDropTarget();
 			}
+
+			return dirty;
 		}
 
 		static void DrawEntityPayloadTarget(const char* label, Ref<Scene> scene, UUID uuid, const std::function<bool(Entity)>& checkComponent, const std::function<void(Entity)>& onEntityDropped) {
@@ -317,6 +323,116 @@ namespace flaw {
 				}
 				ImGui::EndDragDropTarget();
 			}
+		}
+
+		static bool DrawInputFilePath(const char* label, std::filesystem::path& filePath, const char* filter) {
+			bool dirty = false;
+
+			ImGui::PushID(label); // 고유 ID 스코프
+
+			ImGui::Text("%s", label);
+			ImGui::SameLine();
+
+			// 가변 버퍼를 사용한 InputText
+			char buffer[512];
+			strncpy(buffer, filePath.generic_u8string().c_str(), sizeof(buffer));
+			buffer[sizeof(buffer) - 1] = '\0';
+
+			if (ImGui::InputText("##FilePath", buffer, sizeof(buffer))) {
+				filePath = buffer;
+				dirty = true;
+			}
+
+			if (ImGui::IsItemHovered()) {
+				if (std::filesystem::exists(filePath)) {
+					ImGui::SetTooltip(filePath.generic_u8string().c_str());
+				}
+				else {
+					ImGui::SetTooltip("File does not exist");
+				}
+			}
+
+			ImGui::SameLine();
+
+			// 파일 선택 버튼
+			if (ImGui::Button("...")) {
+				std::filesystem::path selectedFile = FileDialogs::OpenFile(Platform::GetPlatformContext(), filter);
+				if (!selectedFile.empty()) {
+					filePath = selectedFile;
+					dirty = true;
+				}
+			}
+
+			ImGui::SameLine();
+
+			// 파일 경로 초기화 버튼
+			if (ImGui::Button("x")) {
+				filePath.clear();
+				dirty = true;
+			}
+
+			ImGui::PopID();
+
+			return dirty;
+		}
+
+		template<typename T>
+		static bool DrawList(const char* label, std::vector<T>& items, const std::function<bool(T&)>& itemDrawFunc, const std::function<T()>* createNewItemFunc = nullptr) {
+			bool dirty = false;
+
+			if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetColorU32(ImGuiCol_FrameBg));
+
+				ImGui::BeginChild("ItemListArea", ImVec2(0, 180), true, ImGuiWindowFlags_AlwaysUseWindowPadding);
+				if (items.empty()) {
+					ImGui::TextDisabled("No items.");
+				}
+				else {
+					for (size_t i = 0; i < items.size(); ) {
+						ImGui::PushID(static_cast<int>(i));
+
+						ImGui::Columns(2, nullptr, false);
+						dirty |= itemDrawFunc(items[i]);
+
+						ImGui::NextColumn();
+						if (ImGui::Button("Remove")) {
+							items.erase(items.begin() + i);
+							dirty = true;
+						}
+						else {
+							++i;
+						}
+
+						ImGui::Columns(1);
+						ImGui::Separator();
+						ImGui::PopID();
+					}
+				}
+				ImGui::EndChild();
+
+				ImGui::PopStyleColor();
+				ImGui::Spacing();
+
+				ImGui::Separator();
+				ImGui::BeginChild("ListControls", ImVec2(0, 40), false);
+				ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - 60);
+
+				if (ImGui::Button("Add item", ImVec2(60, 0))) {
+					if (createNewItemFunc) {
+						items.emplace_back((*createNewItemFunc)());
+					}
+					else {
+						items.emplace_back();
+					}
+					dirty = true;
+				}
+
+				ImGui::EndChild();
+				ImGui::PopStyleVar();
+			}
+
+			return dirty;
 		}
 	};
 }

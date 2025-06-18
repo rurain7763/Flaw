@@ -133,7 +133,7 @@ namespace flaw {
 				return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
 			}
 			// NOTE: identity matrix for non-animated nodes, this is work for now but tutorial says to use the node.transformMatrix.
-			// return mat4(1.0f); 
+			//return mat4(1.0f); 
 			return _nodes[nodeIndex].transformMatrix;
 		}, out);
 	}

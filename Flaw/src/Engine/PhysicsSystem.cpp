@@ -31,6 +31,8 @@ namespace flaw {
 			boxColliderPhysics.size = boxCollider.size * transComp.scale;
 
 			desc.collider = &boxColliderPhysics;
+
+			return Physics::CreateActor(desc);
 		}
 		else if (entt.HasComponent<SphereColliderComponent>()) {
 			auto& sphereCollider = entt.GetComponent<SphereColliderComponent>();
@@ -41,16 +43,15 @@ namespace flaw {
 			sphereColliderPhysics.radius = sphereCollider.radius;
 
 			desc.collider = &sphereColliderPhysics;
+
+			return Physics::CreateActor(desc);
 		}
 		else if (entt.HasComponent<MeshColliderComponent>()) {
 			// TODO:
 			return nullptr;
 		}
-		else {
-			return nullptr;
-		}
 
-		return Physics::CreateActor(desc);
+		return nullptr;
 	}
 	
 	void PhysicsSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {

@@ -75,7 +75,11 @@ project "Flaw"
 
     filter "configurations:Release"
         runtime "Release"
-        optimize "on"    
+        optimize "on"   
+        
+        defines {
+            "NDEBUG"
+        }
 
         libdirs {
             vcpkg_root .. "/installed/%{cfg.architecture:gsub('x86_64','x64')}-%{cfg.system}/lib",

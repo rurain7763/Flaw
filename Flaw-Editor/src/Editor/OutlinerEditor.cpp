@@ -34,6 +34,8 @@ namespace flaw {
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, sizeof(searchBuffer));
 		ImGui::Separator();
 
+		ImGui::BeginChild("##OutlinerChild");
+
 		auto& registry = _scene->GetRegistry();
 
 		for (auto&& [entity, enttComp] : registry.view<EntityComponent>().each()) {
@@ -150,6 +152,7 @@ namespace flaw {
 			ImGui::EndDragDropTarget();
 		}
 
+		ImGui::EndChild();
 		ImGui::EndChild();
 
 		ImGui::End();

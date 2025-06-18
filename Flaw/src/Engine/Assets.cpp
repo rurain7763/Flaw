@@ -195,6 +195,8 @@ namespace flaw {
 		if (ambientOcclusionTextureAsset) {
 			_material->ambientOcclusionTexture = ambientOcclusionTextureAsset->GetTexture();
 		}
+
+		_material->baseColor = desc.baseColor;
 	}
 
 	void MaterialAsset::Unload() {

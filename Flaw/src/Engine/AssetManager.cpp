@@ -74,6 +74,7 @@ namespace flaw {
 			desc.cullMode = CullMode::Back;
 			desc.depthTest = DepthTest::LessEqual;
 			desc.depthWrite = true;
+			desc.baseColor = vec3(0.65f);
 		}));
 		RegisterKey("default_material_std3d_geometry", handle);
 	}

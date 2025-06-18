@@ -194,8 +194,18 @@ namespace flaw {
 			ImGui::EndPopup();
 		}
 
+		if (WaitForSingleObject(_changeHandle, 0) == WAIT_OBJECT_0) {
+			dirHasToBeChanged = _currentDirectory;
+			FindNextChangeNotification(_changeHandle);
+		}
+
+		if (!dirHasToBeChanged.empty()) {
+			_currentDirectory = dirHasToBeChanged;
+			RefreshDirectory();
+		}
+
 		// Context Menu for Content Browser
-		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1)) {
+		if (!ImGui::IsPopupOpen("ContextMenu") && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("ContentBrowserContextMenu");
 		}
 
@@ -213,9 +223,19 @@ namespace flaw {
 
 				ImGui::EndMenu();
 			}
+
+			if (ImGui::MenuItem("New Folder")) {
+				std::filesystem::path expected = _currentDirectory / "NewFolder";
+				expected = FileSystem::GetUniqueFolderPath(expected.generic_string().c_str());
+				std::filesystem::create_directory(expected);
+
+				RefreshDirectory();
+			}
+
 			ImGui::EndPopup();
 		}
 
+		// TODO: modify this
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID")) {
 				entt::entity id = *(entt::entity*)payload->Data;
@@ -230,16 +250,6 @@ namespace flaw {
 		}
 
 		ImGui::End();
-
-		if (WaitForSingleObject(_changeHandle, 0) == WAIT_OBJECT_0) {
-			dirHasToBeChanged = _currentDirectory;
-			FindNextChangeNotification(_changeHandle);
-		}
-
-		if (!dirHasToBeChanged.empty()) {
-			_currentDirectory = dirHasToBeChanged;
-			RefreshDirectory();
-		}
 	}
 
 	void ContentBrowserEditor::CreateIcon(FileType fileType, const char* filePath) {
@@ -355,21 +365,7 @@ namespace flaw {
 
 	void ContentBrowserEditor::DrawTexture2DImportPopup() {
 		if (ImGui::BeginPopupModal("Import Texture2D", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			if (!_importFilePath.empty()) {
-				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
-			}
-			else {
-				ImGui::Text("No file selected");
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("...")) {
-				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Image Files (*.png;*.jpg;*.jpeg;*.hdr)\0");
-				if (!filePath.empty()) {
-					_importFilePath = filePath;
-				}
-			}
+			EditorHelper::DrawInputFilePath("Texture File", _importFilePath, "Image Files (*.png;*.jpg;*.jpeg;*.hdr)\0");
 
 			if (!_importFilePath.empty()) {
 				if (ImGui::Button("OK")) {
@@ -495,21 +491,7 @@ namespace flaw {
 
 	void ContentBrowserEditor::DrawFontImportPopup() {
 		if (ImGui::BeginPopupModal("Import Font", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			if (!_importFilePath.empty()) {
-				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
-			}
-			else {
-				ImGui::Text("No file selected");
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("...")) {
-				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Font Files (*.ttf)\0");
-				if (!filePath.empty()) {
-					_importFilePath = filePath;
-				}
-			}
+			EditorHelper::DrawInputFilePath("Font File", _importFilePath, "Font Files (*.ttf)\0");
 
 			if (!_importFilePath.empty()) {
 				if (ImGui::Button("OK")) {
@@ -536,21 +518,7 @@ namespace flaw {
 
 	void ContentBrowserEditor::DrawSoundImportPopup() {
 		if (ImGui::BeginPopupModal("Import Sound", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			if (!_importFilePath.empty()) {
-				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
-			}
-			else {
-				ImGui::Text("No file selected");
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("...")) {
-				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Sound Files (*.wav;*.ogg)\0");
-				if (!filePath.empty()) {
-					_importFilePath = filePath;
-				}
-			}
+			EditorHelper::DrawInputFilePath("Sound File", _importFilePath, "Sound Files (*.wav;*.ogg)\0");
 
 			if (!_importFilePath.empty()) {
 				if (ImGui::Button("OK")) {
@@ -575,28 +543,23 @@ namespace flaw {
 
 	void ContentBrowserEditor::DrawModelImportPopup() {
 		if (ImGui::BeginPopupModal("Import Model", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			if (!_importFilePath.empty()) {
-				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
-			}
-			else {
-				ImGui::Text("No file selected");
-			}
+			EditorHelper::DrawInputFilePath("Model File", _importFilePath, "Model Files (*.fbx;*.obj)\0");
 
-			ImGui::SameLine();
-
-			if (ImGui::Button("...")) {
-				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Model Files (*.fbx;*.obj)\0");
-				if (!filePath.empty()) {
-					_importFilePath = filePath;
-				}
-			}
+			static bool withoutSkin = false;
+			ImGui::Checkbox("Without Skin", &withoutSkin);
 
 			if (!_importFilePath.empty()) {
 				if (ImGui::Button("OK")) {
 					ModelImportSettings modelSettings;
 					modelSettings.srcPath = _importFilePath.generic_string();
 					modelSettings.destPath = _currentDirectory.generic_string() + "/" + _importFilePath.filename().replace_extension(".asset").generic_string();
-					AssetDatabase::ImportAsset(&modelSettings);
+					modelSettings.withoutSkin = withoutSkin;
+					modelSettings.progressHandler = [](float progress) {
+						Log::Info("Model import progress: %.2f%%", progress * 100.0f);
+						return true;
+					};
+
+					AssetDatabase::ImportAsset(&modelSettings); 
 					_importFilePath.clear();
 					ImGui::CloseCurrentPopup();
 				}
@@ -613,21 +576,7 @@ namespace flaw {
 
 	void ContentBrowserEditor::DrawGraphicsShaderImportPopup() {
 		if (ImGui::BeginPopupModal("Import Graphics Shader", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			if (!_importFilePath.empty()) {
-				ImGui::Text("Selected file: %s", _importFilePath.filename().generic_u8string().c_str());
-			}
-			else {
-				ImGui::Text("No file selected");
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("...")) {
-				std::filesystem::path filePath = FileDialogs::OpenFile(Platform::GetPlatformContext(), "Shader Files (*.hlsl)\0");
-				if (!filePath.empty()) {
-					_importFilePath = filePath;
-				}
-			}
+			EditorHelper::DrawInputFilePath("Shader File", _importFilePath, "Shader Files (*.hlsl)\0");
 
 			ImGui::Text("Vertex");
 			ImGui::SameLine();

@@ -258,6 +258,8 @@ namespace flaw {
 			AssetHandle metallicTexture;
 			AssetHandle roughnessTexture;
 			AssetHandle ambientOcclusionTexture;
+
+			vec3 baseColor;
 		};
 
 		MaterialAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}

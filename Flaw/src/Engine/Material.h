@@ -21,6 +21,21 @@ namespace flaw {
 		AmbientOcclusion = 0x40,
 	};
 
+	struct MaterialConstants {
+		uint32_t reservedTextureBitMask = 0;
+		uint32_t cubeTextureBitMask = 0;
+		uint32_t textureArrayBitMask = 0;
+		uint32_t paddingMaterialConstants;
+
+		int32_t intConstants[4];
+		float floatConstants[4];
+		vec2 vec2Constants[4];
+		vec4 vec4Constants[4];
+
+		vec3 baseColor;
+		float padding;
+	};
+
 	struct Material {
 		RenderMode renderMode = RenderMode::Opaque;
 
@@ -29,6 +44,8 @@ namespace flaw {
 		bool depthWrite = true;
 
 		Ref<GraphicsShader> shader;
+
+		vec3 baseColor;
 
 		Ref<Texture2D> albedoTexture;
 		Ref<Texture2D> normalTexture;

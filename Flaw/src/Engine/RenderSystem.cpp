@@ -500,6 +500,8 @@ namespace flaw {
 
 		std::memcpy(_materialConstants.intConstants, material->intConstants, sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4);
 
+		_materialConstants.baseColor = material->baseColor;
+
 		_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
 	}
 

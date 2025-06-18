@@ -53,6 +53,10 @@ namespace flaw {
 	};
 
 	struct ModelMaterial {
+		std::string name;
+
+		vec3 baseColor = vec3(0.0f);
+
 		Ref<Image> diffuse;
 		Ref<Image> normal;
 		Ref<Image> specular;
@@ -124,7 +128,7 @@ namespace flaw {
 	class Model {
 	public:
 		Model() = default;
-		Model(const char* filePath);
+		Model(const char* filePath, const std::function<bool(float)>& progressHandler = nullptr);
 		Model(ModelType type, const char* basePath, const char* memory, size_t size);
 
 		ModelType GetModelType() const { return _type; }
@@ -140,9 +144,10 @@ namespace flaw {
 
 		const mat4& GetGlobalInvMatrix() const { return _globalInvMatrix; }
 
-		bool HasSkeleton() const { return !_skeleton.boneMap.empty(); }
+		bool IsStaticModel() const { return !_meshes.empty() && _skeleton.boneMap.empty(); }
+		bool HasMeshes() const { return !_meshes.empty(); }
 
-		bool IsValid() const { return !_meshes.empty(); }
+		bool IsValid() const { return _loaded; }
 
 	private:
 		void ParseScene(std::filesystem::path basePath, const aiScene* scene);
@@ -156,6 +161,7 @@ namespace flaw {
 
 	private: 
 		ModelType _type = ModelType::Unknown;
+		bool _loaded;
 
 		mat4 _globalInvMatrix = mat4(1.0f);
 

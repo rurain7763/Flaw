@@ -130,6 +130,9 @@
     <ClInclude Include="src\Engine\Physics.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\PhysicsSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Platform.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -278,6 +281,9 @@
     <ClInclude Include="src\Model\Model.h">
       <Filter>Model</Filter>
     </ClInclude>
+    <ClInclude Include="src\Physics\Physics.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
     <ClInclude Include="src\Physics\Physics2D.h">
       <Filter>Physics</Filter>
     </ClInclude>
@@ -354,8 +360,6 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Engine\PhysicsSystem.h" />
-    <ClInclude Include="src\Physics\Physics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">
@@ -398,6 +402,9 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Physics.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\PhysicsSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Platform.cpp">
@@ -539,6 +546,5 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\PhysicsSystem.cpp" />
   </ItemGroup>
 </Project>

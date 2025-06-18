@@ -21,8 +21,7 @@
     <OutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Debug\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants></DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -34,8 +33,7 @@
     <OutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin\Release\Flaw-Editor\Resources\Scripts\Intermediate\Flaw-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants></DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>

@@ -4,6 +4,7 @@
 #include "Editor/EditorHelper.h"
 #include "AssetDatabase.h"
 #include "Editor/MaterialEditor.h"
+#include "Editor/SkeletonEditor.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -40,6 +41,10 @@ namespace flaw {
                 label = "Material Editor: " + std::to_string(metadata.handle);
                 editor = CreateRef<MaterialEditor>(_app, label, evn.assetFilePath.c_str());
             }
+            else if (metadata.type == AssetType::Skeleton) {
+				label = "Skeleton Editor: " + std::to_string(metadata.handle);
+				editor = CreateRef<SkeletonEditor>(_app, label, evn.assetFilePath.c_str());
+			}
 
             if (editor) {
                 RegisterEditor(label.c_str(), editor);
@@ -446,8 +451,7 @@ namespace flaw {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
 
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar |
-                                        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize |
                                         ImGuiWindowFlags_NoScrollbar |
                                         ImGuiWindowFlags_NoCollapse;
 

@@ -20,32 +20,11 @@ namespace flaw {
 		g_contentsDir = projectConfig.path + "/Contents";
 
 		RegisterAssetsInFolder(GetContentsDirectory().generic_string().c_str());
-
-		// 파일 시스템 감시 시작
-		g_fileWatch = CreateScope<filewatch::FileWatch<std::filesystem::path>>(
-			g_contentsDir,
-			[](const std::filesystem::path& path, const filewatch::Event change_type) {
-				switch (change_type) {
-					case filewatch::Event::added:
-					case filewatch::Event::removed:
-					case filewatch::Event::renamed_new:
-					{
-						std::filesystem::path absolutePath = g_contentsDir / path.parent_path();
-						if (path.extension() == ".asset") {
-							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), false); });
-						}
-						else if (!path.has_extension()) {
-							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), true); });
-						}
-						break;
-					}
-				}
-			}
-		);
+		SetFileWatchState(true);
 	}
 
 	void AssetDatabase::Cleanup() {
-		g_fileWatch.reset();
+		SetFileWatchState(false);
 
 		for (auto& [path, metadata] : g_assetMetadataMap) {
 			AssetManager::UnregisterAsset(metadata.handle);
@@ -258,6 +237,7 @@ namespace flaw {
 					archive >> desc.metallicTexture;
 					archive >> desc.roughnessTexture;
 					archive >> desc.ambientOcclusionTexture;
+					archive >> desc.baseColor;
 				}
 			);
 			break;
@@ -323,6 +303,38 @@ namespace flaw {
 		}
 
 		return false;
+	}
+
+	void AssetDatabase::SetFileWatchState(bool enabled) {
+		if (enabled) {
+			if (g_fileWatch) {
+				return; // already enabled
+			}
+
+			g_fileWatch = CreateScope<filewatch::FileWatch<std::filesystem::path>>(
+				g_contentsDir,
+				[](const std::filesystem::path& path, const filewatch::Event change_type) {
+					switch (change_type) {
+					case filewatch::Event::added:
+					case filewatch::Event::removed:
+					case filewatch::Event::renamed_new:
+					{
+						std::filesystem::path absolutePath = g_contentsDir / path.parent_path();
+						if (path.extension() == ".asset") {
+							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), false); });
+						}
+						else if (!path.has_extension()) {
+							g_application->AddTask([absolutePath]() { AssetDatabase::Refresh(absolutePath.generic_string().c_str(), true); });
+						}
+						break;
+					}
+					}
+				}
+			);
+		}
+		else {
+			g_fileWatch.reset();
+		}
 	}
 
 	const std::filesystem::path& AssetDatabase::GetContentsDirectory() {
@@ -445,6 +457,7 @@ namespace flaw {
 		archive << settings->metallicTexture;
 		archive << settings->roughnessTexture;
 		archive << settings->ambientOcclusionTexture;
+		archive << settings->baseColor;
 	}
 
 	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const SkeletonCreateSettings* settings) {
@@ -586,15 +599,13 @@ namespace flaw {
 	}
 
 	bool AssetDatabase::ImportModel(ModelImportSettings* settings) {
-		Model model(settings->srcPath.c_str());
+		Model model(settings->srcPath.c_str(), settings->progressHandler);
 		if (!model.IsValid()) {
 			Log::Error("Failed to load model: %s", settings->srcPath.c_str());
 			return false;
 		}
 
-		AssetHandle ret;
-
-		bool isSkeletal = model.HasSkeleton();
+		SetFileWatchState(false); // Disable file watch while importing
 
 		std::filesystem::path destPath = settings->destPath;
 		std::string fileNamePrefix = destPath.stem().generic_string();
@@ -612,7 +623,7 @@ namespace flaw {
 
 			MaterialCreateSettings matSet = {};
 			matSet.destPath = destPath.replace_filename(fileNamePrefix + "_Material.asset").generic_string();
-			matSet.shaderHandle = isSkeletal ? AssetManager::GetHandleByKey("std3d_geometry_skeletal") : AssetManager::GetHandleByKey("std3d_geometry_static");
+			matSet.shaderHandle = model.IsStaticModel() ? AssetManager::GetHandleByKey("std3d_geometry_static") : AssetManager::GetHandleByKey("std3d_geometry_skeletal");
 			matSet.renderMode = RenderMode::Opaque;
 			matSet.cullMode = CullMode::Back;
 			matSet.depthTest = DepthTest::Less;
@@ -666,84 +677,18 @@ namespace flaw {
 				}
 			}
 
+			matSet.baseColor = material.baseColor;
+
 			loadedMaterials.emplace(mesh.materialIndex, CreateAsset(&matSet));
 
 			return loadedMaterials.at(mesh.materialIndex);
 		};
 
-		if (isSkeletal) {
-			destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
-
-			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
-				const ModelSkeleton& modelSkeleton = model.GetSkeleton();
-
-				std::vector<MeshSegment> segments;
-				std::vector<AssetHandle> materials;
-				std::vector<SkinnedVertex3D> vertices;
-				for (const auto& mesh : model.GetMeshs()) {
-					segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
-					materials.push_back(getMaterialFunc(mesh));
-
-					for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
-						const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
-						const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
-
-						SkinnedVertex3D vertex3D = {};
-						vertex3D.position = vertex.position;
-						vertex3D.texcoord = vertex.texCoord;
-						vertex3D.tangent = vertex.tangent;
-						vertex3D.normal = vertex.normal;
-						vertex3D.binormal = vertex.bitangent;
-						for (int32_t j = 0; j < 4; ++j) {
-							vertex3D.boneIndices[j] = vertexBoneData.boneIndices[j];
-							vertex3D.boneWeights[j] = vertexBoneData.boneWeight[j];
-						}
-
-						vertices.push_back(vertex3D);
-					}
-				}
-
-				SkeletonCreateSettings skeletonSettings = {};
-				skeletonSettings.globalInvMatrix = model.GetGlobalInvMatrix();
-				skeletonSettings.destPath = destPath.replace_filename(fileNamePrefix + "_Skeleton.asset").generic_string();
-				std::transform(modelSkeleton.nodes.begin(), modelSkeleton.nodes.end(), std::back_inserter(skeletonSettings.nodes), [](const ModelSkeletonNode& node) {
-					return SkeletonNode{ node.name, node.parentIndex, node.transformMatrix, node.childrenIndices };
-				});
-				std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.boneMap, skeletonSettings.boneMap.end()), [](const auto& pair) {
-					return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.boneIndex, pair.second.offsetMatrix });
-				});
-				
-				for (const auto& animation : model.GetSkeletalAnimations()) {
-					SkeletalAnimationCreateSettings animSettings = {};
-					animSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + animation.name + ".asset").generic_string();
-					animSettings.name = animation.name;
-					animSettings.durationSec = animation.durationSec;
-					std::transform(animation._nodes.begin(), animation._nodes.end(), std::back_inserter(animSettings.animationNodes), [](const ModelSkeletalAnimationNode& boneAnim) {
-						std::vector<SkeletalAnimationNodeKey<vec3>> positionKeys;
-						std::transform(boneAnim.positionKeys.begin(), boneAnim.positionKeys.end(), std::back_inserter(positionKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
-
-						std::vector<SkeletalAnimationNodeKey<vec4>> rotationKeys;
-						std::transform(boneAnim.rotationKeys.begin(), boneAnim.rotationKeys.end(), std::back_inserter(rotationKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec4>{key.first, key.second}; });
-
-						std::vector<SkeletalAnimationNodeKey<vec3>> scaleKeys;
-						std::transform(boneAnim.scaleKeys.begin(), boneAnim.scaleKeys.end(), std::back_inserter(scaleKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
-						
-						return SkeletalAnimationNode(boneAnim.name, positionKeys, rotationKeys, scaleKeys);
-					});
-					skeletonSettings.animationHandles.push_back(CreateAsset(&animSettings));
-				}
-
-				archive << segments;
-				archive << CreateAsset(&skeletonSettings);
-				archive << materials;
-				archive << vertices;
-				archive << model.GetIndices();
-			});
-		}
-		else {
+		bool success = true;
+		if (model.IsStaticModel()) {
 			destPath.replace_filename(fileNamePrefix + "_StaticMesh.asset");
 
-			ret = CreateAssetFile(destPath.generic_string().c_str(), AssetType::StaticMesh, [&](SerializationArchive& archive) {
+			success = CreateAssetFile(destPath.generic_string().c_str(), AssetType::StaticMesh, [&](SerializationArchive& archive) {
 				std::vector<MeshSegment> segments;
 				std::vector<AssetHandle> materials;
 				std::vector<Vertex3D> vertices;
@@ -770,10 +715,87 @@ namespace flaw {
 				archive << materials;
 				archive << vertices;
 				archive << model.GetIndices();
-			});
+			}).IsValid();
+		}
+		else {
+			std::vector<AssetHandle> skeletalAnimHandles;
+			for (const auto& animation : model.GetSkeletalAnimations()) {
+				SkeletalAnimationCreateSettings animSettings = {};
+				animSettings.destPath = destPath.replace_filename(fileNamePrefix + "_" + animation.name + ".asset").generic_string();
+				animSettings.name = animation.name;
+				animSettings.durationSec = animation.durationSec;
+				std::transform(animation._nodes.begin(), animation._nodes.end(), std::back_inserter(animSettings.animationNodes), [](const ModelSkeletalAnimationNode& boneAnim) {
+					std::vector<SkeletalAnimationNodeKey<vec3>> positionKeys;
+					std::transform(boneAnim.positionKeys.begin(), boneAnim.positionKeys.end(), std::back_inserter(positionKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
+
+					std::vector<SkeletalAnimationNodeKey<vec4>> rotationKeys;
+					std::transform(boneAnim.rotationKeys.begin(), boneAnim.rotationKeys.end(), std::back_inserter(rotationKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec4>{key.first, key.second}; });
+
+					std::vector<SkeletalAnimationNodeKey<vec3>> scaleKeys;
+					std::transform(boneAnim.scaleKeys.begin(), boneAnim.scaleKeys.end(), std::back_inserter(scaleKeys), [](const auto& key) { return SkeletalAnimationNodeKey<vec3>{key.first, key.second}; });
+
+					return SkeletalAnimationNode(boneAnim.name, positionKeys, rotationKeys, scaleKeys);
+					});
+
+				skeletalAnimHandles.push_back(CreateAsset(&animSettings));
+			}
+
+			if (!settings->withoutSkin && model.HasMeshes()) {
+				destPath.replace_filename(fileNamePrefix + "_SkeletalMesh.asset");
+
+				success = CreateAssetFile(destPath.generic_string().c_str(), AssetType::SkeletalMesh, [&](SerializationArchive& archive) {
+					std::vector<MeshSegment> segments;
+					std::vector<AssetHandle> materials;
+					std::vector<SkinnedVertex3D> vertices;
+					for (const auto& mesh : model.GetMeshs()) {
+						segments.push_back(MeshSegment{ PrimitiveTopology::TriangleList, mesh.vertexStart, mesh.vertexCount, mesh.indexStart, mesh.indexCount });
+						materials.push_back(getMaterialFunc(mesh));
+
+						for (uint32_t i = 0; i < mesh.vertexCount; ++i) {
+							const ModelVertex& vertex = model.GetVertexAt(mesh.vertexStart + i);
+							const ModelVertexBoneData& vertexBoneData = model.GetVertexBoneDataAt(mesh.vertexStart + i);
+
+							SkinnedVertex3D vertex3D = {};
+							vertex3D.position = vertex.position;
+							vertex3D.texcoord = vertex.texCoord;
+							vertex3D.tangent = vertex.tangent;
+							vertex3D.normal = vertex.normal;
+							vertex3D.binormal = vertex.bitangent;
+							for (int32_t j = 0; j < 4; ++j) {
+								vertex3D.boneIndices[j] = vertexBoneData.boneIndices[j];
+								vertex3D.boneWeights[j] = vertexBoneData.boneWeight[j];
+							}
+
+							vertices.push_back(vertex3D);
+						}
+					}
+
+					const ModelSkeleton& modelSkeleton = model.GetSkeleton();
+
+					SkeletonCreateSettings skeletonSettings = {};
+					skeletonSettings.globalInvMatrix = model.GetGlobalInvMatrix();
+					skeletonSettings.destPath = destPath.replace_filename(fileNamePrefix + "_Skeleton.asset").generic_string();
+					std::transform(modelSkeleton.nodes.begin(), modelSkeleton.nodes.end(), std::back_inserter(skeletonSettings.nodes), [](const ModelSkeletonNode& node) {
+						return SkeletonNode{ node.name, node.parentIndex, node.transformMatrix, node.childrenIndices };
+					});
+					std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.boneMap, skeletonSettings.boneMap.end()), [](const auto& pair) {
+						return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.boneIndex, pair.second.offsetMatrix });
+					});
+					skeletonSettings.animationHandles = skeletalAnimHandles;
+
+					archive << segments;
+					archive << CreateAsset(&skeletonSettings);
+					archive << materials;
+					archive << vertices;
+					archive << model.GetIndices();
+				}).IsValid();
+			}
 		}
 
-		return ret.Invalidate();
+		g_application->AddTask([destPath]() { AssetDatabase::Refresh(destPath.parent_path().generic_string().c_str(), false); });
+		SetFileWatchState(true); // Re-enable file watch after importing
+
+		return success;
 	}
 
 	bool AssetDatabase::ImportGraphicsShader(const GraphicsShaderImportSettings* settings) {

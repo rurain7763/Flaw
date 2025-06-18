@@ -31,6 +31,7 @@
 #include "Platform/PlatformEvents.h"
 #include "Platform/FileDialogs.h"
 #include "Platform/Windows/WindowsContext.h"
+#include "Platform/FileSystem.h"
 
 #include "Graphics/GraphicsType.h"
 #include "Graphics/GraphicsContext.h"
