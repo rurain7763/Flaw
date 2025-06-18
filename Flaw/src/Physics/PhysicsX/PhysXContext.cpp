@@ -13,7 +13,7 @@ namespace flaw {
 	void PhysXEventCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) {
 		auto actor0 = pairHeader.actors[0];
 		auto actor1 = pairHeader.actors[1];
-
+		
 		if (!actor0 || !actor1) {
 			return;
 		}
@@ -23,6 +23,10 @@ namespace flaw {
 
 		if (!physXActor0 || !physXActor1) {
 			return;
+		}
+
+		for (PxU32 i = 0; i < nbPairs; i++) {
+			const PxContactPair& pair = pairs[i];
 		}
 
 		if (physXActor0->onContact) {
@@ -60,8 +64,12 @@ namespace flaw {
 		}
 	}
 
+	void PhysXDeletionListener::onRelease(const PxBase* observed, void* userData, PxDeletionEventFlag::Enum deletionEvent) {
+	}
+
 	PhysXContext::PhysXContext() 
 		: _eventCallback(*this)
+		, _deletionListener(*this)
 	{
 		_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, _allocatorCallback, _errorCallback);
 		if (!_foundation) {
@@ -78,6 +86,8 @@ namespace flaw {
 			Log::Error("Failed to create PhysX physics.");
 			return;
 		}
+
+		_physics->registerDeletionListener(_deletionListener, physx::PxDeletionEventFlag::eUSER_RELEASE);
 
 		_cpuDispatcher = PxDefaultCpuDispatcherCreate(2);
 		if (!_cpuDispatcher) {

@@ -19,12 +19,17 @@
             entityId = id;
         }
 
-        public bool HasComponent<T>() where T : EntityComponent, new()
+        public bool HasComponent<T>() where T : EntityComponent
         {
             return Owner.HasComponent<T>();
         }
 
-        public T GetComponent<T>() where T : EntityComponent, new()
+        public bool TryGetComponent<T>(out T component) where T : EntityComponent
+        {
+            return Owner.TryGetComponent<T>(out component);
+        }
+
+        public T GetComponent<T>() where T : EntityComponent
         {
             return Owner.GetComponent<T>();
         }

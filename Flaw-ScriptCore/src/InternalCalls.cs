@@ -81,6 +81,15 @@ namespace Flaw
         internal extern static void GetMousePosition_Input(ref float x, ref float y);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static bool GetMouseButtonDown_Input(MouseButton button);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static bool GetMouseButtonUp_Input(MouseButton button);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static bool GetMouseButton_Input(MouseButton button);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool Raycast_Physics(ref Ray ray, out RayHit hit);
     }
 }

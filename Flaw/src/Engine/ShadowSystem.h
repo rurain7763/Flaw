@@ -6,6 +6,7 @@
 #include "Utils/UUID.h"
 #include "RenderQueue.h"
 #include "Camera.h"
+#include "Components.h"
 
 namespace flaw {
 	constexpr static uint32_t CascadeShadowCount = 3;
@@ -46,9 +47,6 @@ namespace flaw {
 		ShadowSystem(Scene& scene);
 		~ShadowSystem();
 
-		void RegisterEntity(entt::registry& registry, entt::entity entity);
-		void UnregisterEntity(entt::registry& registry, entt::entity entity);
-
 		void Update();
 		void Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB);
 
@@ -57,6 +55,38 @@ namespace flaw {
 		PointLightShadowMap& GetPointLightShadowMap(const entt::entity id) { return _pointLightShadowMaps[id]; }
 
 	private:
+		template<typename T>
+		void RegisterEntity(entt::registry& registry, entt::entity entity) {
+			if constexpr (std::is_same_v<T, DirectionalLightComponent>) {
+				auto& shadowMap = _directionalShadowMaps[entity];
+
+				for (int32_t i = 0; i < CascadeShadowCount; ++i) {
+					shadowMap.renderPasses[i] = CreateDirectionalLightShadowMapRenderPass(ShadowMapSize >> i, ShadowMapSize >> i);
+				}
+			}
+			else if (std::is_same_v<T, SpotLightComponent>) {
+				auto& shadowMap = _spotLightShadowMaps[entity];
+				shadowMap.renderPass = CreateSpotLightShadowMapRenderPass();
+			}
+			else if (std::is_same_v<T, PointLightComponent>) {
+				auto& shadowMap = _pointLightShadowMaps[entity];
+				shadowMap.renderPass = CreatePointLightShadowMapRenderPass();
+			}
+		}
+
+		template<typename T>
+		void UnregisterEntity(entt::registry& registry, entt::entity entity) {
+			if constexpr (std::is_same_v<T, DirectionalLightComponent>) {
+				_directionalShadowMaps.erase(entity);
+			}
+			else if constexpr (std::is_same_v<T, SpotLightComponent>) {
+				_spotLightShadowMaps.erase(entity);
+			}
+			else if constexpr (std::is_same_v<T, PointLightComponent>) {
+				_pointLightShadowMaps.erase(entity);
+			}
+		}
+
 		Ref<GraphicsRenderPass> CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height);
 		Ref<GraphicsRenderPass> CreateSpotLightShadowMapRenderPass();
 		Ref<GraphicsRenderPass> CreatePointLightShadowMapRenderPass();

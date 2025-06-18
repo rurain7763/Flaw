@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "ShadowSystem.h"
 #include "Scene.h"
-#include "Components.h"
 #include "AssetManager.h"
 #include "Assets.h"
 #include "AnimationSystem.h"
@@ -57,22 +56,22 @@ namespace flaw {
 		_lightVPMatricesSB = Graphics::CreateStructuredBuffer(sbDesc);
 
 		auto& registry = _scene.GetRegistry();
-		registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity<PointLightComponent>>(*this);
+		registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity<PointLightComponent>>(*this);
+		registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity<SpotLightComponent>>(*this);
+		registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity<SpotLightComponent>>(*this);
 	}
 
 	ShadowSystem::~ShadowSystem() {
 		auto& registry = _scene.GetRegistry();
-		registry.on_construct<DirectionalLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<DirectionalLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<PointLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<PointLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<SpotLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<SpotLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<DirectionalLightComponent>().disconnect<&ShadowSystem::RegisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_destroy<DirectionalLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_construct<PointLightComponent>().disconnect<&ShadowSystem::RegisterEntity<PointLightComponent>>(*this);
+		registry.on_destroy<PointLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<PointLightComponent>>(*this);
+		registry.on_construct<SpotLightComponent>().disconnect<&ShadowSystem::RegisterEntity<SpotLightComponent>>(*this);
+		registry.on_destroy<SpotLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<SpotLightComponent>>(*this);
 	}
 
 	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height) {
@@ -148,32 +147,6 @@ namespace flaw {
 		shadowMapDesc.depthStencil.texture = Graphics::CreateTextureCube(texDesc);
 
 		return Graphics::CreateRenderPass(shadowMapDesc);
-	}
-
-	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
-		if (registry.any_of<DirectionalLightComponent>(entity)) {
-			auto& shadowMap = _directionalShadowMaps[entity];
-
-			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
-				shadowMap.renderPasses[i] = CreateDirectionalLightShadowMapRenderPass(ShadowMapSize >> i, ShadowMapSize >> i);
-			}
-		}
-
-		if (registry.any_of<SpotLightComponent>(entity)) {
-			auto& shadowMap = _spotLightShadowMaps[entity];
-			shadowMap.renderPass = CreateSpotLightShadowMapRenderPass();
-		}
-
-		if (registry.any_of<PointLightComponent>(entity)) {
-			auto& shadowMap = _pointLightShadowMaps[entity];
-			shadowMap.renderPass = CreatePointLightShadowMapRenderPass();
-		}
-	}
-
-	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_directionalShadowMaps.erase(entity);
-		_spotLightShadowMaps.erase(entity);
-		_pointLightShadowMaps.erase(entity);
 	}
 
 	void ShadowSystem::Update() {

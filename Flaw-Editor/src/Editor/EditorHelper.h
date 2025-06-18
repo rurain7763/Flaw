@@ -65,6 +65,23 @@ namespace flaw {
 			return dirty;
 		}
 
+		static bool DrawCheckbox(const char* label, bool& value, float columnWidth = 100.f) {
+			bool dirty = false;
+			ImGui::PushID(label);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, columnWidth);
+			ImGui::Text(label);
+			ImGui::NextColumn();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+			if (ImGui::Checkbox("##Checkbox", &value)) {
+				dirty |= true;
+			}
+			ImGui::PopStyleVar();
+			ImGui::Columns(1);
+			ImGui::PopID();
+			return dirty;
+		}
+
 		static bool DrawInputText(const char* label, std::string& value) {
 			bool dirty = false;
 			ImGui::PushID(label);

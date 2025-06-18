@@ -270,6 +270,7 @@ namespace flaw {
 	};
 
 	struct BoxColliderComponent {
+		bool isTrigger = false;
 		vec3 size = vec3(1.0f);
 
 		BoxColliderComponent() = default;
@@ -277,6 +278,7 @@ namespace flaw {
 	};
 
 	struct SphereColliderComponent {
+		bool isTrigger = false;
 		float radius = 0.5f;
 
 		SphereColliderComponent() = default;
@@ -284,6 +286,7 @@ namespace flaw {
 	};
 
 	struct MeshColliderComponent {
+		bool isTrigger = false;
 		AssetHandle mesh;
 
 		MeshColliderComponent() = default;

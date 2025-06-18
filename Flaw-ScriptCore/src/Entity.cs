@@ -16,13 +16,25 @@ namespace Flaw
             this.id = id;
         }
 
-        public bool HasComponent<T>() where T : EntityComponent, new()
+        public bool HasComponent<T>() where T : EntityComponent
         {
             Type type = typeof(T);
             return InternalCalls.HasComponent(id, type);
         }
 
-        public T GetComponent<T>() where T : EntityComponent, new()
+        public bool TryGetComponent<T>(out T component) where T : EntityComponent
+        {
+            Type type = typeof(T);
+            if (InternalCalls.HasComponent(id, type))
+            {
+                component = (T)InternalCalls.GetComponentInstance(id, type);
+                return true;
+            }
+            component = null;
+            return false;
+        }
+
+        public T GetComponent<T>() where T : EntityComponent
         {
             Type type = typeof(T);
             return (T)InternalCalls.GetComponentInstance(id, type);

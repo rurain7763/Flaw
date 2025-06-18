@@ -5,33 +5,6 @@
 #include "Utils/Raycast.h"
 
 namespace flaw {
-	struct PhysicsActor {
-		void* userData;
-
-		std::function<void(PhysicsActor*)> onContact;
-		std::function<void(PhysicsActor*)> onTrigger;
-
-		virtual ~PhysicsActor() = default;
-
-		virtual void GetTransform(vec3& position, vec3& rotation) const = 0;
-	};
-
-	enum class PhysicsBodyType {
-		Static,
-		Dynamic,
-		Kinematic
-	};
-
-	struct RigidBody {
-		PhysicsBodyType type = PhysicsBodyType::Static;
-
-		float staticFriction;
-		float dynamicFriction;
-		float restitution;
-
-		float density;
-	};
-
 	struct PhysicsCollider {
 		vec3 position;
 		vec3 rotation;
@@ -50,6 +23,35 @@ namespace flaw {
 	struct PhysicsMeshCollider : public PhysicsCollider {
 		std::vector<vec3> vertices;
 		std::vector<uint32_t> indices;
+	};
+
+	struct PhysicsActor {
+		void* userData;
+
+		std::function<void(PhysicsActor*)> onContact;
+		std::function<void(PhysicsActor*)> onTrigger;
+
+		virtual ~PhysicsActor() = default;
+
+		//virtual void AttatchCollider(const PhysicsCollider& collider) = 0;
+
+		virtual void GetTransform(vec3& position, vec3& rotation) const = 0;
+	};
+
+	enum class PhysicsBodyType {
+		Static,
+		Dynamic,
+		Kinematic
+	};
+
+	struct RigidBody {
+		PhysicsBodyType type = PhysicsBodyType::Static;
+
+		float staticFriction;
+		float dynamicFriction;
+		float restitution;
+
+		float density;
 	};
 
 	struct ActorDescription {

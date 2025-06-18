@@ -35,6 +35,9 @@ namespace flaw {
 	bool GetKeyUp_Input(KeyCode key);
 	bool GetKey_Input(KeyCode key);
 	void GetMousePosition_Input(float& x, float& y);
+	bool GetMouseButtonDown_Input(MouseButton button);
+	bool GetMouseButtonUp_Input(MouseButton button);
+	bool GetMouseButton_Input(MouseButton button);
 
 	bool Raycast_Physics(const Ray& ray, RayHit& hit);
 }

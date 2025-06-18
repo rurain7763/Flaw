@@ -119,6 +119,9 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetKeyUp_Input);
 		ADD_INTERNAL_CALL(GetKey_Input);
 		ADD_INTERNAL_CALL(GetMousePosition_Input);
+		ADD_INTERNAL_CALL(GetMouseButtonDown_Input);
+		ADD_INTERNAL_CALL(GetMouseButtonUp_Input);
+		ADD_INTERNAL_CALL(GetMouseButton_Input);
 		ADD_INTERNAL_CALL(Raycast_Physics);
 
 		LoadMonoScripting();

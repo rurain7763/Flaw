@@ -51,11 +51,12 @@ namespace flaw {
 
 	Entity Scene::CreateEntity(const vec3& position, const vec3& rotation, const vec3& scale, const char* name) {
 		Entity entity(_registry.create(), this);
-		entity.AddComponent<TransformComponent>(position, rotation, scale);
 
 		UUID uuid;
 		uuid.Generate();
 		entity.AddComponent<EntityComponent>(uuid, name);
+
+		entity.AddComponent<TransformComponent>(position, rotation, scale);
 
 		_entityMap[uuid] = (entt::entity)entity;
 		
@@ -64,8 +65,8 @@ namespace flaw {
 
 	Entity Scene::CreateEntityByUUID(const UUID& uuid, const char* name) {
 		Entity entity(_registry.create(), this);
-		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<EntityComponent>(uuid, name);
+		entity.AddComponent<TransformComponent>();
 
 		_entityMap[uuid] = (entt::entity)entity;
 

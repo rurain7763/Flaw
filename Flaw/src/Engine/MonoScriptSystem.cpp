@@ -31,6 +31,12 @@ namespace flaw {
 		_startMethod = monoClass.GetMethodRecurcive("OnStart", 0);
 		_updateMethod = monoClass.GetMethodRecurcive("OnUpdate", 0);
 		_destroyMethod = monoClass.GetMethodRecurcive("OnDestroy", 0);
+		_onCollisionEnterMethod = monoClass.GetMethodRecurcive("OnCollisionEnter", 1);
+		_onCollisionStayMethod = monoClass.GetMethodRecurcive("OnCollisionStay", 1);
+		_onCollisionExitMethod = monoClass.GetMethodRecurcive("OnCollisionExit", 1);
+		_onTriggerEnterMethod = monoClass.GetMethodRecurcive("OnTriggerEnter", 1);
+		_onTriggerStayMethod = monoClass.GetMethodRecurcive("OnTriggerStay", 1);
+		_onTriggerExitMethod = monoClass.GetMethodRecurcive("OnTriggerExit", 1);
 	}
 
 	void MonoProjectComponentInstance::CreatePublicFieldsInObjectRecursive(MonoScriptObject& object) {
@@ -144,21 +150,6 @@ namespace flaw {
 		, _scene(scene)
 		, _timeSinceStart(0.f)
 	{
-		RegisterComponentSyncFunc<TransformComponent>();
-		RegisterComponentSyncFunc<CameraComponent>();
-	}
-
-	Ref<MonoEntity> MonoScriptSystem::CreateMonoEntityByEntity(const Entity& entity) {
-		auto monoEntt = CreateRef<MonoEntity>(entity.GetUUID());
-		auto& monoScriptComp = entity.GetComponent<MonoScriptComponent>();
-
-		for (const auto& syncFunc : _componentSyncFuncs) {
-			syncFunc(entity, monoEntt);
-		}
-
-		monoEntt->AddComponent(monoScriptComp.name.c_str());
-
-		return monoEntt;
 	}
 
 	void MonoScriptSystem::SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp) {
@@ -216,12 +207,24 @@ namespace flaw {
 
 	void MonoScriptSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		auto& enttComp = registry.get<EntityComponent>(entity);
+		_monoEntities[enttComp.uuid] = CreateRef<MonoEntity>(enttComp.uuid);
+	}
+
+	void MonoScriptSystem::RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity) {
+		auto& enttComp = registry.get<EntityComponent>(entity);
 		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
 
-		auto newMonoEntt = CreateMonoEntityByEntity(Entity(entity, &_scene));
-		_monoEntities[enttComp.uuid] = newMonoEntt;
+		auto it = _monoEntities.find(enttComp.uuid);
+		if (it == _monoEntities.end()) {
+			return;
+		}
 
-		auto* prjComp = newMonoEntt->GetProjectComponent(monoScriptComp.name.c_str());
+		auto monoEntt = it->second;
+		auto* prjComp = static_cast<MonoProjectComponentInstance*>(monoEntt->AddComponent(monoScriptComp.name.c_str()));
+		if (!prjComp) {
+			return;
+		}
+
 		SetAllComponentFields(*prjComp, monoScriptComp);
 
 		prjComp->CallOnCreate();
@@ -249,8 +252,11 @@ namespace flaw {
 
 		Scripting::SetActiveMonoScriptSystem(this);
 
-		registry.on_construct<MonoScriptComponent>().connect<&MonoScriptSystem::RegisterEntity>(*this);
+		registry.on_construct<EntityComponent>().connect<&MonoScriptSystem::RegisterEntity>(*this);
 		registry.on_destroy<EntityComponent>().connect<&MonoScriptSystem::UnregisterEntity>(*this);
+		registry.on_construct<TransformComponent>().connect<&MonoScriptSystem::RegisterComponent<TransformComponent>>(*this);
+		registry.on_construct<CameraComponent>().connect<&MonoScriptSystem::RegisterComponent<CameraComponent>>(*this);
+		registry.on_construct<MonoScriptComponent>().connect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 
 		_timeSinceStart = 0.f;
 
@@ -260,8 +266,12 @@ namespace flaw {
 
 		// NOTE: monoEntities를 초기화합니다.
 		_monoEntities.clear();
-		for (auto&& [entity, enttComp, monoScriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {
-			_monoEntities[enttComp.uuid] = CreateMonoEntityByEntity(Entity(entity, &_scene));
+		for (auto&& [entity, enttComp] : registry.view<EntityComponent>().each()) {
+			_monoEntities[enttComp.uuid] = CreateRef<MonoEntity>(enttComp.uuid);
+
+			RegisterComponent<TransformComponent>(registry, entity);
+			RegisterComponent<CameraComponent>(registry, entity);
+			RegisterComponent<MonoScriptComponent>(registry, entity);
 		}
 
 		for (auto&& [entity, enttComp, monoScriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {
@@ -342,8 +352,11 @@ namespace flaw {
 			}
 		}
 
-		registry.on_construct<MonoScriptComponent>().disconnect<&MonoScriptSystem::RegisterEntity>(*this);
+		registry.on_construct<EntityComponent>().disconnect<&MonoScriptSystem::RegisterEntity>(*this);
 		registry.on_destroy<EntityComponent>().disconnect<&MonoScriptSystem::UnregisterEntity>(*this);
+		registry.on_construct<TransformComponent>().disconnect<&MonoScriptSystem::RegisterComponent<TransformComponent>>(*this);
+		registry.on_construct<CameraComponent>().disconnect<&MonoScriptSystem::RegisterComponent<CameraComponent>>(*this);
+		registry.on_construct<MonoScriptComponent>().disconnect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 
 		Scripting::SetActiveMonoScriptSystem(nullptr);
 	}

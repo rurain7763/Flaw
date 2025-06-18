@@ -133,15 +133,18 @@ namespace flaw {
 			});
 
 			DrawComponent<BoxColliderComponent>(_selectedEntt, [](BoxColliderComponent& boxColliderComp) {
-				ImGui::DragFloat3("Size", glm::value_ptr(boxColliderComp.size), 0.1f);
+				EditorHelper::DrawCheckbox("Is Trigger", boxColliderComp.isTrigger);
+				EditorHelper::DrawVec3("Size", boxColliderComp.size, 1.0f);
 			});
 
 			DrawComponent<SphereColliderComponent>(_selectedEntt, [](SphereColliderComponent& sphereColliderComp) {
-				ImGui::DragFloat("Radius", &sphereColliderComp.radius, 0.1f);
+				EditorHelper::DrawCheckbox("Is Trigger", sphereColliderComp.isTrigger);
+				EditorHelper::DrawNumericInput("Radius", sphereColliderComp.radius, 0.1f, 0.1f);
 			});
 
 			DrawComponent<MeshColliderComponent>(_selectedEntt, [](MeshColliderComponent& meshColliderComp) {
 				// TODO: Implement MeshColliderComponent details
+				ImGui::Text("Mesh Collider is not implemented yet.");
 			});
 
 			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
@@ -367,69 +370,46 @@ namespace flaw {
 				ImGui::Checkbox("Loop", &soundSourceComp.loop);
 				ImGui::Checkbox("Auto Play", &soundSourceComp.autoPlay);
 				ImGui::DragFloat("Volume", &soundSourceComp.volume, 0.01f, 0.f, 1.f);
-				});
+			});
 
 			DrawComponent<ParticleComponent>(_selectedEntt, [this](ParticleComponent& particleComp) {
 				ParticleComponentDrawer::Draw(_selectedEntt);
-				});
+			});
 
 			DrawComponent<StaticMeshComponent>(_selectedEntt, [](StaticMeshComponent& staticMeshComp) {
-				ImGui::Text("Mesh");
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::StaticMesh) {
-								auto asset = AssetManager::GetAsset<StaticMeshAsset>(metadata.handle);
-								staticMeshComp.mesh = metadata.handle;
-								staticMeshComp.materials = asset->GetMaterialHandles();
-							}
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
+				EditorHelper::DrawAssetPayloadTarget("Static Mesh", staticMeshComp.mesh, [&staticMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::StaticMesh) {
+						staticMeshComp.mesh = metadata.handle;
 
-				if (ImGui::CollapsingHeader("Materials")) {
-					for (size_t i = 0; i < staticMeshComp.materials.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(staticMeshComp.materials[i])) {
-							ImGui::Text("Material %zu", i);
-						}
-						else {
-							ImGui::Text("Material Invalid##%d", i);
-						}
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-								AssetMetadata metadata;
-								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-									if (metadata.type == AssetType::Material) {
-										staticMeshComp.materials[i] = metadata.handle;
-									}
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
+						auto asset = AssetManager::GetAsset<StaticMeshAsset>(metadata.handle);
+						staticMeshComp.materials = asset->GetMaterialHandles();
 					}
-				}
+				});
+
+				EditorHelper::DrawList<AssetHandle>("Materials", staticMeshComp.materials, [](AssetHandle& handle) {
+					return EditorHelper::DrawAssetPayloadTarget("Material", handle, [&handle](const char* filePath) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Material) {
+							handle = metadata.handle;
+						}
+					});
+				});
 
 				ImGui::Checkbox("Cast Shadow", &staticMeshComp.castShadow);
 			});
 
 			DrawComponent<SkeletalMeshComponent>(_selectedEntt, [](SkeletalMeshComponent& skeletalMeshComp) {
-				ImGui::Text("Mesh");
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
-								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
-								skeletalMeshComp.mesh = metadata.handle;
-								skeletalMeshComp.materials = asset->GetMaterialHandles();
-								skeletalMeshComp.skeleton = asset->GetSkeletonHandle();
-							}
-						}
+				EditorHelper::DrawAssetPayloadTarget("Skeletal Mesh", skeletalMeshComp.mesh, [&skeletalMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::SkeletalMesh) {
+						skeletalMeshComp.mesh = metadata.handle;
+
+						auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
+						skeletalMeshComp.materials = asset->GetMaterialHandles();
+						skeletalMeshComp.skeleton = asset->GetSkeletonHandle();
 					}
-					ImGui::EndDragDropTarget();
-				}
+				});
 
 				EditorHelper::DrawList<AssetHandle>("Materials", skeletalMeshComp.materials, [](AssetHandle& handle) {
 					return EditorHelper::DrawAssetPayloadTarget("Material", handle, [&handle](const char* filePath) {
@@ -440,23 +420,12 @@ namespace flaw {
 					});
 				});
 
-				if (AssetManager::IsAssetRegistered(skeletalMeshComp.skeleton)) {
-					ImGui::Text("Skeleton");
-				}
-				else {
-					ImGui::Text("Skeleton Invalid");
-				}
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
-								skeletalMeshComp.skeleton = metadata.handle;
-							}
-						}
+				EditorHelper::DrawAssetPayloadTarget("Skeleton", skeletalMeshComp.skeleton, [&skeletalMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Skeleton) {
+						skeletalMeshComp.skeleton = metadata.handle;
 					}
-					ImGui::EndDragDropTarget();
-				}
+				});
 
 				// TODO: 임시 테스트
 				ImGui::Text("Blend Factor");

@@ -121,6 +121,7 @@ namespace flaw {
 			auto& comp = entity.GetComponent<flaw::BoxColliderComponent>();
 			out << YAML::Key << TypeName<flaw::BoxColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
 			out << YAML::Key << "Size" << YAML::Value << comp.size;
 			out << YAML::EndMap;
 		}
@@ -129,6 +130,7 @@ namespace flaw {
 			auto& comp = entity.GetComponent<flaw::SphereColliderComponent>();
 			out << YAML::Key << TypeName<flaw::SphereColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
 			out << YAML::Key << "Radius" << YAML::Value << comp.radius;
 			out << YAML::EndMap;
 		}
@@ -137,6 +139,7 @@ namespace flaw {
 			auto& comp = entity.GetComponent<flaw::MeshColliderComponent>();
 			out << YAML::Key << TypeName<flaw::MeshColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
 			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
 			out << YAML::EndMap;
 		}
@@ -457,6 +460,7 @@ namespace flaw {
 		auto components = node["Components"];
 
 		if (components) {
+			std::string entityName;
 			for (auto component : components) {
 				std::string name = component.first.as<std::string>();
 
@@ -545,6 +549,7 @@ namespace flaw {
 						entity.AddComponent<BoxColliderComponent>();
 					}
 					auto& comp = entity.GetComponent<BoxColliderComponent>();
+					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.size = component.second["Size"].as<vec3>();
 				}
 				else if (name == TypeName<SphereColliderComponent>()) {
@@ -552,6 +557,7 @@ namespace flaw {
 						entity.AddComponent<SphereColliderComponent>();
 					}
 					auto& comp = entity.GetComponent<SphereColliderComponent>();
+					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == TypeName<MeshColliderComponent>()) {
@@ -559,6 +565,7 @@ namespace flaw {
 						entity.AddComponent<MeshColliderComponent>();
 					}
 					auto& comp = entity.GetComponent<MeshColliderComponent>();
+					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
 				}
 				else if (name == "TextComponent") {

@@ -35,6 +35,17 @@ namespace flaw {
 		PhysXContext& _context;
 	};
 
+	class PhysXDeletionListener : public PxDeletionListener {
+	public:
+		PhysXDeletionListener(PhysXContext& context) : _context(context) {}
+		virtual ~PhysXDeletionListener() = default;
+
+		void onRelease(const PxBase* observed, void* userData, PxDeletionEventFlag::Enum deletionEvent) override;
+
+	private:
+		PhysXContext& _context;
+	};
+
 	class PhysXContext : public PhysicsContext {
 	public:
 		PhysXContext();
@@ -46,6 +57,12 @@ namespace flaw {
 		void DestroyActor(PhysicsActor* actor) override;
 
 		bool Raycast(const Ray& ray, RayHit& hit) override;
+
+		void OnContact(PhysicsActor* actor0, PhysicsActor* actor1);
+		void OnContactLost(PhysicsActor* actor0, PhysicsActor* actor1);
+
+		void OnTrigger(PhysicsActor* actor0, PhysicsActor* actor1);
+		void OnTriggerLost(PhysicsActor* actor0, PhysicsActor* actor1);
 
 	private:
 		static PxFilterFlags CustomFilterShader(
@@ -68,6 +85,7 @@ namespace flaw {
 		PxScene* _scene;
 
 		PhysXEventCallback _eventCallback;
+		PhysXDeletionListener _deletionListener;
 
 		uint32_t _idCounter = 0;
 		std::vector<uint32_t> _freeIDs;

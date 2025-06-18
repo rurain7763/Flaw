@@ -55,6 +55,12 @@ namespace flaw {
 		MonoMethod* _startMethod;
 		MonoMethod* _updateMethod;
 		MonoMethod* _destroyMethod;
+		MonoMethod* _onCollisionEnterMethod;
+		MonoMethod* _onCollisionStayMethod;
+		MonoMethod* _onCollisionExitMethod;
+		MonoMethod* _onTriggerEnterMethod;
+		MonoMethod* _onTriggerStayMethod;
+		MonoMethod* _onTriggerExitMethod;
 	};
 
 	class MonoEntity {
@@ -94,9 +100,6 @@ namespace flaw {
 	public:
 		MonoScriptSystem(Application& app, Scene& scene);
 
-		void RegisterEntity(entt::registry& registry, entt::entity entity);
-		void UnregisterEntity(entt::registry& registry, entt::entity entity);
-
 		void Start();
 		void Update();
 		void End();
@@ -109,18 +112,41 @@ namespace flaw {
 		const std::unordered_map<UUID, Ref<MonoEntity>>& GetMonoEntities() const { return _monoEntities; }
 
 	private:
+		void RegisterEntity(entt::registry& registry, entt::entity entity);
+
 		template<typename T>
-		void RegisterComponentSyncFunc() {
-			_componentSyncFuncs.emplace_back([this](Entity entity, Ref<MonoEntity> monoEntity) {
-				if (entity.HasComponent<T>()) {
-					auto& comp = entity.GetComponent<T>();
-					std::string monoTypeName = "Flaw." + std::string(TypeName<T>());
-					monoEntity->AddComponent(monoTypeName.c_str());
-				}
-			});
+		void RegisterComponent(entt::registry& registry, entt::entity entity) {
+			auto& enttComp = registry.get<EntityComponent>(entity);
+
+			if (!registry.any_of<T>(entity)) {
+				return;
+			}
+			
+			auto monoEntt = GetMonoEntity(enttComp.uuid);
+			if (!monoEntt) {
+				return;
+			}
+
+			std::string monoTypeName;
+			if constexpr (std::is_same_v<T, MonoScriptComponent>) {
+				auto& monoComp = registry.get<MonoScriptComponent>(entity);
+				monoTypeName = monoComp.name;
+			}
+			else {
+				monoTypeName = "Flaw." + std::string(TypeName<T>());
+			}
+
+			if (monoEntt->HasComponent(monoTypeName.c_str())) {
+				return;
+			}
+
+			monoEntt->AddComponent(monoTypeName.c_str());
 		}
 
-		Ref<MonoEntity> CreateMonoEntityByEntity(const Entity& entity);
+		void RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity);
+
+		void UnregisterEntity(entt::registry& registry, entt::entity entity);
+
 		void SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp);
 
 	private:
@@ -133,7 +159,6 @@ namespace flaw {
 
 		std::unordered_map<AssetHandle, MonoAsset> _monoAssets;
 
-		std::vector<std::function<void(Entity, Ref<MonoEntity>)>> _componentSyncFuncs;
 		std::unordered_map<UUID, Ref<MonoEntity>> _monoEntities;
 		std::vector<UUID> _monoEntitiesToDestroy;
 	};
