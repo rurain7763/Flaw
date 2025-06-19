@@ -122,14 +122,11 @@ namespace flaw {
 
 			DrawComponent<RigidbodyComponent>(_selectedEntt, [](RigidbodyComponent& rigidbodyComp) {
 				int32_t bodyTypeSelected = (int32_t)rigidbodyComp.bodyType;
-				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
+				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic" })) {
 					rigidbodyComp.bodyType = (PhysicsBodyType)bodyTypeSelected;
 				}
-
-				ImGui::DragFloat("Density", &rigidbodyComp.density, 0.1f);
-				ImGui::DragFloat("Static Friction", &rigidbodyComp.staticFriction, 0.1f);
-				ImGui::DragFloat("Dynamic Friction", &rigidbodyComp.dynamicFriction, 0.1f);
-				ImGui::DragFloat("Restitution", &rigidbodyComp.restitution, 0.1f);
+				EditorHelper::DrawCheckbox("Is Kinematic", rigidbodyComp.isKinematic);
+				EditorHelper::DrawNumericInput("Mass", rigidbodyComp.mass, 0.1f, 0.1f);
 			});
 
 			DrawComponent<BoxColliderComponent>(_selectedEntt, [](BoxColliderComponent& boxColliderComp) {

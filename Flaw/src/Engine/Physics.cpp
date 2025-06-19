@@ -9,7 +9,7 @@ namespace flaw {
 
 	void Physics::Init() {
 		g_physicsContext = CreateScope<PhysXContext>();
-
+		
 		Log::Info("Physics initialized with PhysX context.");
 	}
 
@@ -17,19 +17,27 @@ namespace flaw {
 		g_physicsContext.reset();
 	}
 
-	void Physics::Update() {
-		g_physicsContext->Update(Time::DeltaTime());
+	Ref<PhysicsActorStatic> Physics::CreateActorStatic(const PhysicsActorStatic::Descriptor& desc) {
+		return g_physicsContext->CreateActorStatic(desc);
 	}
 
-	PhysicsActor* Physics::CreateActor(const ActorDescription& desc) {
-		return g_physicsContext->CreateActor(desc);
+	Ref<PhysicsActorDynamic> Physics::CreateActorDynamic(const PhysicsActorDynamic::Descriptor& desc) {
+		return g_physicsContext->CreateActorDynamic(desc);
 	}
 
-	void Physics::DestroyActor(PhysicsActor* actor) {
-		g_physicsContext->DestroyActor(actor);
+	Ref<PhysicsBoxShape> Physics::CreateBoxShape(const PhysicsBoxShape::Descriptor& desc) {
+		return g_physicsContext->CreateBoxShape(desc);
 	}
 
-	bool Physics::Raycast(const Ray& ray, RayHit& hit) {
-		return g_physicsContext->Raycast(ray, hit);
+	Ref<PhysicsSphereShape> Physics::CreateSphereShape(const PhysicsSphereShape::Descriptor& desc) {
+		return g_physicsContext->CreateSphereShape(desc);
+	}
+
+	Ref<PhysicsMeshShape> Physics::CreateMeshShape(const PhysicsMeshShape::Descriptor& desc) {
+		return g_physicsContext->CreateMeshShape(desc);
+	}
+
+	Ref<PhysicsScene> Physics::CreateScene(const PhysicsScene::Descriptor& desc) {
+		return g_physicsContext->CreateScene(desc);
 	}
 }

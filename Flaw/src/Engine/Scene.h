@@ -58,6 +58,7 @@ namespace flaw {
 		ShadowSystem& GetShadowSystem() { return *_shadowSystem; }
 		AnimationSystem& GetAnimationSystem() { return *_animationSystem; }
 		MonoScriptSystem& GetMonoScriptSystem() { return *_monoScriptSystem; }
+		PhysicsSystem& GetPhysicsSystem() { return *_physicsSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);

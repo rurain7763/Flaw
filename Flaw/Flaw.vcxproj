@@ -177,7 +177,11 @@
     <ClInclude Include="src\Physics\Physics.h" />
     <ClInclude Include="src\Physics\Physics2D.h" />
     <ClInclude Include="src\Physics\PhysicsContext.h" />
+    <ClInclude Include="src\Physics\PhysicsTypes.h" />
     <ClInclude Include="src\Physics\PhysicsX\Helper.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXActors.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
     <ClInclude Include="src\Physics\PhysicsX\PhysXContext.h" />
     <ClInclude Include="src\Platform\FileDialogs.h" />
     <ClInclude Include="src\Platform\FileSystem.h" />
@@ -252,6 +256,9 @@
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />
     <ClCompile Include="src\Model\Model.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXActors.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXScene.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXShapes.cpp" />
     <ClCompile Include="src\Physics\PhysicsX\PhysXContext.cpp" />
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />

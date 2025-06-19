@@ -260,10 +260,10 @@ namespace flaw {
 
 	struct RigidbodyComponent {
 		PhysicsBodyType bodyType = PhysicsBodyType::Static;
-		float density = 1.0f;
-		float staticFriction = 0.0f;
-		float dynamicFriction = 0.5f;
-		float restitution = 0.1f;
+
+		bool isKinematic = false;
+
+		float mass = 1.0f;
 
 		RigidbodyComponent() = default;
 		RigidbodyComponent(const RigidbodyComponent& other) = default;
@@ -271,6 +271,12 @@ namespace flaw {
 
 	struct BoxColliderComponent {
 		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
+		vec3 offset = vec3(0.0f);
 		vec3 size = vec3(1.0f);
 
 		BoxColliderComponent() = default;
@@ -279,6 +285,12 @@ namespace flaw {
 
 	struct SphereColliderComponent {
 		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
+		vec3 offset = vec3(0.0f);
 		float radius = 0.5f;
 
 		SphereColliderComponent() = default;
@@ -287,6 +299,11 @@ namespace flaw {
 
 	struct MeshColliderComponent {
 		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
 		AssetHandle mesh;
 
 		MeshColliderComponent() = default;

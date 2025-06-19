@@ -360,6 +360,10 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXActors.h" />
+    <ClInclude Include="src\Physics\PhysicsTypes.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">
@@ -546,5 +550,8 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXActors.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXShapes.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXScene.cpp" />
   </ItemGroup>
 </Project>

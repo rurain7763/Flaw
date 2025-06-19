@@ -9,11 +9,13 @@ namespace flaw {
 		static void Init();
 		static void Cleanup();
 
-		static void Update();
+		static Ref<PhysicsActorStatic> CreateActorStatic(const PhysicsActorStatic::Descriptor& desc);
+		static Ref<PhysicsActorDynamic> CreateActorDynamic(const PhysicsActorDynamic::Descriptor& desc);
 
-		static PhysicsActor* CreateActor(const ActorDescription& desc);
-		static void DestroyActor(PhysicsActor* actor);
+		static Ref<PhysicsBoxShape> CreateBoxShape(const PhysicsBoxShape::Descriptor& desc);
+		static Ref<PhysicsSphereShape> CreateSphereShape(const PhysicsSphereShape::Descriptor& desc);
+		static Ref<PhysicsMeshShape> CreateMeshShape(const PhysicsMeshShape::Descriptor& desc);
 
-		static bool Raycast(const Ray& ray, RayHit& hit);
+		static Ref<PhysicsScene> CreateScene(const PhysicsScene::Descriptor& desc);
 	};
 }

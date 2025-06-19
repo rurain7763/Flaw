@@ -5,6 +5,7 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Physics.h"
+#include "PhysicsSystem.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -179,7 +180,7 @@ namespace flaw {
 	}
 
 	bool Raycast_Physics(const Ray& ray, RayHit& hit) {
-		return Physics::Raycast(ray, hit);
+		return Scripting::GetScene().GetPhysicsSystem().GetPhysicsScene().Raycast(ray, hit);
 	}
 
 	void ScreenToWorld_Camera(UUID uuid, vec2& screenPos, vec3& worldPos) {

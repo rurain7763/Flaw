@@ -110,10 +110,7 @@ namespace flaw {
 			out << YAML::Key << TypeName<flaw::RigidbodyComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "BodyType" << YAML::Value << (int32_t)comp.bodyType;
-			out << YAML::Key << "StaticFriction" << YAML::Value << comp.staticFriction;
-			out << YAML::Key << "DynamicFriction" << YAML::Value << comp.dynamicFriction;
-			out << YAML::Key << "Restitution" << YAML::Value << comp.restitution;
-			out << YAML::Key << "Density" << YAML::Value << comp.density;
+			out << YAML::Key << "Mass" << YAML::Value << comp.mass;
 			out << YAML::EndMap;
 		}
 
@@ -122,6 +119,10 @@ namespace flaw {
 			out << YAML::Key << TypeName<flaw::BoxColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
+			out << YAML::Key << "StaticFriction" << YAML::Value << comp.staticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << comp.dynamicFriction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.restitution;
+			out << YAML::Key << "Offset" << YAML::Value << comp.offset;
 			out << YAML::Key << "Size" << YAML::Value << comp.size;
 			out << YAML::EndMap;
 		}
@@ -131,6 +132,10 @@ namespace flaw {
 			out << YAML::Key << TypeName<flaw::SphereColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
+			out << YAML::Key << "StaticFriction" << YAML::Value << comp.staticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << comp.dynamicFriction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.restitution;
+			out << YAML::Key << "Offset" << YAML::Value << comp.offset;
 			out << YAML::Key << "Radius" << YAML::Value << comp.radius;
 			out << YAML::EndMap;
 		}
@@ -140,6 +145,9 @@ namespace flaw {
 			out << YAML::Key << TypeName<flaw::MeshColliderComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "IsTrigger" << YAML::Value << comp.isTrigger;
+			out << YAML::Key << "StaticFriction" << YAML::Value << comp.staticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << comp.dynamicFriction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.restitution;
 			out << YAML::Key << "Mesh" << YAML::Value << comp.mesh;
 			out << YAML::EndMap;
 		}
@@ -539,10 +547,7 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<RigidbodyComponent>();
 					comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
-					comp.staticFriction = component.second["StaticFriction"].as<float>();
-					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
-					comp.restitution = component.second["Restitution"].as<float>();
-					comp.density = component.second["Density"].as<float>();
+					comp.mass = component.second["Mass"].as<float>();
 				}
 				else if (name == TypeName<BoxColliderComponent>()) {
 					if (!entity.HasComponent<BoxColliderComponent>()) {
@@ -550,6 +555,10 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<BoxColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
+					comp.staticFriction = component.second["StaticFriction"].as<float>();
+					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+					comp.restitution = component.second["Restitution"].as<float>();
+					comp.offset = component.second["Offset"].as<vec3>();
 					comp.size = component.second["Size"].as<vec3>();
 				}
 				else if (name == TypeName<SphereColliderComponent>()) {
@@ -558,6 +567,10 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<SphereColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
+					comp.staticFriction = component.second["StaticFriction"].as<float>();
+					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+					comp.restitution = component.second["Restitution"].as<float>();
+					comp.offset = component.second["Offset"].as<vec3>();
 					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == TypeName<MeshColliderComponent>()) {
@@ -566,6 +579,9 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<MeshColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
+					comp.staticFriction = component.second["StaticFriction"].as<float>();
+					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+					comp.restitution = component.second["Restitution"].as<float>();
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
 				}
 				else if (name == "TextComponent") {
