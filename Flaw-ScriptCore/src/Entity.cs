@@ -2,16 +2,36 @@
 
 namespace Flaw
 {
+    public readonly struct EntityID
+    {
+        public readonly ulong id;
+
+        public EntityID(ulong id)
+        {
+            this.id = id;
+        }
+
+        public static EntityID Invalid => new EntityID(ulong.MaxValue);
+
+        public static implicit operator EntityID(ulong id) => new EntityID(id);
+        public static implicit operator ulong(EntityID entityId) => entityId.id;
+    }
+
     public class Entity
     {
-        internal ulong id;
+        internal EntityID id;
+
+        public string Name
+        {
+            get { return InternalCalls.GetEntityName_Entity(id); }
+        }
 
         public Entity()
         {
-            id = ulong.MaxValue;
+            id = EntityID.Invalid;
         }
 
-        public Entity(ulong id)
+        public Entity(EntityID id)
         {
             this.id = id;
         }
@@ -50,7 +70,7 @@ namespace Flaw
             if (entity.id != ulong.MaxValue)
             {
                 InternalCalls.DestroyEntity(entity.id);
-                entity.id = ulong.MaxValue; // Mark as destroyed
+                entity.id = EntityID.Invalid;
             }
         }
 

@@ -49,6 +49,9 @@ namespace flaw {
 		g_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		g_monoScriptDomain->PrintMonoAssemblyInfo(0);
 		g_monoScriptDomain->AddClass("Flaw", "Entity", 0);
+		g_monoScriptDomain->AddClass("Flaw", "ContactPoint", 0);
+		g_monoScriptDomain->AddClass("Flaw", "CollisionInfo", 0);
+		g_monoScriptDomain->AddClass("Flaw", "TriggerInfo", 0);
 		g_monoScriptDomain->AddAllSubClassesOf("System", "Attribute", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "EntityComponent", 0);
 		g_monoScriptDomain->AddAllSubClassesOf(0, "Flaw", "Asset", 0);
@@ -68,6 +71,10 @@ namespace flaw {
 		RegisterEngineComponent<Rigidbody2DComponent>();
 		RegisterEngineComponent<BoxCollider2DComponent>();
 		RegisterEngineComponent<CircleCollider2DComponent>();
+		RegisterEngineComponent<RigidbodyComponent>();
+		RegisterEngineComponent<BoxColliderComponent>();
+		RegisterEngineComponent<SphereColliderComponent>();
+		RegisterEngineComponent<MeshColliderComponent>();
 		RegisterEngineComponent<CameraComponent>();
 
 		g_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
@@ -104,6 +111,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(FindEntityByName);
 		ADD_INTERNAL_CALL(CreateEntity_Prefab);
 		ADD_INTERNAL_CALL(CreateEntityWithTransform_Prefab);
+		ADD_INTERNAL_CALL(GetEntityName_Entity);
 		ADD_INTERNAL_CALL(GetPosition_Transform);
 		ADD_INTERNAL_CALL(SetPosition_Transform);
 		ADD_INTERNAL_CALL(GetRotation_Transform);

@@ -14,7 +14,13 @@ namespace flaw {
 
 	class Scripting {
 	public:
-		constexpr static const char* EntityClassName = "Flaw.Entity";
+		constexpr static const char* MonoEntityClassName = "Flaw.Entity";
+		constexpr static const char* MonoContactPointClassName = "Flaw.ContactPoint";
+		constexpr static const char* MonoCollisionInfoClassName = "Flaw.CollisionInfo";
+		constexpr static const char* MonoTriggerInfoClassName = "Flaw.TriggerInfo";
+		constexpr static const char* MonoBoxColliderComponentClassName = "Flaw.BoxColliderComponent";
+		constexpr static const char* MonoSphereColliderComponentClassName = "Flaw.SphereColliderComponent";
+		constexpr static const char* MonoMeshColliderComponentClassName = "Flaw.MeshColliderComponent";
 
 		static void Init(Application& app);
 		static void Reload();

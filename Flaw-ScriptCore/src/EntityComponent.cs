@@ -2,7 +2,7 @@
 {
     public class EntityComponent
     {
-        internal ulong entityId;
+        internal EntityID entityId;
 
         public Entity Owner
         {
@@ -11,10 +11,10 @@
 
         public EntityComponent()
         {
-            entityId = ulong.MaxValue;
+            entityId = EntityID.Invalid;
         }
 
-        internal EntityComponent(ulong id)
+        internal EntityComponent(EntityID id)
         {
             entityId = id;
         }

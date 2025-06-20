@@ -199,6 +199,7 @@
     <ClInclude Include="src\Time\Time.h" />
     <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
+    <ClInclude Include="src\Utils\HandlerRegistry.h" />
     <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />

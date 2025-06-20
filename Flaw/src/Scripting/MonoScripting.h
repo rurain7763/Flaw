@@ -15,6 +15,7 @@ extern "C" {
 	typedef struct _MonoType MonoType;
 	typedef struct _MonoClassField MonoClassField;
 	typedef struct _MonoReflectionType MonoReflectionType;
+	typedef struct _MonoArray MonoArray;
 }
 
 namespace flaw {
@@ -142,10 +143,27 @@ namespace flaw {
 		MonoScriptObject(MonoScriptClassField* field);
 		MonoScriptObject(MonoScriptClassField* field, MonoObject* obj);
 
-		void Instantiate();
-		void Instantiate(void** constructorArgs, int32_t argCount);
+		template <typename... Args>
+		void Instantiate(Args&&... args) {
+			if constexpr (sizeof...(args) == 0) {
+				InstantiateDefaultConstructorImpl();
+			}
+			else {
+				void* argsArray[] = { (void*)args... };
+				InstantiateImpl(argsArray, sizeof...(args));
+			}
+		}
 
-		void CallMethod(MonoMethod* method, void** args = nullptr, int32_t argCount = 0) const;
+		template<typename... Args>
+		void CallMethod(MonoMethod* method, Args&&... args) const {
+			if constexpr (sizeof...(args) == 0) {
+				CallMethodImpl(method);
+			}
+			else {
+				void* argsArray[] = { (void*)args... };
+				CallMethodImpl(method, argsArray, sizeof...(args));
+			}
+		}
 
 		MonoScriptObject Clone(uint32_t fieldFlags = MonoFieldFlag_Public) const;
 
@@ -161,9 +179,57 @@ namespace flaw {
 		MonoObject* GetMonoObject() const { return _obj; }
 
 	private:
+		void InstantiateDefaultConstructorImpl();
+		void InstantiateImpl(void** constructorArgs, int32_t argCount);
+
+		void CallMethodImpl(MonoMethod* method, void** args = nullptr, int32_t argCount = 0) const;
+
+	private:
 		MonoDomain* _domain;
 		MonoClass* _clss;
 		MonoObject* _obj;
+	};
+
+	class MonoScriptArray {
+	public:
+		MonoScriptArray() = default;
+		MonoScriptArray(MonoDomain* domain, MonoClass* elementClass, MonoArray* array);
+		MonoScriptArray(MonoDomain* domain, MonoClass* elementClass);
+		MonoScriptArray(MonoScriptClass* elementClass, MonoArray* array);
+		MonoScriptArray(MonoScriptClass* elementClass);
+
+		void Instantiate(int32_t length);
+
+		MonoScriptObject At(int32_t index) const;
+		void SetAt(int32_t index, const MonoScriptObject& value);
+
+		bool IsValid() const { return _array != nullptr; }
+
+		MonoArray* GetMonoArray() const { return _array; }
+
+	private:
+		MonoDomain* _domain;
+		MonoClass* _elementClass;
+		MonoArray* _array;
+	};
+
+	class MonoScriptString {
+	public:
+		MonoScriptString() = default;
+		MonoScriptString(MonoDomain* domain, MonoString* str);
+		MonoScriptString(MonoDomain* domain);
+
+		void Instantiate(const char* str);
+
+		std::string GetString() const;
+
+		bool IsValid() const { return _str != nullptr; }
+
+		MonoString* GetMonoString() const { return _str; }
+
+	private:
+		MonoDomain* _domain;
+		MonoString* _str;
 	};
 
 	enum class MonoSystemType {

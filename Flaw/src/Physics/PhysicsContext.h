@@ -89,33 +89,12 @@ namespace flaw {
 
 		virtual PhysicsBodyType GetBodyType() const = 0;
 
-		void SetOnContact(const std::function<void(PhysicsActor*, PhysicsShape*, ContactPoint&)>& callback) {
-			_onContact = callback;
-		}
-
-		void SetOnContactExit(const std::function<void(PhysicsActor*, PhysicsShape*)>& callback) {
-			_onContactExit = callback;
-		}
-
-		void CallOnContact(PhysicsActor* other, PhysicsShape* shape, ContactPoint& contactPoint) {
-			if (_onContact) {
-				_onContact(this, shape, contactPoint);
-			}
-		}
-
-		void CallOnContactExit(PhysicsActor* other, PhysicsShape* shape) {
-			if (_onContactExit) {
-				_onContactExit(this, shape);
-			}
+		void* GetUserData() const {
+			return _userData;
 		}
 
 	protected:
 		void* _userData;
-
-		std::function<void(PhysicsActor*, PhysicsShape*, ContactPoint&)> _onContact;
-		std::function<void(PhysicsActor*, PhysicsShape*)> _onContactExit;
-		std::function<void(PhysicsActor*)> _onTrigger;
-		std::function<void(PhysicsActor*)> _onTriggerExit;
 	};
 
 	class PhysicsActorStatic : public PhysicsActor {
@@ -156,6 +135,24 @@ namespace flaw {
 		}
 	};
 
+	struct PhysicsContact {
+		PhysicsActor* actor; // The actor that was involved in the contact
+		PhysicsShape* shape; // The shape that was involved in the contact
+
+		PhysicsActor* otherActor; // The other actor involved in the contact
+		PhysicsShape* otherShape; // The shape of the other actor involved in the contact
+
+		std::vector<ContactPoint> contactPoints; // The contact points of the contact
+	};
+
+	struct PhysicsTrigger {
+		PhysicsActor* actor; // The actor that was involved in the trigger
+		PhysicsShape* shape; // The shape that was involved in the trigger
+
+		PhysicsActor* otherActor; // The other actor involved in the trigger
+		PhysicsShape* otherShape; // The shape of the other actor involved in the trigger
+	};
+
 	class PhysicsScene {
 	public:
 		struct Descriptor {
@@ -166,8 +163,40 @@ namespace flaw {
 
 		virtual void JoinActor(Ref<PhysicsActor> actor) = 0;
 		virtual void LeaveActor(Ref<PhysicsActor> actor) = 0;
+		
 		virtual void Update(float deltaTime, uint32_t steps = 1) = 0;
+
+		virtual void SetGravity(const vec3& gravity) = 0;
+
 		virtual bool Raycast(const Ray& ray, RayHit& hit) = 0;
+
+		void SetOnContactEnter(const std::function<void(PhysicsContact&)>& callback) {
+			_onContactEnter = callback;
+		}
+
+		void SetOnContactUpdate(const std::function<void(PhysicsContact&)>& callback) {
+			_onContactUpdate = callback;
+		}
+
+		void SetOnContactExit(const std::function<void(PhysicsContact&)>& callback) {
+			_onContactExit = callback;
+		}
+
+		void SetOnTriggerEnter(const std::function<void(PhysicsTrigger&)>& callback) {
+			_onTriggerEnter = callback;
+		}
+
+		void SetOnTriggerExit(const std::function<void(PhysicsTrigger&)>& callback) {
+			_onTriggerExit = callback;
+		}
+
+	protected:
+		std::function<void(PhysicsContact&)> _onContactEnter;
+		std::function<void(PhysicsContact&)> _onContactUpdate;
+		std::function<void(PhysicsContact&)> _onContactExit;
+
+		std::function<void(PhysicsTrigger&)> _onTriggerEnter;
+		std::function<void(PhysicsTrigger&)> _onTriggerExit;
 	};
 
 	class PhysicsContext {

@@ -364,6 +364,7 @@
     <ClInclude Include="src\Physics\PhysicsTypes.h" />
     <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
     <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
+    <ClInclude Include="src\Utils\HandlerRegistry.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">

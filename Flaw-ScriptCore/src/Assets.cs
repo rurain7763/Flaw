@@ -2,16 +2,31 @@
 
 namespace Flaw
 {
+    public readonly struct AssetHandle
+    {
+        public readonly ulong handle;
+
+        public AssetHandle(ulong handle)
+        {
+            this.handle = handle;
+        }
+
+        public static AssetHandle Invalid => new AssetHandle(ulong.MaxValue);
+
+        public static implicit operator AssetHandle(ulong handle) => new AssetHandle(handle);
+        public static implicit operator ulong(AssetHandle assetHandle) => assetHandle.handle;
+    }
+
     public class Asset
     {
-        internal ulong handle;
+        internal AssetHandle handle;
 
         internal Asset()
         {
-            handle = ulong.MaxValue;
+            handle = AssetHandle.Invalid;
         }
 
-        internal Asset(ulong handle)
+        internal Asset(AssetHandle handle)
         {
             this.handle = handle;
         }

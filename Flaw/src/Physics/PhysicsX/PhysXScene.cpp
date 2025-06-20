@@ -6,6 +6,8 @@
 #include "PhysXActors.h"
 
 namespace flaw {
+	constexpr uint8_t MaxContactCount = 32;
+
 	void PhysXEventCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) {
 		auto actor0 = pairHeader.actors[0];
 		auto actor1 = pairHeader.actors[1];
@@ -30,19 +32,32 @@ namespace flaw {
 				continue;
 			}
 
-			if (pair.events & PxPairFlag::eNOTIFY_TOUCH_FOUND) {
-				std::vector<PxContactPairPoint> contactPoints(pair.contactCount);
-				pair.extractContacts(contactPoints.data(), pair.contactCount);
+			PhysicsContact contact;
+			contact.actor = physXActor0;
+			contact.shape = shape0;
+			contact.otherActor = physXActor1;
+			contact.otherShape = shape1;
 
-				for (const auto& contact : contactPoints) {
-					ContactPoint contactPoint = PxContactPointToContactPoint(contact);
-					physXActor0->CallOnContact(physXActor1, shape1, contactPoint);
-					physXActor1->CallOnContact(physXActor0, shape0, contactPoint);
-				}
+			if (pair.events & PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				PxContactPairPoint contactPoints[MaxContactCount];
+				uint32_t contactCount =pair.extractContacts(contactPoints, MaxContactCount);
+
+				contact.contactPoints.reserve(contactCount);
+				std::transform(contactPoints, contactPoints + contactCount, std::back_inserter(contact.contactPoints), PxContactPointToContactPoint);
+				
+				_scene._onContactEnter(contact);
+			}
+			else if (pair.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS) {
+				PxContactPairPoint contactPoints[MaxContactCount];
+				uint32_t contactCount = pair.extractContacts(contactPoints, MaxContactCount);
+
+				contact.contactPoints.reserve(contactCount);
+				std::transform(contactPoints, contactPoints + contactCount, std::back_inserter(contact.contactPoints), PxContactPointToContactPoint);
+
+				_scene._onContactUpdate(contact);
 			}
 			else if (pair.events & PxPairFlag::eNOTIFY_TOUCH_LOST) {
-				physXActor0->CallOnContactExit(physXActor1, shape1);
-				physXActor1->CallOnContactExit(physXActor0, shape0);
+				_scene._onContactExit(contact);
 			}
 		}
 	}
@@ -63,12 +78,27 @@ namespace flaw {
 				continue;
 			}
 
-			// TODO:
+			PhysicsShape* shape0 = static_cast<PhysicsShape*>(pairs[i].triggerShape->userData);
+			PhysicsShape* shape1 = static_cast<PhysicsShape*>(pairs[i].otherShape->userData);
+
+			PhysicsTrigger trigger;
+			trigger.actor = physXActor0;
+			trigger.shape = shape0;
+			trigger.otherActor = physXActor1;
+			trigger.otherShape = shape1;
+
+			if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				_scene._onTriggerEnter(trigger);
+			}
+			else if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_LOST) {
+				_scene._onTriggerExit(trigger);
+			}
 		}
 	}
 
 	PhysXScene::PhysXScene(PhysXContext& context, const Descriptor& desc)
 		: _context(context)
+		, _eventCallback(*this)
 	{
 		PxSceneDesc sceneDesc(_context.GetPhysics().getTolerancesScale());
 		sceneDesc.gravity = Vec3ToPxVec3(desc.gravity);
@@ -88,7 +118,7 @@ namespace flaw {
 		PxFilterObjectAttributes attributes1, PxFilterData filterData1,
 		PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize) 
 	{
-		pairFlags |= PxPairFlag::eCONTACT_DEFAULT | PxPairFlag::eTRIGGER_DEFAULT | PxPairFlag::eNOTIFY_CONTACT_POINTS;
+		pairFlags |= PxPairFlag::eCONTACT_DEFAULT | PxPairFlag::eTRIGGER_DEFAULT | PxPairFlag::eNOTIFY_CONTACT_POINTS | PxPairFlag::eNOTIFY_TOUCH_PERSISTS;
 
 		return PxFilterFlag::eDEFAULT;
 	}
@@ -123,6 +153,10 @@ namespace flaw {
 			Log::Error("Unsupported actor type for PhysX scene.");
 			return;
 		}
+	}
+
+	void PhysXScene::SetGravity(const vec3& gravity) {
+		_scene->setGravity(Vec3ToPxVec3(gravity));
 	}
 
 	void PhysXScene::Update(float deltaTime, uint32_t steps) {

@@ -291,7 +291,7 @@ namespace flaw {
 
 						newFieldInfo.SetValue(uuid);
 					}
-					else if (fieldClass == Scripting::GetMonoClass(Scripting::EntityClassName)) {
+					else if (fieldClass == Scripting::GetMonoClass(Scripting::MonoEntityClassName)) {
 						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
 						auto idField = fieldClass.GetFieldRecursive("id");
 						UUID uuid;

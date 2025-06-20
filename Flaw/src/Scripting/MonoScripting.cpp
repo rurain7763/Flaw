@@ -199,7 +199,7 @@ namespace flaw {
 	{
 	}
 
-	void MonoScriptObject::Instantiate() {
+	void MonoScriptObject::InstantiateDefaultConstructorImpl() {
 		_obj = mono_object_new(_domain, _clss);
 		if (!_obj) {
 			throw std::runtime_error("mono_object_new failed");
@@ -207,7 +207,7 @@ namespace flaw {
 		mono_runtime_object_init(_obj);
 	}
 
-	void MonoScriptObject::Instantiate(void** constructorArgs, int32_t argCount) {
+	void MonoScriptObject::InstantiateImpl(void** constructorArgs, int32_t argCount) {
 		MonoClass* clss = _clss;
 		MonoMethod* ctor = mono_class_get_method_from_name(clss, ".ctor", argCount);
 
@@ -227,7 +227,6 @@ namespace flaw {
 		if (!_obj) {
 			throw std::runtime_error("mono_object_new failed");
 		}
-		mono_runtime_object_init(_obj);
 
 		MonoObject* exception = nullptr;
 		mono_runtime_invoke(ctor, _obj, constructorArgs, &exception);
@@ -236,7 +235,7 @@ namespace flaw {
 		}
 	}
 
-	void MonoScriptObject::CallMethod(MonoMethod* method, void** args, int32_t argCount) const {
+	void MonoScriptObject::CallMethodImpl(MonoMethod* method, void** args, int32_t argCount) const {
 		MonoObject* exception = nullptr;
 		MonoObject* result = mono_runtime_invoke(method, _obj, args, &exception);
 
@@ -391,6 +390,99 @@ namespace flaw {
 			void* data = mono_object_unbox(_obj);
 			std::memcpy(data, valueNode->valueData.data(), valueNode->valueData.size());
 		}
+	}
+
+	MonoScriptArray::MonoScriptArray(MonoDomain* domain, MonoClass* elementClass, MonoArray* array)
+		: _domain(domain)
+		, _elementClass(elementClass)
+		, _array(array)
+	{
+	}
+
+	MonoScriptArray::MonoScriptArray(MonoDomain* domain, MonoClass* elementClass)
+		: _domain(domain)
+		, _elementClass(elementClass)
+		, _array(nullptr)
+	{
+	}
+
+	MonoScriptArray::MonoScriptArray(MonoScriptClass* elementClass, MonoArray* array)
+		: _domain(elementClass->GetMonoDomain())
+		, _elementClass(elementClass->GetMonoClass())
+		, _array(array)
+	{
+	}
+
+	MonoScriptArray::MonoScriptArray(MonoScriptClass* elementClass)
+		: _domain(elementClass->GetMonoDomain())
+		, _elementClass(elementClass->GetMonoClass())
+		, _array(nullptr)
+	{
+	}
+
+	void MonoScriptArray::Instantiate(int32_t length) {
+		_array = mono_array_new(_domain, _elementClass, length);
+		if (!_array) {
+			throw std::runtime_error("mono_array_new failed");
+		}
+	}
+
+	MonoScriptObject MonoScriptArray::At(int32_t index) const {
+		if (!_array) {
+			throw std::runtime_error("Array is not initialized");
+		}
+
+		if (index < 0 || index >= mono_array_length(_array)) {
+			throw std::out_of_range("Index out of bounds");
+		}
+
+		MonoObject* obj = mono_array_get(_array, MonoObject*, index);
+		return MonoScriptObject(_domain, _elementClass, obj);
+	}
+
+	void MonoScriptArray::SetAt(int32_t index, const MonoScriptObject& value) {
+		if (!_array) {
+			throw std::runtime_error("Array is not initialized");
+		}
+
+		if (index < 0 || index >= mono_array_length(_array)) {
+			throw std::out_of_range("Index out of bounds");
+		}
+
+		if (value.GetMonoClass() != _elementClass) {
+			throw std::runtime_error("Value class does not match array element class");
+		}
+
+		mono_array_set(_array, MonoObject*, index, value.GetMonoObject());
+	}
+
+	MonoScriptString::MonoScriptString(MonoDomain* domain, MonoString* str)
+		: _domain(domain)
+		, _str(str)
+	{
+	}
+
+	MonoScriptString::MonoScriptString(MonoDomain* domain)
+		: _domain(domain)
+		, _str(nullptr)
+	{
+	}
+
+	void MonoScriptString::Instantiate(const char* str) {
+		_str = mono_string_new(_domain, str);
+		if (!_str) {
+			throw std::runtime_error("mono_string_new failed");
+		}
+	}
+
+	std::string MonoScriptString::GetString() const {
+		if (!_str) {
+			throw std::runtime_error("MonoString is not initialized");
+		}
+		const char* strC = mono_string_to_utf8(_str);
+		std::string result(strC);
+		mono_free((void*)strC);
+		return result;
 	}
 
 	MonoScriptDomain::MonoScriptDomain() {

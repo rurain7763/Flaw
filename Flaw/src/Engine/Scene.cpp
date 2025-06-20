@@ -273,8 +273,8 @@ namespace flaw {
 		UpdateScript();
 		UpdatePhysics2D();
 		_physicsSystem->Update();
-		UpdateTransform();
 		UpdateSound();
+		UpdateTransform();
 		_renderSystem->Update();
 
 		_renderSystem->Render();

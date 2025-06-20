@@ -4,27 +4,43 @@
 #include "ECS/ECS.h"
 #include "Physics.h"
 #include "Components.h"
+#include "Utils/HandlerRegistry.h"
 
 namespace flaw {
-	class Scene;
+	using ColliderKey = std::pair<entt::entity, PhysicsShapeType>;
 
 	enum PhysicsEntityEventType {
 		BodyTypeChanged = 1 << 0,
 		NeedUpdateMassAndInertia = 1 << 1,
 	};
 
-	class PhysicsEntity {
-	public:
+	struct PhysicsEntity {
+		Ref<PhysicsActor> actor;
+		std::array<Ref<PhysicsShape>, (uint32_t)PhysicsShapeType::Count> shapes;
 
-	private:
-		friend class PhysicsSystem;
-
-		Ref<PhysicsActor> _actor;
-		std::array<Ref<PhysicsShape>, (uint32_t)PhysicsShapeType::Count> _shapes;
-
-		uint32_t _events = 0;
+		uint32_t events = 0;
 	};
-	
+}
+
+namespace std {
+	template<>
+	struct hash<flaw::ColliderKey> {
+		std::size_t operator()(const flaw::ColliderKey& key) const {
+			return std::hash<entt::entity>()(key.first) ^ std::hash<uint32_t>()((uint32_t)key.second);
+		}
+	};
+
+	template<>
+	struct hash<pair<flaw::ColliderKey, flaw::ColliderKey>> {
+		std::size_t operator()(const std::pair<flaw::ColliderKey, flaw::ColliderKey>& pair) const {
+			return std::hash<flaw::ColliderKey>()(pair.first) ^ std::hash<flaw::ColliderKey>()(pair.second);
+		}
+	};
+}
+
+namespace flaw {
+	class Scene;
+
 	class PhysicsSystem {
 	public:
 		PhysicsSystem(Scene& scene);
@@ -32,6 +48,20 @@ namespace flaw {
 		void Start();
 		void Update();
 		void End();
+
+		void RegisterOnCollisionEnterHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler);
+		void RegisterOnCollisionStayHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler);
+		void RegisterOnCollisionExitHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler);
+		void RegisterOnTriggerEnterHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler);
+		void RegisterOnTriggerStayHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler);
+		void RegisterOnTriggerExitHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler);
+
+		void UnregisterOnCollisionEnterHandler(HandlerId id);
+		void UnregisterOnCollisionStayHandler(HandlerId id);
+		void UnregisterOnCollisionExitHandler(HandlerId id);
+		void UnregisterOnTriggerEnterHandler(HandlerId id);
+		void UnregisterOnTriggerStayHandler(HandlerId id);
+		void UnregisterOnTriggerExitHandler(HandlerId id);
 
 		PhysicsScene& GetPhysicsScene() const { return *_physicsScene; }
 
@@ -87,12 +117,12 @@ namespace flaw {
 				return;
 			}
 
-			pEntt._actor->AttatchShape(shape);
-			pEntt._shapes[(uint32_t)shape->GetShapeType()] = shape;
-			pEntt._events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+			pEntt.actor->AttatchShape(shape);
+			pEntt.shapes[(uint32_t)shape->GetShapeType()] = shape;
+			pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
 
-			if (!pEntt._actor->IsJoined()) {
-				_physicsScene->JoinActor(pEntt._actor);
+			if (!pEntt.actor->IsJoined()) {
+				_physicsScene->JoinActor(pEntt.actor);
 			}
 		}
 
@@ -109,13 +139,13 @@ namespace flaw {
 			Ref<PhysicsShape> shape;
 
 			if constexpr (std::is_same_v<T, BoxColliderComponent>) {
-				shape = pEntt._shapes[(uint32_t)PhysicsShapeType::Box];
+				shape = pEntt.shapes[(uint32_t)PhysicsShapeType::Box];
 			}
 			else if constexpr (std::is_same_v<T, SphereColliderComponent>) {
-				shape = pEntt._shapes[(uint32_t)PhysicsShapeType::Sphere];
+				shape = pEntt.shapes[(uint32_t)PhysicsShapeType::Sphere];
 			}
 			else if constexpr (std::is_same_v<T, MeshColliderComponent>) {
-				shape = pEntt._shapes[(uint32_t)PhysicsShapeType::Mesh];
+				shape = pEntt.shapes[(uint32_t)PhysicsShapeType::Mesh];
 			}
 			else {
 				static_assert(false, "Unsupported collider component type");
@@ -125,16 +155,29 @@ namespace flaw {
 				return;
 			}
 
-			pEntt._actor->DetachShape(shape);
-			pEntt._shapes[(uint32_t)shape->GetShapeType()] = nullptr;
-			pEntt._events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+			pEntt.actor->DetachShape(shape);
+			pEntt.shapes[(uint32_t)shape->GetShapeType()] = nullptr;
+			pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
 
-			if (pEntt._actor->HasShapes()) {
-				_physicsScene->LeaveActor(pEntt._actor);
+			if (!pEntt.actor->HasShapes()) {
+				_physicsScene->LeaveActor(pEntt.actor);
 			}
 		}
 
-		Ref<PhysicsActor> CreatePhysicsActor(const TransformComponent& transComp, const RigidbodyComponent& rigidBodyComp);
+		void FillCollisionInfo(PhysicsContact& contact, CollisionInfo& collisionInfo) const;
+
+		void HandleContactEnter(PhysicsContact& contact);
+		void HandleContactUpdate(PhysicsContact& contact);
+		void HandleContactStay();
+		void HandleContactExit(PhysicsContact& contact);
+
+		void FillTriggerInfo(PhysicsTrigger& trigger, TriggerInfo& triggerInfo) const;
+
+		void HandleTriggerEnter(PhysicsTrigger& trigger);
+		void HandleTriggerStay();
+		void HandleTriggerExit(PhysicsTrigger& trigger);
+
+		Ref<PhysicsActor> CreatePhysicsActor(entt::entity entity, const TransformComponent& transComp, const RigidbodyComponent& rigidBodyComp);
 
 	private:
 		Scene& _scene;
@@ -142,5 +185,15 @@ namespace flaw {
 		Ref<PhysicsScene> _physicsScene;
 		std::unordered_map<entt::entity, PhysicsEntity> _physicsEntities;
 		std::vector<entt::entity> _entitiesToDestroy;
+
+		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, CollisionInfo>> _collidedEntities;
+		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, TriggerInfo>> _triggeredEntities;
+
+		HandlerRegistry<void, const CollisionInfo&> _onCollisionEnterHandlers;
+		HandlerRegistry<void, const CollisionInfo&> _onCollisionStayHandlers;
+		HandlerRegistry<void, const CollisionInfo&> _onCollisionExitHandlers;
+		HandlerRegistry<void, const TriggerInfo&> _onTriggerEnterHandlers;
+		HandlerRegistry<void, const TriggerInfo&> _onTriggerStayHandlers;
+		HandlerRegistry<void, const TriggerInfo&> _onTriggerExitHandlers;
 	};
 }

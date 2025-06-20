@@ -55,6 +55,14 @@ namespace flaw {
 		return entity.GetUUID();
 	}
 
+	MonoString* GetEntityName_Entity(UUID uuid) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto& comp = entity.GetComponent<EntityComponent>();
+		return mono_string_new(Scripting::GetMonoScriptDomain().GetMonoDomain(), comp.name.c_str());
+	}
+
 	void GetPosition_Transform(UUID uuid, vec3& position) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");

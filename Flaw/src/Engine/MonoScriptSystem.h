@@ -5,6 +5,7 @@
 #include "Utils/UUID.h"
 #include "Entity.h"
 #include "Assets.h"
+#include "Physics.h"
 
 namespace flaw {
 	class Application;
@@ -40,6 +41,9 @@ namespace flaw {
 		void CallOnStart() const;
 		void CallOnUpdate() const;
 		void CallOnDestroy() const;
+		void CallOnCollisionEnter(MonoScriptObject& collisionInfo) const;
+		void CallOnCollisionStay(MonoScriptObject& collisionInfo) const;
+		void CallOnCollisionExit(MonoScriptObject& collisionInfo) const;
 
 		MonoScriptObject& GetScriptObject() override { return _scriptObject; }
 
@@ -105,11 +109,10 @@ namespace flaw {
 		void End();
 
 		bool IsMonoEntityExists(const UUID& uuid) const;
-		Ref<MonoEntity> GetMonoEntity(const UUID& uuid);
+		Ref<MonoEntity> GetMonoEntity(const UUID& uuid) const;
 
 		Scene& GetScene() const { return _scene; }
 		float GetTimeSinceStart() const { return _timeSinceStart; }
-		const std::unordered_map<UUID, Ref<MonoEntity>>& GetMonoEntities() const { return _monoEntities; }
 
 	private:
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
@@ -148,6 +151,14 @@ namespace flaw {
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
 		void SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp);
+
+		const char* GetMonoColliderClassName(PhysicsShapeType shapeType) const;
+		MonoScriptArray CreateContactPointArray(const std::vector<ContactPoint>& contactPoints) const;
+		MonoScriptObject CreateCollisionInfoObject(MonoScriptObject& colliderA, MonoScriptObject& colliderB, MonoArray* contactArray) const;
+
+		void HandleOnCollisionEnter(const CollisionInfo& collisionInfo) const;
+		void HandleOnCollisionStay(const CollisionInfo& collisionInfo) const;
+		void HandleOnCollisionExit(const CollisionInfo& collisionInfo) const;
 
 	private:
 		friend class Scripting;
