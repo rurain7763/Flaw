@@ -44,6 +44,7 @@ namespace flaw {
 		void UpdateScript();
 		void UpdatePhysics2D();
 		void UpdateTransform();
+		void UpdateTransformImmediate(entt::entity entity);
 
 		void ToFile(const char* filepath);
 		void FromFile(const char* filepath);

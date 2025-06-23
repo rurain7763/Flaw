@@ -707,26 +707,34 @@ namespace flaw {
 
 		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap(entity);
-			
+
 			DirectionalLightUniforms uniforms = {};
-			uniforms.view0 = shadowMap.lightVPMatrices[0].view;
-			uniforms.projection0 = shadowMap.lightVPMatrices[0].projection;
-			uniforms.cascadeDist0 = shadowMap.cascadeDistances[0];
 
-			uniforms.view1 = shadowMap.lightVPMatrices[1].view;
-			uniforms.projection1 = shadowMap.lightVPMatrices[1].projection;
-			uniforms.cascadeDist1 = shadowMap.cascadeDistances[1];
+			struct CascadeInfo {
+				mat4& view;
+				mat4& projection;
+				float& cascadeDist;
+			};
 
-			uniforms.view2 = shadowMap.lightVPMatrices[2].view;
-			uniforms.projection2 = shadowMap.lightVPMatrices[2].projection;
-			uniforms.cascadeDist2 = shadowMap.cascadeDistances[2];
+			CascadeInfo cascadeInfos[] = {
+				{ uniforms.view0, uniforms.projection0, uniforms.cascadeDist0 },
+				{ uniforms.view1, uniforms.projection1, uniforms.cascadeDist1 },
+				{ uniforms.view2, uniforms.projection2, uniforms.cascadeDist2 }
+			};
+
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
+				auto& cascadeInfo = cascadeInfos[i];
+				cascadeInfo.view = shadowMap.lightVPMatrices[i].view;
+				cascadeInfo.projection = shadowMap.lightVPMatrices[i].projection;
+				cascadeInfo.cascadeDist = shadowMap.cascadeDistances[i];
+			}
 
 			uniforms.lightColor = vec4(directionalLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightIntensity = directionalLightComp.intensity;
 			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
-			for (int32_t i = 0; i < 3; ++i) {
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
 				cmdQueue.SetTexture(shadowMap.renderPasses[i]->GetRenderTargetTex(0), 4 + i);
 			}
 

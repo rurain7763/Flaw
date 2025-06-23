@@ -130,6 +130,10 @@ namespace flaw {
 
 		virtual bool SetMass(float mass) = 0;
 
+		virtual void SetKinematicState(bool isKinematic) = 0;
+		virtual void SetKinematicTarget(const vec3& targetPosition, const vec3& targetRotation) = 0;
+		virtual bool IsKinematic() const = 0;
+
 		PhysicsBodyType GetBodyType() const override {
 			return PhysicsBodyType::Dynamic;
 		}

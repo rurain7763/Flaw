@@ -272,7 +272,7 @@ namespace flaw {
 			needUpdate |= boxShape->SetSize(boxColliderComp.size * transComp.scale);
 
 			if (needUpdate) {
-				pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+				pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
 			}
 		}
 
@@ -290,7 +290,7 @@ namespace flaw {
 			needUpdate |= sphereShape->SetRadius(sphereColliderComp.radius * glm::max(transComp.scale.x, transComp.scale.y, transComp.scale.z));
 		
 			if (needUpdate) {
-				pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+				pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
 			}
 		}
 
@@ -303,48 +303,16 @@ namespace flaw {
 
 			auto& pEntt = it->second;
 
-			if (rigidBodyComp.bodyType != pEntt.actor->GetBodyType()) {
-				pEntt.events |= PhysicsEntityEventType::BodyTypeChanged;
+			UpdatePhysicsEntity(pEntt, transformComp, rigidBodyComp);
+
+			if (rigidBodyComp.bodyType == PhysicsBodyType::Static) {
+				UpdatePhysicsEntityAsStatic(pEntt, transformComp, rigidBodyComp);
+			}
+			else if (rigidBodyComp.bodyType == PhysicsBodyType::Dynamic) {
+				UpdatePhysicsEntityAsDynamic(pEntt, transformComp, rigidBodyComp);
 			}
 
-			if (rigidBodyComp.bodyType == PhysicsBodyType::Dynamic) {
-				auto dynamicActor = std::dynamic_pointer_cast<PhysicsActorDynamic>(pEntt.actor);
-				if (dynamicActor && dynamicActor->SetMass(rigidBodyComp.mass)) {
-					pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
-				}
-			}
-
-			// NOTE: handle events
-			if (pEntt.events & PhysicsEntityEventType::BodyTypeChanged) {
-				if (pEntt.actor->IsJoined()) {
-					_physicsScene->LeaveActor(pEntt.actor);
-				}
-				
-				auto newActor = CreatePhysicsActor(entity, transformComp, rigidBodyComp);
-				for (auto& shape : pEntt.shapes) {
-					if (shape) {
-						newActor->AttatchShape(shape);
-					}
-				}
-
-				pEntt.actor = newActor;
-				
-				if (pEntt.actor->HasShapes()) {
-					_physicsScene->JoinActor(pEntt.actor);
-				}
-			}
-
-			if (pEntt.events & PhysicsEntityEventType::NeedUpdateMassAndInertia) {
-				auto dynamicActor = std::dynamic_pointer_cast<PhysicsActorDynamic>(pEntt.actor);
-				if (dynamicActor) {
-					dynamicActor->UpdateMassAndInertia();
-				}
-			}
-
-			pEntt.events = 0;
-
-			pEntt.actor->GetTransform(transformComp.position, transformComp.rotation);
-			transformComp.dirty = true;
+			pEntt.signals = 0;
 		}
 
 		_physicsScene->Update(Time::DeltaTime());
@@ -355,6 +323,76 @@ namespace flaw {
 			_physicsEntities.erase(entity);
 		}
 		_entitiesToDestroy.clear();
+	}
+
+	void PhysicsSystem::UpdatePhysicsEntity(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp) {
+		if (rigidBodyComp.bodyType != pEntt.actor->GetBodyType()) {
+			if (pEntt.actor->IsJoined()) {
+				_physicsScene->LeaveActor(pEntt.actor);
+			}
+
+			entt::entity entity = (entt::entity)(uint32_t)pEntt.actor->GetUserData();
+
+			auto newActor = CreatePhysicsActor(entity, transComp, rigidBodyComp);
+			for (auto& shape : pEntt.shapes) {
+				if (shape) {
+					newActor->AttatchShape(shape);
+				}
+			}
+
+			pEntt.actor = newActor;
+
+			if (pEntt.actor->HasShapes()) {
+				_physicsScene->JoinActor(pEntt.actor);
+			}
+		}
+	}
+
+	void PhysicsSystem::UpdatePhysicsEntityAsStatic(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp) {
+		auto staticActor = std::dynamic_pointer_cast<PhysicsActorStatic>(pEntt.actor);
+		Entity entity((entt::entity)(uint32_t)staticActor->GetUserData(), &_scene);
+
+		_scene.UpdateTransformImmediate(entity);
+
+		vec3 position, rotation;
+		staticActor->GetTransform(position, rotation);
+
+		mat4 parnetWorldMatrix = entity.HasParent() ? entity.GetParent().GetComponent<TransformComponent>().worldTransform : mat4(1.0);
+		mat4 localMatrix = glm::inverse(parnetWorldMatrix) * ModelMatrix(position, rotation, transComp.scale);
+		ExtractModelMatrix(localMatrix, transComp.position, transComp.rotation, transComp.scale);
+		transComp.dirty = true;
+	}
+
+	void PhysicsSystem::UpdatePhysicsEntityAsDynamic(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp) {
+		auto dynamicActor = std::dynamic_pointer_cast<PhysicsActorDynamic>(pEntt.actor);
+		Entity entity((entt::entity)(uint32_t)dynamicActor->GetUserData(), &_scene);
+
+		if (rigidBodyComp.isKinematic != dynamicActor->IsKinematic()) {
+			dynamicActor->SetKinematicState(rigidBodyComp.isKinematic);
+		}
+
+		if (dynamicActor && dynamicActor->SetMass(rigidBodyComp.mass)) {
+			pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
+		}
+
+		if (pEntt.signals & PhysicsEntitySignal::NeedUpdateMassAndInertia) {
+			dynamicActor->UpdateMassAndInertia();
+		}
+
+		_scene.UpdateTransformImmediate(entity);
+
+		if (dynamicActor->IsKinematic()) {
+			dynamicActor->SetKinematicTarget(transComp.GetWorldPosition(), transComp.GetWorldRotation());
+		}
+		else {
+			vec3 position, rotation;
+			dynamicActor->GetTransform(position, rotation);
+
+			mat4 parnetWorldMatrix = entity.HasParent() ? entity.GetParent().GetComponent<TransformComponent>().worldTransform : mat4(1.0);
+			mat4 localMatrix = glm::inverse(parnetWorldMatrix) * ModelMatrix(position, rotation, transComp.scale);
+			ExtractModelMatrix(localMatrix, transComp.position, transComp.rotation, transComp.scale);
+			transComp.dirty = true;
+		}
 	}
 
 	void PhysicsSystem::End() {

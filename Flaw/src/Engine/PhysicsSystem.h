@@ -9,16 +9,15 @@
 namespace flaw {
 	using ColliderKey = std::pair<entt::entity, PhysicsShapeType>;
 
-	enum PhysicsEntityEventType {
-		BodyTypeChanged = 1 << 0,
-		NeedUpdateMassAndInertia = 1 << 1,
+	enum PhysicsEntitySignal {
+		NeedUpdateMassAndInertia = 1 << 0,
 	};
 
 	struct PhysicsEntity {
 		Ref<PhysicsActor> actor;
 		std::array<Ref<PhysicsShape>, (uint32_t)PhysicsShapeType::Count> shapes;
 
-		uint32_t events = 0;
+		uint32_t signals = 0;
 	};
 }
 
@@ -119,7 +118,7 @@ namespace flaw {
 
 			pEntt.actor->AttatchShape(shape);
 			pEntt.shapes[(uint32_t)shape->GetShapeType()] = shape;
-			pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+			pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
 
 			if (!pEntt.actor->IsJoined()) {
 				_physicsScene->JoinActor(pEntt.actor);
@@ -157,7 +156,7 @@ namespace flaw {
 
 			pEntt.actor->DetachShape(shape);
 			pEntt.shapes[(uint32_t)shape->GetShapeType()] = nullptr;
-			pEntt.events |= PhysicsEntityEventType::NeedUpdateMassAndInertia;
+			pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
 
 			if (!pEntt.actor->HasShapes()) {
 				_physicsScene->LeaveActor(pEntt.actor);
@@ -178,6 +177,10 @@ namespace flaw {
 		void HandleTriggerExit(PhysicsTrigger& trigger);
 
 		Ref<PhysicsActor> CreatePhysicsActor(entt::entity entity, const TransformComponent& transComp, const RigidbodyComponent& rigidBodyComp);
+
+		void UpdatePhysicsEntity(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp);
+		void UpdatePhysicsEntityAsStatic(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp);
+		void UpdatePhysicsEntityAsDynamic(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp);
 
 	private:
 		Scene& _scene;

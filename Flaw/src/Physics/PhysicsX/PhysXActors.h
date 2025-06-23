@@ -47,7 +47,12 @@ namespace flaw {
 		void UpdateMassAndInertia() override;
 
 		void GetTransform(vec3& position, vec3& rotation) const override;
+
 		bool SetMass(float mass) override;
+
+		void SetKinematicState(bool isKinematic) override;
+		void SetKinematicTarget(const vec3& targetPosition, const vec3& targetRotation) override;
+		bool IsKinematic() const override;
 
 		PxRigidDynamic* GetPxRigidBody() const { return _rigidBody; }
 

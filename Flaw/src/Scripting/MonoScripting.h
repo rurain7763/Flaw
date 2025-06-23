@@ -137,11 +137,9 @@ namespace flaw {
 	public:
 		MonoScriptObject() = default;
 		MonoScriptObject(MonoDomain* domain, MonoClass* clss);
-		MonoScriptObject(MonoDomain* domain, MonoClass* clss, MonoObject* obj);
 		MonoScriptObject(MonoScriptClass* clss);
-		MonoScriptObject(MonoScriptClass* clss, MonoObject* obj);
 		MonoScriptObject(MonoScriptClassField* field);
-		MonoScriptObject(MonoScriptClassField* field, MonoObject* obj);
+		~MonoScriptObject();
 
 		template <typename... Args>
 		void Instantiate(Args&&... args) {
@@ -188,6 +186,8 @@ namespace flaw {
 		MonoDomain* _domain;
 		MonoClass* _clss;
 		MonoObject* _obj;
+
+		uint32_t _gcHandle;
 	};
 
 	class MonoScriptArray {

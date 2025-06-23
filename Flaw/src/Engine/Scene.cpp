@@ -389,6 +389,16 @@ namespace flaw {
 		}
 	}
 
+	void Scene::UpdateTransformImmediate(entt::entity entity) {
+		Entity entt(entity, this);
+		
+		while (entt.HasChild()) {
+			entt = entt.GetParent();
+		}
+
+		CalculateWorldTransformRecursive(mat4(1.0f), entt, true);
+	}
+
 	void Scene::ToFile(const char* filepath) {
 		std::ofstream file(filepath);
 		YAML::Emitter out;

@@ -161,13 +161,7 @@ namespace flaw {
 		: _domain(domain)
 		, _clss(clss) 
 		, _obj(nullptr)
-	{
-	}
-
-	MonoScriptObject::MonoScriptObject(MonoDomain* domain, MonoClass* clss, MonoObject* obj)
-		: _domain(domain)
-		, _clss(clss)
-		, _obj(obj)
+		, _gcHandle(0)
 	{
 	}
 
@@ -175,13 +169,7 @@ namespace flaw {
 		: _domain(clss->GetMonoDomain())
 		, _clss(clss->GetMonoClass())
 		, _obj(nullptr)
-	{
-	}
-
-	MonoScriptObject::MonoScriptObject(MonoScriptClass* clss, MonoObject* obj)
-		: _domain(clss->GetMonoDomain())
-		, _clss(clss->GetMonoClass())
-		, _obj(obj)
+		, _gcHandle(0)
 	{
 	}
 
@@ -189,14 +177,14 @@ namespace flaw {
 		: _domain(field->GetMonoDomain())
 		, _clss(field->GetMonoClass())
 		, _obj(nullptr)
+		, _gcHandle(0)
 	{
 	}
 
-	MonoScriptObject::MonoScriptObject(MonoScriptClassField* field, MonoObject* obj)
-		: _domain(field->GetMonoDomain())
-		, _clss(field->GetMonoClass())
-		, _obj(obj)
-	{
+	MonoScriptObject::~MonoScriptObject() {
+		if (_gcHandle) {
+			mono_gchandle_free(_gcHandle);
+		}
 	}
 
 	void MonoScriptObject::InstantiateDefaultConstructorImpl() {
@@ -205,6 +193,8 @@ namespace flaw {
 			throw std::runtime_error("mono_object_new failed");
 		}
 		mono_runtime_object_init(_obj);
+
+		_gcHandle = mono_gchandle_new(_obj, false);
 	}
 
 	void MonoScriptObject::InstantiateImpl(void** constructorArgs, int32_t argCount) {
@@ -233,6 +223,8 @@ namespace flaw {
 		if (exception) {
 			throw std::runtime_error("Exception during object instantiation");
 		}
+
+		_gcHandle = mono_gchandle_new(_obj, false);
 	}
 
 	void MonoScriptObject::CallMethodImpl(MonoMethod* method, void** args, int32_t argCount) const {

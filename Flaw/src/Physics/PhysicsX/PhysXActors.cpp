@@ -151,4 +151,19 @@ namespace flaw {
 		_rigidBody->setMass(mass);
 		return true;
 	}
+
+	void PhysXActorDynamic::SetKinematicState(bool isKinematic) {
+		_rigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, isKinematic);
+	}
+
+	void PhysXActorDynamic::SetKinematicTarget(const vec3& targetPosition, const vec3& targetRotation) {
+		PxTransform transform(Vec3ToPxVec3(targetPosition));
+		glm::quat rotation = glm::quat(targetRotation);
+		transform.q = PxQuat(rotation.x, rotation.y, rotation.z, rotation.w);
+		_rigidBody->setKinematicTarget(transform);
+	}
+
+	bool PhysXActorDynamic::IsKinematic() const {
+		return _rigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC;
+	}
 }
