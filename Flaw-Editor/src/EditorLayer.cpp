@@ -226,6 +226,12 @@ namespace flaw {
         {
             ImGui::Begin("Status");
             ImGui::Text("FPS: %d", flaw::Time::FPS());
+
+			int64_t monoHeapSize = 0, monoHeapUsed = 0;
+			Scripting::GetMonoHeapInfo(monoHeapSize, monoHeapUsed);
+			ImGui::Text("Mono Heap Size: %.2f KB", monoHeapSize / 1024.f);
+			ImGui::Text("Mono Heap Used: %.2f KB", monoHeapUsed / 1024.f);
+
             ImGui::End();
         }
 

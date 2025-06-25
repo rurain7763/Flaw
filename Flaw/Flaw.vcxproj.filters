@@ -314,7 +314,7 @@
     <ClInclude Include="src\Platform\Windows\WindowsContext.h">
       <Filter>Platform\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="src\Scripting\MonoScripting.h">
+    <ClInclude Include="src\Scripting\MonoScriptContext.h">
       <Filter>Scripting</Filter>
     </ClInclude>
     <ClInclude Include="src\Sound\FMod\FModSoundChannel.h">
@@ -365,6 +365,13 @@
     <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
     <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
     <ClInclude Include="src\Utils\HandlerRegistry.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClassField.h" />
+    <ClInclude Include="src\Scripting\MonoScriptObject.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClass.h" />
+    <ClInclude Include="src\Scripting\MonoScriptDomain.h" />
+    <ClInclude Include="src\Scripting\MonoScriptTypes.h" />
+    <ClInclude Include="src\Scripting\MonoScriptArray.h" />
+    <ClInclude Include="src\Utils\BiMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">
@@ -526,7 +533,7 @@
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scripting\MonoScripting.cpp">
+    <ClCompile Include="src\Scripting\MonoScriptContext.cpp">
       <Filter>Scripting</Filter>
     </ClCompile>
     <ClCompile Include="src\Sound\FMod\FModSoundChannel.cpp">
@@ -554,5 +561,10 @@
     <ClCompile Include="src\Physics\PhysicsX\PhysXActors.cpp" />
     <ClCompile Include="src\Physics\PhysicsX\PhysXShapes.cpp" />
     <ClCompile Include="src\Physics\PhysicsX\PhysXScene.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClassField.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptObject.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClass.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptDomain.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptArray.cpp" />
   </ItemGroup>
 </Project>

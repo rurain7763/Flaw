@@ -15,7 +15,7 @@
 #include <fmt/format.h>
 
 namespace flaw {
-	#define ADD_INTERNAL_CALL(func) MonoScripting::RegisterInternalCall("Flaw.InternalCalls::"#func, func)
+	#define ADD_INTERNAL_CALL(func) g_monoScriptContext->RegisterInternalCall("Flaw.InternalCalls::"#func, func)
 
 	struct EngineComponentConverter {
 		std::function<bool(const Entity&)> hasComponentFunc;
@@ -23,7 +23,8 @@ namespace flaw {
 
 	static Scope<filewatch::FileWatch<std::string>> g_scriptAsmWatcher;
 
-	static Scope<MonoScriptDomain> g_monoScriptDomain;
+	static Scope<MonoScriptContext> g_monoScriptContext;
+	static Ref<MonoScriptDomain> g_monoScriptDomain;
 	static std::unordered_map<MonoType*, EngineComponentConverter> g_engineComponentConverters;
 
 	static Application* g_app;
@@ -43,8 +44,8 @@ namespace flaw {
 	}
 
 	void Scripting::LoadMonoScripting() {
-		g_monoScriptDomain = CreateScope<MonoScriptDomain>();
-		g_monoScriptDomain->SetToCurrent();
+		g_monoScriptDomain = g_monoScriptContext->CreateDomain();
+		g_monoScriptContext->SetCurrentDomain(g_monoScriptDomain);
 
 		g_monoScriptDomain->AddMonoAssembly("Resources/Scripts/Flaw-ScriptCore.dll", true);
 		g_monoScriptDomain->PrintMonoAssemblyInfo(0);
@@ -98,7 +99,7 @@ namespace flaw {
 	void Scripting::Init(Application& app) {
 		g_app = &app;
 
-		MonoScripting::Init();
+		g_monoScriptContext = CreateScope<MonoScriptContext>();
 
 		// Register internal calls
 		ADD_INTERNAL_CALL(GetEntity);
@@ -142,11 +143,19 @@ namespace flaw {
 
 	void Scripting::Cleanup() {
 		g_monoScriptDomain.reset();
-		MonoScripting::Cleanup();
+		g_monoScriptContext.reset();
 	}
 
 	void Scripting::SetActiveMonoScriptSystem(MonoScriptSystem* system) {
 		g_activeMonoScriptSys = system;
+	}
+
+	void Scripting::MonoCollectGarbage() {
+		g_monoScriptContext->CollectGarbage();
+	}
+
+	void Scripting::MonoPrintAllGCObjects() {
+		g_monoScriptContext->PrintAllGCObjects();
 	}
 
 	MonoScriptClass& Scripting::GetMonoSystemClass(MonoSystemType type) {
@@ -155,8 +164,30 @@ namespace flaw {
 
 	MonoScriptClass& Scripting::GetMonoAssetClass(AssetType type) {
 		switch (type) {
-		case AssetType::Prefab:
-			return g_monoScriptDomain->GetClass("Flaw.Prefab");
+			case AssetType::GraphicsShader:
+				return g_monoScriptDomain->GetClass("Flaw.GraphicsShader");
+			case AssetType::Texture2D:
+				return g_monoScriptDomain->GetClass("Flaw.Texture2D");
+			case AssetType::Font:
+				return g_monoScriptDomain->GetClass("Flaw.Font");
+			case AssetType::Sound:
+				return g_monoScriptDomain->GetClass("Flaw.Sound");
+			case AssetType::StaticMesh:
+				return g_monoScriptDomain->GetClass("Flaw.StaticMesh");
+			case AssetType::TextureCube:
+				return g_monoScriptDomain->GetClass("Flaw.TextureCube");
+			case AssetType::Texture2DArray:
+				return g_monoScriptDomain->GetClass("Flaw.Texture2DArray");
+			case AssetType::SkeletalMesh:
+				return g_monoScriptDomain->GetClass("Flaw.SkeletalMesh");
+			case AssetType::Skeleton:
+				return g_monoScriptDomain->GetClass("Flaw.Skeleton");
+			case AssetType::SkeletalAnimation:
+				return g_monoScriptDomain->GetClass("Flaw.SkeletalAnimation");
+			case AssetType::Material:
+				return g_monoScriptDomain->GetClass("Flaw.Material");
+			case AssetType::Prefab:
+				return g_monoScriptDomain->GetClass("Flaw.Prefab");
 		}
 
 		throw std::runtime_error("Unsupported MonoAssetType");
@@ -172,7 +203,7 @@ namespace flaw {
 
 	bool Scripting::IsMonoComponent(const MonoScriptClass& monoClass) {
 		auto entityComponentMonoClass = g_monoScriptDomain->GetClass("Flaw.EntityComponent");
-		return entityComponentMonoClass != monoClass && monoClass.IsSubClassOf(&entityComponentMonoClass);
+		return entityComponentMonoClass != monoClass && monoClass.IsSubClassOf(entityComponentMonoClass);
 	}
 
 	bool Scripting::IsMonoProjectComponent(const MonoScriptClass& monoClass) {
@@ -181,7 +212,7 @@ namespace flaw {
 
 	bool Scripting::IsMonoAsset(const MonoScriptClass& monoClass) {
 		auto assetMonoClass = g_monoScriptDomain->GetClass("Flaw.Asset");
-		return assetMonoClass != monoClass && monoClass.IsSubClassOf(&assetMonoClass);
+		return assetMonoClass != monoClass && monoClass.IsSubClassOf(assetMonoClass);
 	}
 
 	bool Scripting::HasEngineComponent(const Entity& entity, const char* compName) {
@@ -194,6 +225,10 @@ namespace flaw {
 		}
 
 		return false;
+	}
+
+	void Scripting::GetMonoHeapInfo(int64_t& heapSize, int64_t& usedSize) {
+		g_monoScriptContext->GetHeapInfo(heapSize, usedSize);
 	}
 
 	MonoObject* Scripting::GetEntity(UUID uuid) {

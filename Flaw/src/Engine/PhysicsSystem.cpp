@@ -45,6 +45,8 @@ namespace flaw {
 		pEntt.actor = newActor;
 		pEntt.shapes.fill(nullptr);
 
+		_validActors.insert(newActor.get());
+
 		if (registry.any_of<BoxColliderComponent>(entity)) {
 			RegisterColliderComponent<BoxColliderComponent>(registry, entity);
 		}
@@ -64,7 +66,11 @@ namespace flaw {
 			return;
 		}
 
-		_entitiesToDestroy.push_back(entity);
+		_validActors.erase(it->second.actor.get());
+
+		_physicsEntitiesToDestroy.emplace_back(std::move(it->second));
+
+		_physicsEntities.erase(it);
 	}
 
 	void PhysicsSystem::Start() {
@@ -89,11 +95,15 @@ namespace flaw {
 		registry.on_construct<RigidbodyComponent>().connect<&PhysicsSystem::RegisterEntity>(*this);
 		registry.on_destroy<RigidbodyComponent>().connect<&PhysicsSystem::UnregisterEntity>(*this);
 		registry.on_construct<BoxColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<BoxColliderComponent>>(*this);
-		registry.on_destroy<BoxColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<BoxColliderComponent>>(*this);
+		registry.on_destroy<BoxColliderComponent>().connect<&PhysicsSystem::UnregisterColliderComponent<BoxColliderComponent>>(*this);
 		registry.on_construct<SphereColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<SphereColliderComponent>>(*this);
-		registry.on_destroy<SphereColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<SphereColliderComponent>>(*this);
+		registry.on_destroy<SphereColliderComponent>().connect<&PhysicsSystem::UnregisterColliderComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<MeshColliderComponent>>(*this);
-		registry.on_destroy<MeshColliderComponent>().connect<&PhysicsSystem::RegisterColliderComponent<MeshColliderComponent>>(*this);
+		registry.on_destroy<MeshColliderComponent>().connect<&PhysicsSystem::UnregisterColliderComponent<MeshColliderComponent>>(*this);
+	}
+
+	bool PhysicsSystem::CheckPhysicsContactValidity(const PhysicsContact& contact) const {
+		return _validActors.find(contact.actor) != _validActors.end() && _validActors.find(contact.otherActor) != _validActors.end();
 	}
 
 	void PhysicsSystem::FillCollisionInfo(PhysicsContact& contact, CollisionInfo& collisionInfo) const {
@@ -108,53 +118,48 @@ namespace flaw {
 	}
 
 	void PhysicsSystem::HandleContactEnter(PhysicsContact& contact) {
+		if (!CheckPhysicsContactValidity(contact)) {
+			return;
+		}
+
 		CollisionInfo collisionInfo;
 		FillCollisionInfo(contact, collisionInfo);
 
 		ColliderKey key0 = { collisionInfo.entity0, collisionInfo.shapeType0 };
 		ColliderKey key1 = { collisionInfo.entity1, collisionInfo.shapeType1 };
 
-		_collidedEntities[key0][key1] = collisionInfo;
-		_collidedEntities[key1][key0] = collisionInfo;
-
-		_onCollisionEnterHandlers.Invoke(collisionInfo);
+		auto enteringPair = std::minmax(key0, key1);
+		_enteringCollisionEntities[enteringPair.first][enteringPair.second] = collisionInfo;
 	}
 
 	void PhysicsSystem::HandleContactUpdate(PhysicsContact& contact) {
-		CollisionInfo collisionInfo;
-		FillCollisionInfo(contact, collisionInfo);
-
-		ColliderKey key0 = { collisionInfo.entity0, collisionInfo.shapeType0 };
-		ColliderKey key1 = { collisionInfo.entity1, collisionInfo.shapeType1 };
-
-		_collidedEntities[key0][key1] = collisionInfo;
-		_collidedEntities[key1][key0] = collisionInfo;
-	}
-
-	void PhysicsSystem::HandleContactStay() {
-		std::unordered_set<std::pair<ColliderKey, ColliderKey>> processedPairs;
-		for (const auto& [key0, collidedEntities] : _collidedEntities) {
-			for (const auto& [key1, collisionInfo] : collidedEntities) {
-				auto orderedPair = std::minmax(key0, key1);
-				if (processedPairs.find(orderedPair) != processedPairs.end()) {
-					continue; // Skip already processed pairs
-				}
-				_onCollisionStayHandlers.Invoke(collisionInfo);
-			}
+		if (!CheckPhysicsContactValidity(contact)) {
+			return;
 		}
-	}
-	
-	void PhysicsSystem::HandleContactExit(PhysicsContact& contact) {
+
 		CollisionInfo collisionInfo;
 		FillCollisionInfo(contact, collisionInfo);
 
 		ColliderKey key0 = { collisionInfo.entity0, collisionInfo.shapeType0 };
 		ColliderKey key1 = { collisionInfo.entity1, collisionInfo.shapeType1 };
 
-		_collidedEntities[key0].erase(key1);
-		_collidedEntities[key1].erase(key0);
+		auto collidedPair = std::minmax(key0, key1);
+		_activeCollisionEntities[collidedPair.first][collidedPair.second] = collisionInfo;
+	}
 
-		_onCollisionExitHandlers.Invoke(collisionInfo);
+	void PhysicsSystem::HandleContactExit(PhysicsContact& contact) {
+		if (!CheckPhysicsContactValidity(contact)) {
+			return;
+		}
+
+		CollisionInfo collisionInfo;
+		FillCollisionInfo(contact, collisionInfo);
+
+		ColliderKey key0 = { collisionInfo.entity0, collisionInfo.shapeType0 };
+		ColliderKey key1 = { collisionInfo.entity1, collisionInfo.shapeType1 };
+
+		auto exitingPair = std::minmax(key0, key1);
+		_exitingCollisionEntities[exitingPair.first].insert(exitingPair.second);
 	}
 
 	void PhysicsSystem::FillTriggerInfo(PhysicsTrigger& trigger, TriggerInfo& triggerInfo) const {
@@ -205,54 +210,6 @@ namespace flaw {
 		_triggeredEntities[key1].erase(key0);
 
 		_onTriggerExitHandlers.Invoke(triggerInfo);
-	}
-
-	void PhysicsSystem::RegisterOnCollisionEnterHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
-		_onCollisionEnterHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::RegisterOnCollisionStayHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
-		_onCollisionStayHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::RegisterOnCollisionExitHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
-		_onCollisionExitHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::RegisterOnTriggerEnterHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
-		_onTriggerEnterHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::RegisterOnTriggerStayHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
-		_onTriggerStayHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::RegisterOnTriggerExitHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
-		_onTriggerExitHandlers.Register(id, handler);
-	}
-
-	void PhysicsSystem::UnregisterOnCollisionEnterHandler(HandlerId id) {
-		_onCollisionEnterHandlers.Unregister(id);
-	}
-
-	void PhysicsSystem::UnregisterOnCollisionStayHandler(HandlerId id) {
-		_onCollisionStayHandlers.Unregister(id);
-	}
-
-	void PhysicsSystem::UnregisterOnCollisionExitHandler(HandlerId id) {
-		_onCollisionExitHandlers.Unregister(id);
-	}
-
-	void PhysicsSystem::UnregisterOnTriggerEnterHandler(HandlerId id) {
-		_onTriggerEnterHandlers.Unregister(id);
-	}
-
-	void PhysicsSystem::UnregisterOnTriggerStayHandler(HandlerId id) {
-		_onTriggerStayHandlers.Unregister(id);
-	}
-
-	void PhysicsSystem::UnregisterOnTriggerExitHandler(HandlerId id) {
-		_onTriggerExitHandlers.Unregister(id);
 	}
 
 	void PhysicsSystem::Update() {
@@ -316,13 +273,16 @@ namespace flaw {
 		}
 
 		_physicsScene->Update(Time::DeltaTime());
-		HandleContactStay();
+
+		DispatchCollisionEnter();
+		DispatchCollisionExit();
+		DispatchCollisionStay();
+
 		HandleTriggerStay();
 
-		for (auto entity : _entitiesToDestroy) {
-			_physicsEntities.erase(entity);
-		}
-		_entitiesToDestroy.clear();
+		_physicsEntitiesToDestroy.clear();
+
+		UpdateActiveCollisionEntities();
 	}
 
 	void PhysicsSystem::UpdatePhysicsEntity(PhysicsEntity& pEntt, TransformComponent& transComp, RigidbodyComponent& rigidBodyComp) {
@@ -336,11 +296,13 @@ namespace flaw {
 			auto newActor = CreatePhysicsActor(entity, transComp, rigidBodyComp);
 			for (auto& shape : pEntt.shapes) {
 				if (shape) {
-					newActor->AttatchShape(shape);
+					newActor->AttachShape(shape);
 				}
 			}
 
+			_validActors.erase(pEntt.actor.get());
 			pEntt.actor = newActor;
+			_validActors.insert(newActor.get());
 
 			if (pEntt.actor->HasShapes()) {
 				_physicsScene->JoinActor(pEntt.actor);
@@ -395,6 +357,73 @@ namespace flaw {
 		}
 	}
 
+	void PhysicsSystem::DispatchCollisionEnter() {
+		for (const auto& [key0, collidedEntities] : _enteringCollisionEntities) {
+			for (const auto& [key1, collisionInfo] : collidedEntities) {
+				_onCollisionEnterHandlers.Invoke(collisionInfo);
+			}
+		}
+	}
+
+	void PhysicsSystem::DispatchCollisionExit() {
+		for (const auto& [key0, exitingEntities] : _exitingCollisionEntities) {
+			for (const auto& key1 : exitingEntities) {
+				CollisionInfo& collisionInfo = _activeCollisionEntities[key0][key1];
+				_onCollisionExitHandlers.Invoke(collisionInfo);
+			}
+		}
+	}
+
+	// NOTE: dispatching collision stay events for active collision entities, if not valid, remove them from the active list
+	void PhysicsSystem::DispatchCollisionStay() {
+		for (auto it = _activeCollisionEntities.begin(); it != _activeCollisionEntities.end(); ) {
+			const auto& key0 = it->first;
+
+			if (_physicsEntities.find(key0.first) == _physicsEntities.end()) {
+				it = _activeCollisionEntities.erase(it);
+				continue;
+			}
+
+			auto& innerMap = it->second;
+			for (auto it2 = innerMap.begin(); it2 != innerMap.end(); ) {
+				const auto& key1 = it2->first;
+				const auto& collisionInfo = it2->second;
+
+				if (_physicsEntities.find(key1.first) == _physicsEntities.end()) {
+					it2 = innerMap.erase(it2);
+					continue;
+				}
+
+				_onCollisionStayHandlers.Invoke(collisionInfo);
+
+				++it2;
+			}
+
+			if (innerMap.empty()) {
+				it = _activeCollisionEntities.erase(it);
+				continue;
+			}
+
+			++it;
+		}
+	}
+
+	void PhysicsSystem::UpdateActiveCollisionEntities() {
+		for (auto& [key0, enteringEntities] : _enteringCollisionEntities) {
+			for (auto& [key1, collisionInfo] : enteringEntities) {
+				_activeCollisionEntities[key0][key1] = std::move(collisionInfo);
+			}
+		}
+		_enteringCollisionEntities.clear();
+		
+		for (auto& [key0, exitingEntities] : _exitingCollisionEntities) {
+			for (auto& key1 : exitingEntities) {
+				_activeCollisionEntities[key0].erase(key1);
+			}
+		}
+		_exitingCollisionEntities.clear();
+	}
+
 	void PhysicsSystem::End() {
 		auto& registry = _scene.GetRegistry();
 
@@ -403,11 +432,11 @@ namespace flaw {
 		registry.on_construct<RigidbodyComponent>().disconnect<&PhysicsSystem::RegisterEntity>(*this);
 		registry.on_destroy<RigidbodyComponent>().disconnect<&PhysicsSystem::UnregisterEntity>(*this);
 		registry.on_construct<BoxColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<BoxColliderComponent>>(*this);
-		registry.on_destroy<BoxColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<BoxColliderComponent>>(*this);
+		registry.on_destroy<BoxColliderComponent>().disconnect<&PhysicsSystem::UnregisterColliderComponent<BoxColliderComponent>>(*this);
 		registry.on_construct<SphereColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<SphereColliderComponent>>(*this);
-		registry.on_destroy<SphereColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<SphereColliderComponent>>(*this);
+		registry.on_destroy<SphereColliderComponent>().disconnect<&PhysicsSystem::UnregisterColliderComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<MeshColliderComponent>>(*this);
-		registry.on_destroy<MeshColliderComponent>().disconnect<&PhysicsSystem::RegisterColliderComponent<MeshColliderComponent>>(*this);
+		registry.on_destroy<MeshColliderComponent>().disconnect<&PhysicsSystem::UnregisterColliderComponent<MeshColliderComponent>>(*this);
 
 		for (auto& [entity, pEntt] : _physicsEntities) {
 			if (pEntt.actor->IsJoined()) {
@@ -417,5 +446,53 @@ namespace flaw {
 		_physicsEntities.clear();
 
 		_physicsScene.reset();
+	}
+
+	void PhysicsSystem::RegisterOnCollisionEnterHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
+		_onCollisionEnterHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::RegisterOnCollisionStayHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
+		_onCollisionStayHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::RegisterOnCollisionExitHandler(HandlerId id, const std::function<void(const CollisionInfo&)>& handler) {
+		_onCollisionExitHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::RegisterOnTriggerEnterHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
+		_onTriggerEnterHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::RegisterOnTriggerStayHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
+		_onTriggerStayHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::RegisterOnTriggerExitHandler(HandlerId id, const std::function<void(const TriggerInfo&)>& handler) {
+		_onTriggerExitHandlers.Register(id, handler);
+	}
+
+	void PhysicsSystem::UnregisterOnCollisionEnterHandler(HandlerId id) {
+		_onCollisionEnterHandlers.Unregister(id);
+	}
+
+	void PhysicsSystem::UnregisterOnCollisionStayHandler(HandlerId id) {
+		_onCollisionStayHandlers.Unregister(id);
+	}
+
+	void PhysicsSystem::UnregisterOnCollisionExitHandler(HandlerId id) {
+		_onCollisionExitHandlers.Unregister(id);
+	}
+
+	void PhysicsSystem::UnregisterOnTriggerEnterHandler(HandlerId id) {
+		_onTriggerEnterHandlers.Unregister(id);
+	}
+
+	void PhysicsSystem::UnregisterOnTriggerStayHandler(HandlerId id) {
+		_onTriggerStayHandlers.Unregister(id);
+	}
+
+	void PhysicsSystem::UnregisterOnTriggerExitHandler(HandlerId id) {
+		_onTriggerExitHandlers.Unregister(id);
 	}
 }

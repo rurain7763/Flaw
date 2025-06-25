@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Scripting/MonoScripting.h"
+#include "Scripting/MonoScriptContext.h"
 #include "Utils/UUID.h"
 #include "Entity.h"
 #include "Asset.h"
@@ -10,7 +10,6 @@ namespace flaw {
 	class Application;
 	class Scene;
 	class MonoScriptSystem;
-
 
 	class Scripting {
 	public:
@@ -28,6 +27,9 @@ namespace flaw {
 
 		static void SetActiveMonoScriptSystem(MonoScriptSystem* system);
 
+		static void MonoCollectGarbage();
+		static void MonoPrintAllGCObjects();
+
 		static MonoScriptClass& GetMonoSystemClass(MonoSystemType type);
 		static MonoScriptClass& GetMonoAssetClass(AssetType type);
 		static MonoScriptClass& GetMonoClass(const char* name);
@@ -39,6 +41,8 @@ namespace flaw {
 		static bool IsMonoAsset(const MonoScriptClass& monoClass);
 
 		static bool HasEngineComponent(const Entity& entity, const char* compName);
+
+		static void GetMonoHeapInfo(int64_t& heapSize, int64_t& heapUsed);
 
 		static MonoScriptDomain& GetMonoScriptDomain();
 		static Application& GetApplication();

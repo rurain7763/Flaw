@@ -19,18 +19,11 @@ namespace flaw {
 		PhysicsActor* physXActor0 = static_cast<PhysicsActor*>(actor0->userData);
 		PhysicsActor* physXActor1 = static_cast<PhysicsActor*>(actor1->userData);
 
-		if (!physXActor0 || !physXActor1) {
-			return;
-		}
-
 		for (PxU32 i = 0; i < nbPairs; i++) {
 			const PxContactPair& pair = pairs[i];
 
 			PhysicsShape* shape0 = static_cast<PhysicsShape*>(pair.shapes[0]->userData);
 			PhysicsShape* shape1 = static_cast<PhysicsShape*>(pair.shapes[1]->userData);
-			if (!shape0 || !shape1) {
-				continue;
-			}
 
 			PhysicsContact contact;
 			contact.actor = physXActor0;
@@ -105,6 +98,9 @@ namespace flaw {
 		sceneDesc.cpuDispatcher = &_context.GetCpuDispatcher();
 		sceneDesc.filterShader = CustomFilterShader;
 		sceneDesc.simulationEventCallback = &_eventCallback;
+		sceneDesc.userData = this;
+		sceneDesc.kineKineFilteringMode = PxPairFilteringMode::eKEEP;
+		sceneDesc.staticKineFilteringMode = PxPairFilteringMode::eKEEP;
 
 		_scene = _context.GetPhysics().createScene(sceneDesc);
 		if (!_scene) {

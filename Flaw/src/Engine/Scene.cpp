@@ -113,18 +113,21 @@ namespace flaw {
 	}
 
 	template <typename T>
-	static void CopyComponentIfExists(Entity src, Entity dst) {
-		if (src.HasComponent<T>()) {
-			T* dstComp = nullptr;
+	static void CloneComponent(Entity src, Entity dst) {
+		if (!src.HasComponent<T>()) {
+			return;
+		}
 
-			if (!dst.HasComponent<T>()) {
-				dstComp = &dst.AddComponent<T>();
-			}
-			else {
-				dstComp = &dst.GetComponent<T>();
-			}
+		T& srcComp = src.GetComponent<T>();
 
-			*dstComp = src.GetComponent<T>();
+		if constexpr (std::is_same_v<T, EntityComponent>) {
+			dst.GetComponent<EntityComponent>().name = srcComp.name;
+		}
+		else if constexpr (std::is_same_v<T, TransformComponent>) {
+			dst.GetComponent<TransformComponent>() = srcComp;
+		}
+		else {
+			dst.AddComponent<T>(srcComp);
 		}
 	}
 
@@ -137,38 +140,32 @@ namespace flaw {
 			cloned = CreateEntityByUUID(srcEntt.GetUUID());
 		}
 
-		UUID copyUUID = cloned.GetUUID();
-
-		CopyComponentIfExists<EntityComponent>(srcEntt, cloned);
-
-		// because uuid is changed, we need to set it again
-		cloned.GetComponent<EntityComponent>().uuid = copyUUID;
-
-		CopyComponentIfExists<TransformComponent>(srcEntt, cloned);
-		CopyComponentIfExists<CameraComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SpriteRendererComponent>(srcEntt, cloned);
-		CopyComponentIfExists<Rigidbody2DComponent>(srcEntt, cloned);
-		CopyComponentIfExists<BoxCollider2DComponent>(srcEntt, cloned);
-		CopyComponentIfExists<CircleCollider2DComponent>(srcEntt, cloned);
-		CopyComponentIfExists<RigidbodyComponent>(srcEntt, cloned);
-		CopyComponentIfExists<BoxColliderComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SphereColliderComponent>(srcEntt, cloned);
-		CopyComponentIfExists<MeshColliderComponent>(srcEntt, cloned);
-		CopyComponentIfExists<NativeScriptComponent>(srcEntt, cloned);
-		CopyComponentIfExists<MonoScriptComponent>(srcEntt, cloned);
-		CopyComponentIfExists<TextComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SoundListenerComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SoundSourceComponent>(srcEntt, cloned);
-		CopyComponentIfExists<ParticleComponent>(srcEntt, cloned);
-		CopyComponentIfExists<StaticMeshComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SkeletalMeshComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SkyLightComponent>(srcEntt, cloned);
-		CopyComponentIfExists<DirectionalLightComponent>(srcEntt, cloned);
-		CopyComponentIfExists<PointLightComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SpotLightComponent>(srcEntt, cloned);
-		CopyComponentIfExists<SkyBoxComponent>(srcEntt, cloned);
-		CopyComponentIfExists<DecalComponent>(srcEntt, cloned);
-		CopyComponentIfExists<LandscapeComponent>(srcEntt, cloned);
+		CloneComponent<EntityComponent>(srcEntt, cloned);
+		CloneComponent<TransformComponent>(srcEntt, cloned);
+		CloneComponent<CameraComponent>(srcEntt, cloned);
+		CloneComponent<SpriteRendererComponent>(srcEntt, cloned);
+		CloneComponent<Rigidbody2DComponent>(srcEntt, cloned);
+		CloneComponent<BoxCollider2DComponent>(srcEntt, cloned);
+		CloneComponent<CircleCollider2DComponent>(srcEntt, cloned);
+		CloneComponent<RigidbodyComponent>(srcEntt, cloned);
+		CloneComponent<BoxColliderComponent>(srcEntt, cloned);
+		CloneComponent<SphereColliderComponent>(srcEntt, cloned);
+		CloneComponent<MeshColliderComponent>(srcEntt, cloned);
+		CloneComponent<NativeScriptComponent>(srcEntt, cloned);
+		CloneComponent<TextComponent>(srcEntt, cloned);
+		CloneComponent<SoundListenerComponent>(srcEntt, cloned);
+		CloneComponent<SoundSourceComponent>(srcEntt, cloned);
+		CloneComponent<ParticleComponent>(srcEntt, cloned);
+		CloneComponent<StaticMeshComponent>(srcEntt, cloned);
+		CloneComponent<SkeletalMeshComponent>(srcEntt, cloned);
+		CloneComponent<SkyLightComponent>(srcEntt, cloned);
+		CloneComponent<DirectionalLightComponent>(srcEntt, cloned);
+		CloneComponent<PointLightComponent>(srcEntt, cloned);
+		CloneComponent<SpotLightComponent>(srcEntt, cloned);
+		CloneComponent<SkyBoxComponent>(srcEntt, cloned);
+		CloneComponent<DecalComponent>(srcEntt, cloned);
+		CloneComponent<LandscapeComponent>(srcEntt, cloned);
+		CloneComponent<MonoScriptComponent>(srcEntt, cloned);
 
 		// clone children
 		srcEntt.EachChildren([this, &cloned, sameUUID](const Entity& child) {
@@ -392,7 +389,7 @@ namespace flaw {
 	void Scene::UpdateTransformImmediate(entt::entity entity) {
 		Entity entt(entity, this);
 		
-		while (entt.HasChild()) {
+		while (entt.HasParent()) {
 			entt = entt.GetParent();
 		}
 

@@ -17,7 +17,7 @@ namespace flaw {
 
 		bool IsJoined() const override;
 
-		void AttatchShape(Ref<PhysicsShape> shape) override;
+		void AttachShape(Ref<PhysicsShape> shape) override;
 		void DetachShape(Ref<PhysicsShape> shape) override;
 		bool HasShapes() const override;
 
@@ -40,7 +40,7 @@ namespace flaw {
 
 		bool IsJoined() const override;
 
-		void AttatchShape(Ref<PhysicsShape> shape) override;
+		void AttachShape(Ref<PhysicsShape> shape) override;
 		void DetachShape(Ref<PhysicsShape> shape) override;
 		bool HasShapes() const override;
 

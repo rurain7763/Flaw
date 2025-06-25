@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Scripting/MonoScripting.h"
 #include "Entity.h"
 #include "Math/Math.h"
 #include "Input/Input.h"

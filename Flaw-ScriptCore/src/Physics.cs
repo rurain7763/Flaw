@@ -1,6 +1,6 @@
 ﻿namespace Flaw
 {
-    public struct ContactPoint
+    public class ContactPoint
     {
         public Vec3 position;
         public Vec3 normal;

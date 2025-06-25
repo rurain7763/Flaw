@@ -89,4 +89,59 @@ namespace Flaw
             return new Entity(entityHandle);
         }
     }
+
+    public class GraphicsShader : Asset
+    {
+        // Additional methods for GraphicsShader can be added here
+    }
+
+    public class Texture2D : Asset
+    {
+        // Additional methods for Texture can be added here
+    }
+
+    public class Font : Asset
+    {
+        // Additional methods for Material can be added here
+    }
+
+    public class Sound : Asset
+    {
+        // Additional methods for Animation can be added here
+    }
+
+    public class StaticMesh : Asset
+    {
+        // Additional methods for StaticMesh can be added here
+    }
+
+    public class TextureCube : Asset
+    {
+        // Additional methods for TextureCube can be added here
+    }
+
+    public class Texture2DArray : Asset
+    {
+        // Additional methods for Texture2DArray can be added here
+    }
+
+    public class SkeletalMesh : Asset
+    {
+        
+    }
+
+    public class SkeletalAnimation : Asset
+    {
+        // Additional methods for Animation can be added here
+    }
+
+    public class Material : Asset
+    {
+        // Additional methods for Material can be added here
+    }
+
+    public class Skeleton : Asset
+    {
+        // Additional methods for Skeleton can be added here
+    }
 }

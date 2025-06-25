@@ -110,6 +110,7 @@ namespace flaw {
 			out << YAML::Key << TypeName<flaw::RigidbodyComponent>().data();
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "BodyType" << YAML::Value << (int32_t)comp.bodyType;
+			out << YAML::Key << "IsKinematic" << YAML::Value << comp.isKinematic;
 			out << YAML::Key << "Mass" << YAML::Value << comp.mass;
 			out << YAML::EndMap;
 		}
@@ -547,6 +548,7 @@ namespace flaw {
 					}
 					auto& comp = entity.GetComponent<RigidbodyComponent>();
 					comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
+					comp.isKinematic = component.second["IsKinematic"].as<bool>();
 					comp.mass = component.second["Mass"].as<float>();
 				}
 				else if (name == TypeName<BoxColliderComponent>()) {

@@ -81,7 +81,7 @@ namespace flaw {
 
 		virtual bool IsJoined() const = 0;
 
-		virtual void AttatchShape(Ref<PhysicsShape> shape) = 0;
+		virtual void AttachShape(Ref<PhysicsShape> shape) = 0;
 		virtual void DetachShape(Ref<PhysicsShape> shape) = 0;
 		virtual bool HasShapes() const = 0;
 

@@ -189,7 +189,13 @@
     <ClInclude Include="src\Platform\PlatformContext.h" />
     <ClInclude Include="src\Platform\PlatformEvents.h" />
     <ClInclude Include="src\Platform\Windows\WindowsContext.h" />
-    <ClInclude Include="src\Scripting\MonoScripting.h" />
+    <ClInclude Include="src\Scripting\MonoScriptArray.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClass.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClassField.h" />
+    <ClInclude Include="src\Scripting\MonoScriptDomain.h" />
+    <ClInclude Include="src\Scripting\MonoScriptContext.h" />
+    <ClInclude Include="src\Scripting\MonoScriptObject.h" />
+    <ClInclude Include="src\Scripting\MonoScriptTypes.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundChannel.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundSource.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundsContext.h" />
@@ -200,6 +206,7 @@
     <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
     <ClInclude Include="src\Utils\HandlerRegistry.h" />
+    <ClInclude Include="src\Utils\BiMap.h" />
     <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
@@ -264,7 +271,12 @@
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp" />
-    <ClCompile Include="src\Scripting\MonoScripting.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptArray.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClass.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptDomain.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptObject.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClassField.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptContext.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundChannel.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundSource.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundsContext.cpp" />

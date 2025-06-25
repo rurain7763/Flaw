@@ -116,7 +116,7 @@ namespace flaw {
 				return;
 			}
 
-			pEntt.actor->AttatchShape(shape);
+			pEntt.actor->AttachShape(shape);
 			pEntt.shapes[(uint32_t)shape->GetShapeType()] = shape;
 			pEntt.signals |= PhysicsEntitySignal::NeedUpdateMassAndInertia;
 
@@ -163,12 +163,18 @@ namespace flaw {
 			}
 		}
 
+		bool CheckPhysicsContactValidity(const PhysicsContact& contact) const;
 		void FillCollisionInfo(PhysicsContact& contact, CollisionInfo& collisionInfo) const;
 
 		void HandleContactEnter(PhysicsContact& contact);
 		void HandleContactUpdate(PhysicsContact& contact);
-		void HandleContactStay();
 		void HandleContactExit(PhysicsContact& contact);
+
+		void DispatchCollisionEnter();
+		void DispatchCollisionExit();
+		void DispatchCollisionStay();
+
+		void UpdateActiveCollisionEntities();
 
 		void FillTriggerInfo(PhysicsTrigger& trigger, TriggerInfo& triggerInfo) const;
 
@@ -187,9 +193,13 @@ namespace flaw {
 
 		Ref<PhysicsScene> _physicsScene;
 		std::unordered_map<entt::entity, PhysicsEntity> _physicsEntities;
-		std::vector<entt::entity> _entitiesToDestroy;
+		std::unordered_set<PhysicsActor*> _validActors;
+		std::vector<PhysicsEntity> _physicsEntitiesToDestroy;
 
-		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, CollisionInfo>> _collidedEntities;
+		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, CollisionInfo>> _enteringCollisionEntities;
+		std::unordered_map<ColliderKey, std::unordered_set<ColliderKey>> _exitingCollisionEntities;
+		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, CollisionInfo>> _activeCollisionEntities;
+
 		std::unordered_map<ColliderKey, std::unordered_map<ColliderKey, TriggerInfo>> _triggeredEntities;
 
 		HandlerRegistry<void, const CollisionInfo&> _onCollisionEnterHandlers;

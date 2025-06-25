@@ -31,7 +31,7 @@ namespace flaw {
 		return _rigidBody->getScene() != nullptr;
 	}
 
-	void PhysXActorStatic::AttatchShape(Ref<PhysicsShape> shape) {
+	void PhysXActorStatic::AttachShape(Ref<PhysicsShape> shape) {
 		auto it = _shapes.find(shape);
 		if (it != _shapes.end()) {
 			return;
@@ -98,7 +98,7 @@ namespace flaw {
 		return _rigidBody->getScene() != nullptr;
 	}
 
-	void PhysXActorDynamic::AttatchShape(Ref<PhysicsShape> shape) {
+	void PhysXActorDynamic::AttachShape(Ref<PhysicsShape> shape) {
 		auto it = _shapes.find(shape);
 		if (it != _shapes.end()) {
 			return;

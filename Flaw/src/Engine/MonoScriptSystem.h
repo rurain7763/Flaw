@@ -23,6 +23,7 @@ namespace flaw {
 	public:
 		MonoEngineComponentInstance() = default;
 		MonoEngineComponentInstance(const UUID& uuid, const char* name);
+		~MonoEngineComponentInstance() = default;
 
 		MonoScriptObject& GetScriptObject() override { return _scriptObject; }
 
@@ -34,8 +35,21 @@ namespace flaw {
 
 	class MonoProjectComponentInstance : public MonoComponentInstance {
 	public:
-		MonoProjectComponentInstance() = default;
+		MonoProjectComponentInstance()
+			: _createMethod(nullptr)
+			, _startMethod(nullptr)
+			, _updateMethod(nullptr)
+			, _destroyMethod(nullptr)
+			, _onCollisionEnterMethod(nullptr)
+			, _onCollisionStayMethod(nullptr)
+			, _onCollisionExitMethod(nullptr)
+			, _onTriggerEnterMethod(nullptr)
+			, _onTriggerStayMethod(nullptr)
+			, _onTriggerExitMethod(nullptr) 
+		{}
+
 		MonoProjectComponentInstance(const UUID& uuid, const char* name);
+		~MonoProjectComponentInstance() = default;
 
 		void CallOnCreate() const;
 		void CallOnStart() const;
@@ -48,7 +62,7 @@ namespace flaw {
 		MonoScriptObject& GetScriptObject() override { return _scriptObject; }
 
 	private:
-		static void CreatePublicFieldsInObjectRecursive(MonoScriptObject& object);
+		static void CreatePublicFieldsInObjectRecursive(MonoScriptObjectView& object);
 		
 	private:
 		friend class MonoEntity;
@@ -84,6 +98,7 @@ namespace flaw {
 
 	private:
 		UUID _uuid;
+
 		MonoScriptObject _scriptObject;
 
 		std::unordered_map<std::string, MonoEngineComponentInstance> _engineComponents;
@@ -153,8 +168,8 @@ namespace flaw {
 		void SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp);
 
 		const char* GetMonoColliderClassName(PhysicsShapeType shapeType) const;
-		MonoScriptArray CreateContactPointArray(const std::vector<ContactPoint>& contactPoints) const;
-		MonoScriptObject CreateCollisionInfoObject(MonoScriptObject& colliderA, MonoScriptObject& colliderB, MonoArray* contactArray) const;
+		std::vector<MonoScriptObject> CreateContactPointObjects(const std::vector<ContactPoint>& contactPoints) const;
+		MonoScriptObject CreateCollisionInfoObject(MonoScriptObject& colliderA, MonoScriptObject& colliderB, MonoScriptArray& contactArray) const;
 
 		void HandleOnCollisionEnter(const CollisionInfo& collisionInfo) const;
 		void HandleOnCollisionStay(const CollisionInfo& collisionInfo) const;

@@ -8,21 +8,19 @@
 #include "PhysicsSystem.h"
 
 namespace flaw {
-	MonoEngineComponentInstance::MonoEngineComponentInstance(const UUID& uuid, const char* name) {
-		auto& monoClass = Scripting::GetMonoClass(name);
-
-		_scriptObject = MonoScriptObject(&monoClass);
+	MonoEngineComponentInstance::MonoEngineComponentInstance(const UUID& uuid, const char* name) 
+		: _scriptObject(Scripting::GetMonoClass(name))
+	{
 		_scriptObject.Instantiate(&uuid);
 	}
 
-	MonoProjectComponentInstance::MonoProjectComponentInstance(const UUID& uuid, const char* name) {
-		auto& monoClass = Scripting::GetMonoClass(name);
-
-		_scriptObject = MonoScriptObject(&monoClass);
-
+	MonoProjectComponentInstance::MonoProjectComponentInstance(const UUID& uuid, const char* name) 
+		: _scriptObject(Scripting::GetMonoClass(name))
+	{
 		_scriptObject.Instantiate(&uuid);
-		CreatePublicFieldsInObjectRecursive(_scriptObject);
+		CreatePublicFieldsInObjectRecursive(_scriptObject.GetView());
 
+		auto monoClass = _scriptObject.GetClass();
 		_createMethod = monoClass.GetMethodRecurcive("OnCreate", 0);
 		_startMethod = monoClass.GetMethodRecurcive("OnStart", 0);
 		_updateMethod = monoClass.GetMethodRecurcive("OnUpdate", 0);
@@ -35,14 +33,20 @@ namespace flaw {
 		_onTriggerExitMethod = monoClass.GetMethodRecurcive("OnTriggerExit", 1);
 	}
 
-	void MonoProjectComponentInstance::CreatePublicFieldsInObjectRecursive(MonoScriptObject& object) {
-		object.GetClass().EachFields([&object](std::string_view fieldName, MonoScriptClassField& field) {
+	void MonoProjectComponentInstance::CreatePublicFieldsInObjectRecursive(MonoScriptObjectView& objView) {
+		objView.GetClass().EachFields([&objView](std::string_view fieldName, MonoScriptClassField& field) {
 			if (field.IsClass()) {
-				MonoScriptObject fieldMonoObj(object.GetMonoDomain(), field.GetMonoClass(), field.GetValue<MonoObject*>(&object));
-				fieldMonoObj.Instantiate();
-				field.SetValue(&object, fieldMonoObj.GetMonoObject());
-
-				CreatePublicFieldsInObjectRecursive(fieldMonoObj);
+				MonoObject* objPtr = field.GetValue<MonoObject*>(objView);
+				if (!objPtr) {
+					MonoScriptObject fieldMonoObj(field.GetClass());
+					fieldMonoObj.Instantiate();
+					field.SetValue(objView, fieldMonoObj.GetMonoObject());
+					CreatePublicFieldsInObjectRecursive(fieldMonoObj.GetView());
+				}
+				else {
+					MonoScriptObjectView fieldMonoObjView(field.GetClass(), objPtr);
+					CreatePublicFieldsInObjectRecursive(fieldMonoObjView);
+				}
 			}
 		});
 	}
@@ -94,7 +98,7 @@ namespace flaw {
 
 	MonoEntity::MonoEntity(const UUID& uuid)
 		: _uuid(uuid)
-		, _scriptObject(&Scripting::GetMonoClass(Scripting::MonoEntityClassName))
+		, _scriptObject(Scripting::GetMonoClass(Scripting::MonoEntityClassName))
 	{
 		_scriptObject.Instantiate(&uuid);
 	}
@@ -106,11 +110,11 @@ namespace flaw {
 
 		auto& monoClass = Scripting::GetMonoClass(name);
 		if (Scripting::IsMonoProjectComponent(monoClass)) {
-			_projectComponents.emplace(name, MonoProjectComponentInstance(_uuid, name));
+			_projectComponents.emplace(std::piecewise_construct, std::forward_as_tuple(name), std::forward_as_tuple(_uuid, name));
 			return &_projectComponents[name];
 		}
 		else {
-			_engineComponents.emplace(name, MonoEngineComponentInstance(_uuid, name));
+			_engineComponents.emplace(std::piecewise_construct, std::forward_as_tuple(name), std::forward_as_tuple(_uuid, name));
 			return &_engineComponents[name];
 		}
 	}
@@ -146,16 +150,9 @@ namespace flaw {
 		return (_engineComponents.find(name) != _engineComponents.end()) || (_projectComponents.find(name) != _projectComponents.end());
 	}
 
-	MonoAsset::MonoAsset(const AssetHandle& handle, const Ref<Asset>& asset) {
-		MonoScriptClass monoClass;
-		if (asset->GetAssetType() == AssetType::Prefab) {
-			monoClass = Scripting::GetMonoAssetClass(AssetType::Prefab);
-		}
-		else {
-			return;
-		}
-
-		_scriptObject = MonoScriptObject(&monoClass);
+	MonoAsset::MonoAsset(const AssetHandle& handle, const Ref<Asset>& asset) 
+		: _scriptObject(Scripting::GetMonoAssetClass(asset->GetAssetType()))
+	{
 		_scriptObject.Instantiate(&handle);
 	}
 
@@ -171,20 +168,24 @@ namespace flaw {
 		auto monoScriptClass = monoScriptObj.GetClass();
 		for (const auto& fieldInfo : monoScriptComp.fields) {
 			auto field = monoScriptClass.GetFieldRecursive(fieldInfo.fieldName.c_str());
-			if (!field || field.GetTypeName() != fieldInfo.fieldType) {
+			if (!field) {
 				continue;
 			}
 
-			MonoScriptClass filedClass(monoScriptObj.GetMonoDomain(), field.GetMonoClass());
-			if (field.GetMonoClass() == Scripting::GetMonoSystemClass(MonoSystemType::Float).GetMonoClass()) {
+			auto fieldClass = field.GetClass();
+			if (fieldClass.GetTypeName() != fieldInfo.fieldType) {
+				continue;
+			}
+
+			if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
 				float value = fieldInfo.As<float>();
-				field.SetValue(&monoScriptObj, &value);
+				field.SetValue(monoScriptObj, &value);
 			}
-			else if (field.GetMonoClass() == Scripting::GetMonoSystemClass(MonoSystemType::Int32).GetMonoClass()) {
+			else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
 				int32_t value = fieldInfo.As<int32_t>();
-				field.SetValue(&monoScriptObj, &value);
+				field.SetValue(monoScriptObj, &value);
 			}
-			else if (Scripting::IsMonoComponent(filedClass)) {
+			else if (Scripting::IsMonoComponent(fieldClass)) {
 				UUID uuid = fieldInfo.As<UUID>();
 				auto it = _monoEntities.find(uuid);
 				if (it == _monoEntities.end()) {
@@ -196,25 +197,25 @@ namespace flaw {
 					continue;
 				}
 
-				field.SetValue(&monoScriptObj, targetComp->GetScriptObject().GetMonoObject());
+				field.SetValue(monoScriptObj, targetComp->GetScriptObject().GetMonoObject());
 			}
-			else if (Scripting::IsMonoAsset(filedClass)) {
+			else if (Scripting::IsMonoAsset(fieldClass)) {
 				AssetHandle assetHandle = fieldInfo.As<AssetHandle>();
 				auto it = _monoAssets.find(assetHandle);
 				if (it == _monoAssets.end()) {
 					continue;
 				}
 
-				field.SetValue(&monoScriptObj, it->second.GetScriptObject().GetMonoObject());
+				field.SetValue(monoScriptObj, it->second.GetScriptObject().GetMonoObject());
 			}
-			else if (filedClass == Scripting::GetMonoClass(Scripting::MonoEntityClassName)) {
+			else if (fieldClass == Scripting::GetMonoClass(Scripting::MonoEntityClassName)) {
 				UUID uuid = fieldInfo.As<UUID>();
 				auto it = _monoEntities.find(uuid);
 				if (it == _monoEntities.end()) {
 					continue;
 				}	
 
-				field.SetValue(&monoScriptObj, it->second->GetScriptObject().GetMonoObject());
+				field.SetValue(monoScriptObj, it->second->GetScriptObject().GetMonoObject());
 			}
 		}
 	}
@@ -353,27 +354,24 @@ namespace flaw {
 		}
 	}
 
-	MonoScriptArray MonoScriptSystem::CreateContactPointArray(const std::vector<ContactPoint>& contactPoints) const {
+	std::vector<MonoScriptObject> MonoScriptSystem::CreateContactPointObjects(const std::vector<ContactPoint>& contactPoints) const {
 		auto& contactPointClass = Scripting::GetMonoClass(Scripting::MonoContactPointClassName);
-		
-		MonoScriptArray contactPointArray(&contactPointClass);
-		contactPointArray.Instantiate(contactPoints.size());
 
-		for (int32_t i = 0; i < contactPoints.size(); i++) {
-			const auto& contactPoint = contactPoints[i];
-			MonoScriptObject contactPointObj(&contactPointClass);
+		std::vector<MonoScriptObject> contactPointObjects;
+		for (const auto& contactPoint : contactPoints) {
+			MonoScriptObject contactPointObj(contactPointClass);
 			contactPointObj.Instantiate(&contactPoint.position, &contactPoint.normal, &contactPoint.impulse);
-			contactPointArray.SetAt(i, contactPointObj);
+			contactPointObjects.emplace_back(std::move(contactPointObj));
 		}
 
-		return contactPointArray;
+		return contactPointObjects;
 	}
 
-	MonoScriptObject MonoScriptSystem::CreateCollisionInfoObject(MonoScriptObject& colliderA, MonoScriptObject& colliderB, MonoArray* contactArray) const {
+	MonoScriptObject MonoScriptSystem::CreateCollisionInfoObject(MonoScriptObject& colliderA, MonoScriptObject& colliderB, MonoScriptArray& contactArray) const {
 		auto& collisionInfoClass = Scripting::GetMonoClass(Scripting::MonoCollisionInfoClassName);
 
-		MonoScriptObject collisionInfoObj(&collisionInfoClass);
-		collisionInfoObj.Instantiate(colliderA.GetMonoObject(), colliderB.GetMonoObject(), contactArray);
+		MonoScriptObject collisionInfoObj(collisionInfoClass);
+		collisionInfoObj.Instantiate(colliderA.GetMonoObject(), colliderB.GetMonoObject(), contactArray.GetMonoArray());
 
 		return collisionInfoObj;
 	}
@@ -389,16 +387,17 @@ namespace flaw {
 		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
 		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
 
-		auto contactPointArray = CreateContactPointArray(collisionInfo.contactPoints);
+		std::vector<MonoScriptObject> contactPointObjects = CreateContactPointObjects(collisionInfo.contactPoints);
+		MonoScriptArray contactPointArray(contactPointObjects.data(), contactPointObjects.size());
 
-		auto collisionInfoObj = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionEnter(collisionInfoObj);
+			comp.CallOnCollisionEnter(collisionInfoObj0);
 		}
 
-		collisionInfoObj = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionEnter(collisionInfoObj);
+			comp.CallOnCollisionEnter(collisionInfoObj1);
 		}
 	}
 
@@ -406,22 +405,24 @@ namespace flaw {
 		if (!collisionInfo.entity0 || !collisionInfo.entity1) {
 			return;
 		}
+
 		auto& monoEnttA = GetMonoEntity(collisionInfo.entity0.GetUUID());
 		auto& monoEnttB = GetMonoEntity(collisionInfo.entity1.GetUUID());
 		
 		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
 		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
-		
-		auto contactPointArray = CreateContactPointArray(collisionInfo.contactPoints);
-		
-		auto collisionInfoObj = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+
+		std::vector<MonoScriptObject> contactPointObjects = CreateContactPointObjects(collisionInfo.contactPoints);
+		MonoScriptArray contactPointArray(contactPointObjects.data(), contactPointObjects.size());
+
+		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionStay(collisionInfoObj);
+			comp.CallOnCollisionStay(collisionInfoObj0);
 		}
 		
-		collisionInfoObj = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionStay(collisionInfoObj);
+			comp.CallOnCollisionStay(collisionInfoObj1);
 		}
 	}
 
@@ -436,16 +437,17 @@ namespace flaw {
 		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
 		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
 		
-		auto contactPointArray = CreateContactPointArray(collisionInfo.contactPoints);
-		
-		auto collisionInfoObj = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+		MonoScriptArray contactPointArray(Scripting::GetMonoClass(Scripting::MonoContactPointClassName));
+		contactPointArray.Instantiate(0);
+
+		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionExit(collisionInfoObj);
+			comp.CallOnCollisionExit(collisionInfoObj0);
 		}
 
-		collisionInfoObj = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray.GetMonoArray());
+		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
 		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionExit(collisionInfoObj);
+			comp.CallOnCollisionExit(collisionInfoObj1);
 		}
 	}
 
@@ -468,6 +470,7 @@ namespace flaw {
 		}
 
 		_timeSinceStart += Time::DeltaTime();
+		//Scripting::MonoCollectGarbage();
 	}
 
 	void MonoScriptSystem::End() {

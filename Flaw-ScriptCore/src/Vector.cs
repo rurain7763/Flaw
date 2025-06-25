@@ -108,5 +108,10 @@ namespace Flaw
         {
             return new Vec3(a.x * scalar, a.y * scalar, a.z * scalar);
         }
+
+        public override string ToString()
+        {
+            return $"x : {x}, y : {y}, z : {z}";
+        }
     }
 }
