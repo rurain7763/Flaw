@@ -12,18 +12,18 @@ namespace flaw {
 	class Scene;
 	class MonoScriptComponent;
 
-	class MonoComponentInstance {
+	class MonoComponentRuntime {
 	public:
-		virtual ~MonoComponentInstance() = default;
+		virtual ~MonoComponentRuntime() = default;
 
 		virtual MonoScriptObject& GetScriptObject() = 0;
 	};
 
-	class MonoEngineComponentInstance : public MonoComponentInstance {
+	class MonoEngineComponentRuntime : public MonoComponentRuntime {
 	public:
-		MonoEngineComponentInstance() = default;
-		MonoEngineComponentInstance(const UUID& uuid, const char* name);
-		~MonoEngineComponentInstance() = default;
+		MonoEngineComponentRuntime() = default;
+		MonoEngineComponentRuntime(const UUID& uuid, const char* name);
+		~MonoEngineComponentRuntime() = default;
 
 		MonoScriptObject& GetScriptObject() override { return _scriptObject; }
 
@@ -33,9 +33,9 @@ namespace flaw {
 		MonoScriptObject _scriptObject;
 	};
 
-	class MonoProjectComponentInstance : public MonoComponentInstance {
+	class MonoProjectComponentRuntime : public MonoComponentRuntime {
 	public:
-		MonoProjectComponentInstance()
+		MonoProjectComponentRuntime()
 			: _createMethod(nullptr)
 			, _startMethod(nullptr)
 			, _updateMethod(nullptr)
@@ -48,8 +48,8 @@ namespace flaw {
 			, _onTriggerExitMethod(nullptr) 
 		{}
 
-		MonoProjectComponentInstance(const UUID& uuid, const char* name);
-		~MonoProjectComponentInstance() = default;
+		MonoProjectComponentRuntime(const UUID& uuid, const char* name);
+		~MonoProjectComponentRuntime() = default;
 
 		void CallOnCreate() const;
 		void CallOnStart() const;
@@ -85,23 +85,30 @@ namespace flaw {
 	public:
 		MonoEntity(const UUID& uuid);
 
-		MonoComponentInstance* AddComponent(const char* name);
+		Ref<MonoComponentRuntime> AddComponent(const char* name);
 		void RemoveComponent(const char* name);
-		MonoComponentInstance* GetComponent(const char* name);
-		MonoProjectComponentInstance* GetProjectComponent(const char* name);
 		bool HasComponent(const char* name) const;
+
+		Ref<MonoComponentRuntime> GetComponent(const char* name);
+
+		template <typename T>
+		Ref<T> GetComponent(const char* name) {
+			return std::dynamic_pointer_cast<T>(GetComponent(name));
+		}
 
 		MonoScriptObject& GetScriptObject() { return _scriptObject; }
 
-		std::unordered_map<std::string, MonoProjectComponentInstance>& GetProjectComponents() { return _projectComponents; }
+		std::unordered_set<Ref<MonoProjectComponentRuntime>> GetProjectComponents() const {
+			return _projectComponents;
+		}
 
 	private:
 		UUID _uuid;
 
 		MonoScriptObject _scriptObject;
 
-		std::unordered_map<std::string, MonoEngineComponentInstance> _engineComponents;
-		std::unordered_map<std::string, MonoProjectComponentInstance> _projectComponents;
+		std::unordered_map<std::string, Ref<MonoComponentRuntime>> _components;
+		std::unordered_set<Ref<MonoProjectComponentRuntime>> _projectComponents;
 	};
 
 	class MonoAsset {
@@ -139,30 +146,36 @@ namespace flaw {
 			}
 
 			auto& enttComp = registry.get<EntityComponent>(entity);
+
+			auto it = _monoEntities.find(enttComp.uuid);
+			if (it == _monoEntities.end()) {
+				return;
+			}
+
+			auto monoEntt = it->second;
+
+			std::string monoTypeName = "Flaw." + std::string(TypeName<T>());
+			monoEntt->AddComponent(monoTypeName.c_str());
+		}
+
+		template<typename T>
+		void UnregisterComponent(entt::registry& registry, entt::entity entity) {
+			auto& enttComp = registry.get<EntityComponent>(entity);
 			auto monoEntt = GetMonoEntity(enttComp.uuid);
 			if (!monoEntt) {
 				return;
 			}
 
-			std::string monoTypeName;
-			if constexpr (std::is_same_v<T, MonoScriptComponent>) {
-				auto& monoComp = registry.get<MonoScriptComponent>(entity);
-				monoTypeName = monoComp.name;
-			}
-			else {
-				monoTypeName = "Flaw." + std::string(TypeName<T>());
-			}
+			std::string monoTypeName = "Flaw." + std::string(TypeName<T>());
 
-			if (monoEntt->HasComponent(monoTypeName.c_str())) {
-				return;
-			}
-
-			monoEntt->AddComponent(monoTypeName.c_str());
+			monoEntt->RemoveComponent(monoTypeName.c_str());
 		}
 
+		void RegisterMonoComponent(entt::registry& registry, entt::entity entity);
 		void RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity);
+		void UnregisterMonoComponent(entt::registry& registry, entt::entity entity);
 
-		void SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp);
+		void SetAllComponentFields(MonoProjectComponentRuntime& monoProjectComp, MonoScriptComponent& monoScriptComp);
 
 		const char* GetMonoColliderClassName(PhysicsShapeType shapeType) const;
 		std::vector<MonoScriptObject> CreateContactPointObjects(const std::vector<ContactPoint>& contactPoints) const;
@@ -183,6 +196,7 @@ namespace flaw {
 		std::unordered_map<AssetHandle, MonoAsset> _monoAssets;
 
 		std::unordered_map<UUID, Ref<MonoEntity>> _monoEntities;
+		std::vector<Ref<MonoProjectComponentRuntime>> _monoComponentsToDestroy;
 		std::vector<Ref<MonoEntity>> _monoEntitiesToDestroy;
 	};
 }

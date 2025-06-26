@@ -8,13 +8,13 @@
 #include "PhysicsSystem.h"
 
 namespace flaw {
-	MonoEngineComponentInstance::MonoEngineComponentInstance(const UUID& uuid, const char* name) 
+	MonoEngineComponentRuntime::MonoEngineComponentRuntime(const UUID& uuid, const char* name) 
 		: _scriptObject(Scripting::GetMonoClass(name))
 	{
 		_scriptObject.Instantiate(&uuid);
 	}
 
-	MonoProjectComponentInstance::MonoProjectComponentInstance(const UUID& uuid, const char* name) 
+	MonoProjectComponentRuntime::MonoProjectComponentRuntime(const UUID& uuid, const char* name) 
 		: _scriptObject(Scripting::GetMonoClass(name))
 	{
 		_scriptObject.Instantiate(&uuid);
@@ -33,7 +33,7 @@ namespace flaw {
 		_onTriggerExitMethod = monoClass.GetMethodRecurcive("OnTriggerExit", 1);
 	}
 
-	void MonoProjectComponentInstance::CreatePublicFieldsInObjectRecursive(MonoScriptObjectView& objView) {
+	void MonoProjectComponentRuntime::CreatePublicFieldsInObjectRecursive(MonoScriptObjectView& objView) {
 		objView.GetClass().EachFields([&objView](std::string_view fieldName, MonoScriptClassField& field) {
 			if (field.IsClass()) {
 				MonoObject* objPtr = field.GetValue<MonoObject*>(objView);
@@ -51,45 +51,45 @@ namespace flaw {
 		});
 	}
 
-	void MonoProjectComponentInstance::CallOnCreate() const {
+	void MonoProjectComponentRuntime::CallOnCreate() const {
 		if (_createMethod) {
 			_scriptObject.CallMethod(_createMethod);
 		}
 	}
 
-	void MonoProjectComponentInstance::CallOnStart() const {
+	void MonoProjectComponentRuntime::CallOnStart() const {
 		if (_startMethod) {
 			_scriptObject.CallMethod(_startMethod);
 		}
 	}
 
-	void MonoProjectComponentInstance::CallOnUpdate() const {
+	void MonoProjectComponentRuntime::CallOnUpdate() const {
 		if (_updateMethod) {
 			_scriptObject.CallMethod(_updateMethod);
 		}
 	}
 
-	void MonoProjectComponentInstance::CallOnDestroy() const {
+	void MonoProjectComponentRuntime::CallOnDestroy() const {
 		if (_destroyMethod) {
 			_scriptObject.CallMethod(_destroyMethod);
 		}
 	}
 
-	void MonoProjectComponentInstance::CallOnCollisionEnter(MonoScriptObject& collisionInfo) const {
+	void MonoProjectComponentRuntime::CallOnCollisionEnter(MonoScriptObject& collisionInfo) const {
 		if (!_onCollisionEnterMethod) {
 			return;
 		}
 		_scriptObject.CallMethod(_onCollisionEnterMethod, collisionInfo.GetMonoObject());
 	}
 
-	void MonoProjectComponentInstance::CallOnCollisionStay(MonoScriptObject& collisionInfo) const {
+	void MonoProjectComponentRuntime::CallOnCollisionStay(MonoScriptObject& collisionInfo) const {
 		if (!_onCollisionStayMethod) {
 			return;
 		}
 		_scriptObject.CallMethod(_onCollisionStayMethod, collisionInfo.GetMonoObject());
 	}
 
-	void MonoProjectComponentInstance::CallOnCollisionExit(MonoScriptObject& collisionInfo) const {
+	void MonoProjectComponentRuntime::CallOnCollisionExit(MonoScriptObject& collisionInfo) const {
 		if (!_onCollisionExitMethod) {
 			return;
 		}
@@ -103,51 +103,52 @@ namespace flaw {
 		_scriptObject.Instantiate(&uuid);
 	}
 
-	MonoComponentInstance* MonoEntity::AddComponent(const char* name) {
+	Ref<MonoComponentRuntime> MonoEntity::AddComponent(const char* name) {
 		if (!Scripting::HasMonoClass(name)) {
 			return nullptr;
 		}
 
 		auto& monoClass = Scripting::GetMonoClass(name);
+
+		Ref<MonoComponentRuntime> monoComp;
+
 		if (Scripting::IsMonoProjectComponent(monoClass)) {
-			_projectComponents.emplace(std::piecewise_construct, std::forward_as_tuple(name), std::forward_as_tuple(_uuid, name));
-			return &_projectComponents[name];
+			auto prjComp = CreateRef<MonoProjectComponentRuntime>(_uuid, name);
+			_projectComponents.insert(prjComp);
+			monoComp = prjComp;
 		}
 		else {
-			_engineComponents.emplace(std::piecewise_construct, std::forward_as_tuple(name), std::forward_as_tuple(_uuid, name));
-			return &_engineComponents[name];
+			monoComp = CreateRef<MonoEngineComponentRuntime>(_uuid, name);
 		}
+
+		_components[name] = monoComp;
+
+		return monoComp;
 	}
 
 	void MonoEntity::RemoveComponent(const char* name) {
-		_engineComponents.erase(name);
-		_projectComponents.erase(name);
-	}
-
-	MonoComponentInstance* MonoEntity::GetComponent(const char* name) {
-		auto engineIt = _engineComponents.find(name);
-		if (engineIt != _engineComponents.end()) {
-			return &engineIt->second;
+		auto it = _components.find(name);
+		if (it == _components.end()) {
+			return;
 		}
 
-		auto projectIt = _projectComponents.find(name);
-		if (projectIt != _projectComponents.end()) {
-			return &projectIt->second;
+		if (auto prjComp = std::dynamic_pointer_cast<MonoProjectComponentRuntime>(it->second)) {
+			_projectComponents.erase(prjComp);
 		}
 
-		return nullptr;
-	}
-
-	MonoProjectComponentInstance* MonoEntity::GetProjectComponent(const char* name) {
-		auto it = _projectComponents.find(name);
-		if (it != _projectComponents.end()) {
-			return &it->second;
-		}
-		return nullptr;
+		_components.erase(name);
 	}
 
 	bool MonoEntity::HasComponent(const char* name) const {
-		return (_engineComponents.find(name) != _engineComponents.end()) || (_projectComponents.find(name) != _projectComponents.end());
+		return _components.find(name) != _components.end();
+	}
+
+	Ref<MonoComponentRuntime> MonoEntity::GetComponent(const char* name) {
+		auto it = _components.find(name);
+		if (it != _components.end()) {
+			return it->second;
+		}
+		return nullptr;
 	}
 
 	MonoAsset::MonoAsset(const AssetHandle& handle, const Ref<Asset>& asset) 
@@ -163,7 +164,7 @@ namespace flaw {
 	{
 	}
 
-	void MonoScriptSystem::SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp) {
+	void MonoScriptSystem::SetAllComponentFields(MonoProjectComponentRuntime& monoProjectComp, MonoScriptComponent& monoScriptComp) {
 		auto& monoScriptObj = monoProjectComp.GetScriptObject();
 		auto monoScriptClass = monoScriptObj.GetClass();
 		for (const auto& fieldInfo : monoScriptComp.fields) {
@@ -192,7 +193,7 @@ namespace flaw {
 					continue;
 				}
 
-				auto* targetComp = it->second->GetComponent(fieldInfo.fieldType.c_str());
+				auto targetComp = it->second->GetComponent(fieldInfo.fieldType.c_str());
 				if (!targetComp) {
 					continue;
 				}
@@ -233,13 +234,26 @@ namespace flaw {
 			return;
 		}
 
-		auto monoEntt = it->second;
-		for (const auto& [name, comp] : monoEntt->GetProjectComponents()) {
-			comp.CallOnDestroy();
+		_monoEntitiesToDestroy.push_back(it->second);
+		_monoEntities.erase(it);
+	}
+
+	void MonoScriptSystem::RegisterMonoComponent(entt::registry& registry, entt::entity entity) {
+		if (!registry.any_of<MonoScriptComponent>(entity)) {
+			return;
 		}
 
-		_monoEntitiesToDestroy.push_back(monoEntt);
-		_monoEntities.erase(it);
+		auto& enttComp = registry.get<EntityComponent>(entity);
+		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
+
+		auto it = _monoEntities.find(enttComp.uuid);
+		if (it == _monoEntities.end()) {
+			return;
+		}
+
+		auto monoEntt = it->second;
+
+		monoEntt->AddComponent(monoScriptComp.name.c_str());
 	}
 
 	void MonoScriptSystem::RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity) {
@@ -253,7 +267,7 @@ namespace flaw {
 		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
 
 		auto monoEntt = it->second;
-		auto* prjComp = static_cast<MonoProjectComponentInstance*>(monoEntt->AddComponent(monoScriptComp.name.c_str()));
+		auto prjComp = std::static_pointer_cast<MonoProjectComponentRuntime>(monoEntt->AddComponent(monoScriptComp.name.c_str()));
 		if (!prjComp) {
 			return;
 		}
@@ -262,6 +276,19 @@ namespace flaw {
 
 		prjComp->CallOnCreate();
 		prjComp->CallOnStart();
+	}
+
+	void MonoScriptSystem::UnregisterMonoComponent(entt::registry& registry, entt::entity entity) {
+		auto& enttComp = registry.get<EntityComponent>(entity);
+		auto monoEntt = GetMonoEntity(enttComp.uuid);
+		if (!monoEntt) {
+			return;
+		}
+
+		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
+
+		_monoComponentsToDestroy.push_back(monoEntt->GetComponent<MonoProjectComponentRuntime>(monoScriptComp.name.c_str()));
+		monoEntt->RemoveComponent(monoScriptComp.name.c_str());
 	}
 
 	void MonoScriptSystem::Start() {
@@ -277,11 +304,17 @@ namespace flaw {
 		registry.on_construct<EntityComponent>().connect<&MonoScriptSystem::RegisterEntity>(*this);
 		registry.on_destroy<EntityComponent>().connect<&MonoScriptSystem::UnregisterEntity>(*this);
 		registry.on_construct<TransformComponent>().connect<&MonoScriptSystem::RegisterComponent<TransformComponent>>(*this);
+		registry.on_destroy<TransformComponent>().connect<&MonoScriptSystem::UnregisterComponent<TransformComponent>>(*this);
 		registry.on_construct<CameraComponent>().connect<&MonoScriptSystem::RegisterComponent<CameraComponent>>(*this);
+		registry.on_destroy<CameraComponent>().connect<&MonoScriptSystem::UnregisterComponent<CameraComponent>>(*this);
 		registry.on_construct<BoxColliderComponent>().connect<&MonoScriptSystem::RegisterComponent<BoxColliderComponent>>(*this);
+		registry.on_destroy<BoxColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<BoxColliderComponent>>(*this);
 		registry.on_construct<SphereColliderComponent>().connect<&MonoScriptSystem::RegisterComponent<SphereColliderComponent>>(*this);
+		registry.on_destroy<SphereColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().connect<&MonoScriptSystem::RegisterComponent<MeshColliderComponent>>(*this);
+		registry.on_destroy<MeshColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().connect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
+		registry.on_destroy<MonoScriptComponent>().connect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 
 		_timeSinceStart = 0.f;
 
@@ -299,7 +332,7 @@ namespace flaw {
 			RegisterComponent<SphereColliderComponent>(registry, entity);
 			RegisterComponent<MeshColliderComponent>(registry, entity);
 			RegisterComponent<AnimatorComponent>(registry, entity);
-			RegisterComponent<MonoScriptComponent>(registry, entity);
+			RegisterMonoComponent(registry, entity);
 		}
 
 		for (auto&& [entity, enttComp, monoScriptComp] : registry.view<EntityComponent, MonoScriptComponent>().each()) {
@@ -309,7 +342,7 @@ namespace flaw {
 			}
 
 			auto monoEntt = it->second;
-			auto* prjComp = monoEntt->GetProjectComponent(monoScriptComp.name.c_str());
+			auto prjComp = monoEntt->GetComponent<MonoProjectComponentRuntime>(monoScriptComp.name.c_str());
 			if (!prjComp) {
 				continue;
 			}
@@ -325,8 +358,8 @@ namespace flaw {
 			}
 
 			auto monoEntt = it->second;
-			for (const auto& [name, comp] : monoEntt->GetProjectComponents()) {
-				comp.CallOnCreate();
+			for (const auto& comp : monoEntt->GetProjectComponents()) {
+				comp->CallOnCreate();
 			}
 		}
 
@@ -338,8 +371,8 @@ namespace flaw {
 			}
 
 			auto monoEntt = it->second;
-			for (const auto& [name, comp] : monoEntt->GetProjectComponents()) {
-				comp.CallOnStart();
+			for (const auto& comp : monoEntt->GetProjectComponents()) {
+				comp->CallOnStart();
 			}
 		}
 	}
@@ -387,20 +420,20 @@ namespace flaw {
 		auto& monoEnttA = GetMonoEntity(collisionInfo.entity0.GetUUID());
 		auto& monoEnttB = GetMonoEntity(collisionInfo.entity1.GetUUID());
 
-		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
-		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
+		auto monoEnttAColliderComp = monoEnttA->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType0));
+		auto monoEnttBColliderComp = monoEnttB->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType1));
 
 		std::vector<MonoScriptObject> contactPointObjects = CreateContactPointObjects(collisionInfo.contactPoints);
 		MonoScriptArray contactPointArray(contactPointObjects.data(), contactPointObjects.size());
 
 		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionEnter(collisionInfoObj0);
+		for (const auto& comp : monoEnttA->GetProjectComponents()) {
+			comp->CallOnCollisionEnter(collisionInfoObj0);
 		}
 
 		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionEnter(collisionInfoObj1);
+		for (const auto& comp : monoEnttB->GetProjectComponents()) {
+			comp->CallOnCollisionEnter(collisionInfoObj1);
 		}
 	}
 
@@ -412,20 +445,20 @@ namespace flaw {
 		auto& monoEnttA = GetMonoEntity(collisionInfo.entity0.GetUUID());
 		auto& monoEnttB = GetMonoEntity(collisionInfo.entity1.GetUUID());
 		
-		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
-		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
+		auto monoEnttAColliderComp = monoEnttA->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType0));
+		auto monoEnttBColliderComp = monoEnttB->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType1));
 
 		std::vector<MonoScriptObject> contactPointObjects = CreateContactPointObjects(collisionInfo.contactPoints);
 		MonoScriptArray contactPointArray(contactPointObjects.data(), contactPointObjects.size());
 
 		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionStay(collisionInfoObj0);
+		for (const auto& comp : monoEnttA->GetProjectComponents()) {
+			comp->CallOnCollisionStay(collisionInfoObj0);
 		}
-		
+
 		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionStay(collisionInfoObj1);
+		for (const auto& comp : monoEnttB->GetProjectComponents()) {
+			comp->CallOnCollisionStay(collisionInfoObj1);
 		}
 	}
 
@@ -437,20 +470,20 @@ namespace flaw {
 		auto& monoEnttA = GetMonoEntity(collisionInfo.entity0.GetUUID());
 		auto& monoEnttB = GetMonoEntity(collisionInfo.entity1.GetUUID());
 		
-		auto* monoEnttAColliderComp = monoEnttA->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType0));
-		auto* monoEnttBColliderComp = monoEnttB->GetComponent(GetMonoColliderClassName(collisionInfo.shapeType1));
-		
+		auto monoEnttAColliderComp = monoEnttA->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType0));
+		auto monoEnttBColliderComp = monoEnttB->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType1));
+
 		MonoScriptArray contactPointArray(Scripting::GetMonoClass(Scripting::MonoContactPointClassName));
 		contactPointArray.Instantiate(0);
 
 		auto collisionInfoObj0 = CreateCollisionInfoObject(monoEnttAColliderComp->GetScriptObject(), monoEnttBColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttA->GetProjectComponents()) {
-			comp.CallOnCollisionExit(collisionInfoObj0);
+		for (const auto& comp : monoEnttA->GetProjectComponents()) {
+			comp->CallOnCollisionExit(collisionInfoObj0);
 		}
 
 		auto collisionInfoObj1 = CreateCollisionInfoObject(monoEnttBColliderComp->GetScriptObject(), monoEnttAColliderComp->GetScriptObject(), contactPointArray);
-		for (const auto& [name, comp] : monoEnttB->GetProjectComponents()) {
-			comp.CallOnCollisionExit(collisionInfoObj1);
+		for (const auto& comp : monoEnttB->GetProjectComponents()) {
+			comp->CallOnCollisionExit(collisionInfoObj1);
 		}
 	}
 
@@ -462,11 +495,15 @@ namespace flaw {
 			}
 
 			auto& monoEntt = it->second;
-			for (const auto& [name, comp] : monoEntt->GetProjectComponents()) {
-				comp.CallOnUpdate();
+			for (const auto& comp : monoEntt->GetProjectComponents()) {
+				comp->CallOnUpdate();
 			}
 		}
 
+		for (const auto& monoComp : _monoComponentsToDestroy) {
+			monoComp->CallOnDestroy();
+		}
+		_monoComponentsToDestroy.clear();
 		_monoEntitiesToDestroy.clear();
 
 		_timeSinceStart += Time::DeltaTime();
@@ -483,19 +520,25 @@ namespace flaw {
 			}
 
 			auto& monoEntt = it->second;
-			for (const auto& [name, comp] : monoEntt->GetProjectComponents()) {
-				comp.CallOnDestroy();
+			for (const auto& comp : monoEntt->GetProjectComponents()) {
+				comp->CallOnDestroy();
 			}
 		}
 
 		registry.on_construct<EntityComponent>().disconnect<&MonoScriptSystem::RegisterEntity>(*this);
 		registry.on_destroy<EntityComponent>().disconnect<&MonoScriptSystem::UnregisterEntity>(*this);
 		registry.on_construct<TransformComponent>().disconnect<&MonoScriptSystem::RegisterComponent<TransformComponent>>(*this);
+		registry.on_destroy<TransformComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<TransformComponent>>(*this);
 		registry.on_construct<CameraComponent>().disconnect<&MonoScriptSystem::RegisterComponent<CameraComponent>>(*this);
+		registry.on_destroy<CameraComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<CameraComponent>>(*this);
 		registry.on_construct<BoxColliderComponent>().disconnect<&MonoScriptSystem::RegisterComponent<BoxColliderComponent>>(*this);
+		registry.on_destroy<BoxColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<BoxColliderComponent>>(*this);
 		registry.on_construct<SphereColliderComponent>().disconnect<&MonoScriptSystem::RegisterComponent<SphereColliderComponent>>(*this);
+		registry.on_destroy<SphereColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().disconnect<&MonoScriptSystem::RegisterComponent<MeshColliderComponent>>(*this);
+		registry.on_destroy<MeshColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().disconnect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
+		registry.on_destroy<MonoScriptComponent>().disconnect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 
 		physicsSys.UnregisterOnCollisionEnterHandler(PID(this));
 		physicsSys.UnregisterOnCollisionStayHandler(PID(this));
