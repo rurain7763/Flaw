@@ -398,6 +398,14 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::AnimatorComponent>()) {
+			auto& comp = entity.GetComponent<flaw::AnimatorComponent>();
+			out << YAML::Key << TypeName<flaw::AnimatorComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "SkeletonAsset" << YAML::Value << comp.skeletonAsset;
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<flaw::MonoScriptComponent>()) {
 			auto& comp = entity.GetComponent<flaw::MonoScriptComponent>();
 			out << YAML::Key << TypeName<flaw::MonoScriptComponent>().data();
@@ -474,29 +482,17 @@ namespace flaw {
 				std::string name = component.first.as<std::string>();
 
 				if (name == TypeName<EntityComponent>()) {
-					if (!entity.HasComponent<EntityComponent>()) {
-						entity.AddComponent<EntityComponent>();
-					}
-
 					auto& comp = entity.GetComponent<EntityComponent>();
 					comp.name = component.second["Name"].as<std::string>();
 				}
 				else if (name == TypeName<TransformComponent>()) {
-					if (!entity.HasComponent<TransformComponent>()) {
-						entity.AddComponent<TransformComponent>();
-					}
-
 					auto& comp = entity.GetComponent<TransformComponent>();
 					comp.position = component.second["Position"].as<vec3>();
 					comp.rotation = component.second["Rotation"].as<vec3>();
 					comp.scale = component.second["Scale"].as<vec3>();
 				}
 				else if (name == "CameraComponent") {
-					if (!entity.HasComponent<CameraComponent>()) {
-						entity.AddComponent<CameraComponent>();
-					}
-
-					auto& comp = entity.GetComponent<CameraComponent>();
+					auto& comp = entity.AddComponent<CameraComponent>();
 					comp.perspective = component.second["Perspective"].as<bool>();
 					comp.fov = component.second["Fov"].as<float>();
 					comp.aspectRatio = component.second["AspectRatio"].as<float>();
@@ -506,19 +502,12 @@ namespace flaw {
 					comp.depth = component.second["Depth"].as<uint32_t>();
 				}
 				else if (name == "SpriteRendererComponent") {
-					if (!entity.HasComponent<SpriteRendererComponent>()) {
-						entity.AddComponent<SpriteRendererComponent>();
-					}
-
-					auto& comp = entity.GetComponent<SpriteRendererComponent>();
+					auto& comp = entity.AddComponent<SpriteRendererComponent>();
 					comp.color = component.second["Color"].as<vec4>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 				else if (name == "Rigidbody2DComponent") {
-					if (!entity.HasComponent<Rigidbody2DComponent>()) {
-						entity.AddComponent<Rigidbody2DComponent>();
-					}
-					auto& comp = entity.GetComponent<Rigidbody2DComponent>();
+					auto& comp = entity.AddComponent<Rigidbody2DComponent>();
 					comp.bodyType = (Rigidbody2DComponent::BodyType)component.second["BodyType"].as<int32_t>();
 					comp.fixedRotation = component.second["FixedRotation"].as<bool>();
 					comp.density = component.second["Density"].as<float>();
@@ -527,35 +516,23 @@ namespace flaw {
 					comp.restitutionThreshold = component.second["RestitutionThreshold"].as<float>();
 				}
 				else if (name == "BoxCollider2DComponent") {
-					if (!entity.HasComponent<BoxCollider2DComponent>()) {
-						entity.AddComponent<BoxCollider2DComponent>();
-					}
-					auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+					auto& comp = entity.AddComponent<BoxCollider2DComponent>();
 					comp.offset = component.second["Offset"].as<vec2>();
 					comp.size = component.second["Size"].as<vec2>();
 				}
 				else if (name == "CircleCollider2DComponent") {
-					if (!entity.HasComponent<CircleCollider2DComponent>()) {
-						entity.AddComponent<CircleCollider2DComponent>();
-					}
-					auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+					auto& comp = entity.AddComponent<CircleCollider2DComponent>();
 					comp.offset = component.second["Offset"].as<vec2>();
 					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == TypeName<RigidbodyComponent>()) {
-					if (!entity.HasComponent<RigidbodyComponent>()) {
-						entity.AddComponent<RigidbodyComponent>();
-					}
-					auto& comp = entity.GetComponent<RigidbodyComponent>();
+					auto& comp = entity.AddComponent<RigidbodyComponent>();
 					comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
 					comp.isKinematic = component.second["IsKinematic"].as<bool>();
 					comp.mass = component.second["Mass"].as<float>();
 				}
 				else if (name == TypeName<BoxColliderComponent>()) {
-					if (!entity.HasComponent<BoxColliderComponent>()) {
-						entity.AddComponent<BoxColliderComponent>();
-					}
-					auto& comp = entity.GetComponent<BoxColliderComponent>();
+					auto& comp = entity.AddComponent<BoxColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.staticFriction = component.second["StaticFriction"].as<float>();
 					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
@@ -564,10 +541,7 @@ namespace flaw {
 					comp.size = component.second["Size"].as<vec3>();
 				}
 				else if (name == TypeName<SphereColliderComponent>()) {
-					if (!entity.HasComponent<SphereColliderComponent>()) {
-						entity.AddComponent<SphereColliderComponent>();
-					}
-					auto& comp = entity.GetComponent<SphereColliderComponent>();
+					auto& comp = entity.AddComponent<SphereColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.staticFriction = component.second["StaticFriction"].as<float>();
 					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
@@ -576,10 +550,7 @@ namespace flaw {
 					comp.radius = component.second["Radius"].as<float>();
 				}
 				else if (name == TypeName<MeshColliderComponent>()) {
-					if (!entity.HasComponent<MeshColliderComponent>()) {
-						entity.AddComponent<MeshColliderComponent>();
-					}
-					auto& comp = entity.GetComponent<MeshColliderComponent>();
+					auto& comp = entity.AddComponent<MeshColliderComponent>();
 					comp.isTrigger = component.second["IsTrigger"].as<bool>();
 					comp.staticFriction = component.second["StaticFriction"].as<float>();
 					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
@@ -587,37 +558,24 @@ namespace flaw {
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
 				}
 				else if (name == "TextComponent") {
-					if (!entity.HasComponent<TextComponent>()) {
-						entity.AddComponent<TextComponent>();
-					}
-					auto& comp = entity.GetComponent<TextComponent>();
+					auto& comp = entity.AddComponent<TextComponent>();
 					comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
 					comp.color = component.second["Color"].as<vec4>();
 					comp.font = component.second["Font"].as<uint64_t>();
 				}
 				else if (name == "SoundListenerComponent") {
-					if (!entity.HasComponent<SoundListenerComponent>()) {
-						entity.AddComponent<SoundListenerComponent>();
-					}
-					auto& comp = entity.GetComponent<SoundListenerComponent>();
+					auto& comp = entity.AddComponent<SoundListenerComponent>();
 					comp.velocity = component.second["Velocity"].as<vec3>();
 				}
 				else if (name == "SoundSourceComponent") {
-					if (!entity.HasComponent<SoundSourceComponent>()) {
-						entity.AddComponent<SoundSourceComponent>();
-					}
-					auto& comp = entity.GetComponent<SoundSourceComponent>();
+					auto& comp = entity.AddComponent<SoundSourceComponent>();
 					comp.sound = component.second["Sound"].as<uint64_t>();
 					comp.loop = component.second["Loop"].as<bool>();
 					comp.autoPlay = component.second["AutoPlay"].as<bool>();
 					comp.volume = component.second["Volume"].as<float>();
 				}
 				else if (name == TypeName<StaticMeshComponent>()) {
-					if (!entity.HasComponent<StaticMeshComponent>()) {
-						entity.AddComponent<StaticMeshComponent>();
-					}
-
-					auto& comp = entity.GetComponent<StaticMeshComponent>();
+					auto& comp = entity.AddComponent<StaticMeshComponent>();
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
 					comp.materials.clear();
 					for (const auto& mat : component.second["Materials"]) {
@@ -626,11 +584,7 @@ namespace flaw {
 					comp.castShadow = component.second["CastShadow"].as<bool>();
 				}
 				else if (name == TypeName<SkeletalMeshComponent>()) {
-					if (!entity.HasComponent<SkeletalMeshComponent>()) {
-						entity.AddComponent<SkeletalMeshComponent>();
-					}
-
-					auto& comp = entity.GetComponent<SkeletalMeshComponent>();
+					auto& comp = entity.AddComponent<SkeletalMeshComponent>();
 					comp.mesh = component.second["Mesh"].as<uint64_t>();
 					comp.materials.clear();
 					for (const auto& mat : component.second["Materials"]) {
@@ -640,11 +594,7 @@ namespace flaw {
 					comp.castShadow = component.second["CastShadow"].as<bool>();
 				}
 				else if (name == "ParticleComponent") {
-					if (!entity.HasComponent<ParticleComponent>()) {
-						entity.AddComponent<ParticleComponent>();
-					}
-
-					auto& comp = entity.GetComponent<ParticleComponent>();
+					auto& comp = entity.AddComponent<ParticleComponent>();
 
 					comp.maxParticles = component.second["MaxParticles"].as<uint32_t>();
 					comp.spaceType = (ParticleComponent::SpaceType)component.second["SpaceType"].as<int32_t>();
@@ -744,38 +694,23 @@ namespace flaw {
 					}
 				}
 				else if (name == "SkyLightComponent") {
-					if (!entity.HasComponent<SkyLightComponent>()) {
-						entity.AddComponent<SkyLightComponent>();
-					}
-
-					auto& comp = entity.GetComponent<SkyLightComponent>();
+					auto& comp = entity.AddComponent<SkyLightComponent>();
 					comp.color = component.second["Color"].as<vec3>();
 					comp.intensity = component.second["Intensity"].as<float>();
 				}
 				else if (name == "DirectionalLightComponent") {
-					if (!entity.HasComponent<DirectionalLightComponent>()) {
-						entity.AddComponent<DirectionalLightComponent>();
-					}
-
-					auto& comp = entity.GetComponent<DirectionalLightComponent>();
+					auto& comp = entity.AddComponent<DirectionalLightComponent>();
 					comp.color = component.second["Color"].as<vec3>();
 					comp.intensity = component.second["Intensity"].as<float>();
 				}
 				else if (name == "PointLightComponent") {
-					if (!entity.HasComponent<PointLightComponent>()) {
-						entity.AddComponent<PointLightComponent>();
-					}
-
-					auto& comp = entity.GetComponent<PointLightComponent>();
+					auto& comp = entity.AddComponent<PointLightComponent>();
 					comp.color = component.second["Color"].as<vec3>();
 					comp.intensity = component.second["Intensity"].as<float>();
 					comp.range = component.second["Range"].as<float>();
 				}
 				else if (name == "SpotLightComponent") {
-					if (!entity.HasComponent<SpotLightComponent>()) {
-						entity.AddComponent<SpotLightComponent>();
-					}
-					auto& comp = entity.GetComponent<SpotLightComponent>();
+					auto& comp = entity.AddComponent<SpotLightComponent>();
 					comp.color = component.second["Color"].as<vec3>();
 					comp.intensity = component.second["Intensity"].as<float>();
 					comp.range = component.second["Range"].as<float>();
@@ -783,30 +718,25 @@ namespace flaw {
 					comp.outer = component.second["Outer"].as<float>();
 				}
 				else if (name == "SkyBoxComponent") {
-					if (!entity.HasComponent<SkyBoxComponent>()) {
-						entity.AddComponent<SkyBoxComponent>();
-					}
-					auto& comp = entity.GetComponent<SkyBoxComponent>();
+					auto& comp = entity.AddComponent<SkyBoxComponent>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 				else if (name == "DecalComponent") {
-					if (!entity.HasComponent<DecalComponent>()) {
-						entity.AddComponent<DecalComponent>();
-					}
-					auto& comp = entity.GetComponent<DecalComponent>();
+					auto& comp = entity.AddComponent<DecalComponent>();
 					comp.texture = component.second["Texture"].as<uint64_t>();
 				}
 				else if (name == TypeName<LandscapeComponent>()) {
-					if (!entity.HasComponent<LandscapeComponent>()) {
-						entity.AddComponent<LandscapeComponent>();
-					}
-					auto& comp = entity.GetComponent<LandscapeComponent>();
+					auto& comp = entity.AddComponent<LandscapeComponent>();
 					comp.tilingX = component.second["TilingX"].as<float>();
 					comp.tilingY = component.second["TilingY"].as<float>();
 					comp.heightMap = component.second["HeightMap"].as<uint64_t>();
 					comp.lodLevelMax = component.second["LODLevelMax"].as<uint32_t>();
 					comp.lodDistanceRange = component.second["LODDistanceRange"].as<vec2>();
 					comp.albedoTexture2DArray = component.second["AlbedoTexture2DArray"].as<uint64_t>();
+				}
+				else if (name == TypeName<AnimatorComponent>()) {
+					auto& comp = entity.AddComponent<AnimatorComponent>();
+					comp.skeletonAsset = component.second["SkeletonAsset"].as<uint64_t>();
 				}
 				else if (name == TypeName<MonoScriptComponent>()) {
 					std::string scriptName = component.second["Name"].as<std::string>();
@@ -821,9 +751,7 @@ namespace flaw {
 						fields.push_back(fieldInfo);
 					}
 
-					if (!entity.HasComponent<MonoScriptComponent>()) {
-						entity.AddComponent<MonoScriptComponent>(scriptName.data(), fields);
-					}
+					entity.AddComponent<MonoScriptComponent>(scriptName.data(), fields);
 				}
 			}
 		}

@@ -225,27 +225,6 @@ namespace flaw {
 		_monoEntities[enttComp.uuid] = CreateRef<MonoEntity>(enttComp.uuid);
 	}
 
-	void MonoScriptSystem::RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity) {
-		auto& enttComp = registry.get<EntityComponent>(entity);
-		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
-
-		auto it = _monoEntities.find(enttComp.uuid);
-		if (it == _monoEntities.end()) {
-			return;
-		}
-
-		auto monoEntt = it->second;
-		auto* prjComp = static_cast<MonoProjectComponentInstance*>(monoEntt->AddComponent(monoScriptComp.name.c_str()));
-		if (!prjComp) {
-			return;
-		}
-
-		SetAllComponentFields(*prjComp, monoScriptComp);
-
-		prjComp->CallOnCreate();
-		prjComp->CallOnStart();
-	}
-
 	void MonoScriptSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
 		auto& enttComp = registry.get<EntityComponent>(entity);
 
@@ -259,7 +238,30 @@ namespace flaw {
 			comp.CallOnDestroy();
 		}
 
-		_monoEntitiesToDestroy.push_back(enttComp.uuid);		
+		_monoEntitiesToDestroy.push_back(monoEntt);
+		_monoEntities.erase(it);
+	}
+
+	void MonoScriptSystem::RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity) {
+		auto& enttComp = registry.get<EntityComponent>(entity);
+
+		auto it = _monoEntities.find(enttComp.uuid);
+		if (it == _monoEntities.end()) {
+			return;
+		}
+
+		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
+
+		auto monoEntt = it->second;
+		auto* prjComp = static_cast<MonoProjectComponentInstance*>(monoEntt->AddComponent(monoScriptComp.name.c_str()));
+		if (!prjComp) {
+			return;
+		}
+
+		SetAllComponentFields(*prjComp, monoScriptComp);
+
+		prjComp->CallOnCreate();
+		prjComp->CallOnStart();
 	}
 
 	void MonoScriptSystem::Start() {
@@ -296,6 +298,7 @@ namespace flaw {
 			RegisterComponent<BoxColliderComponent>(registry, entity);
 			RegisterComponent<SphereColliderComponent>(registry, entity);
 			RegisterComponent<MeshColliderComponent>(registry, entity);
+			RegisterComponent<AnimatorComponent>(registry, entity);
 			RegisterComponent<MonoScriptComponent>(registry, entity);
 		}
 
@@ -452,11 +455,6 @@ namespace flaw {
 	}
 
 	void MonoScriptSystem::Update() {
-		for (auto& uuid : _monoEntitiesToDestroy) {
-			_monoEntities.erase(uuid);
-		}
-		_monoEntitiesToDestroy.clear();
-
 		for (auto&& [entity, enttComp, monoScriptComp] : _scene.GetRegistry().view<EntityComponent, MonoScriptComponent>().each()) {
 			auto it = _monoEntities.find(enttComp.uuid);
 			if (it == _monoEntities.end()) {
@@ -469,8 +467,9 @@ namespace flaw {
 			}
 		}
 
+		_monoEntitiesToDestroy.clear();
+
 		_timeSinceStart += Time::DeltaTime();
-		//Scripting::MonoCollectGarbage();
 	}
 
 	void MonoScriptSystem::End() {

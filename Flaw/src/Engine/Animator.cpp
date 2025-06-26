@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Animator.h"
+#include "Log/Log.h"
 
 namespace flaw {
 	void AnimatorAnimation1D::GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animationMatrices) {
@@ -86,6 +87,11 @@ namespace flaw {
 	}
 
 	void AnimatorRuntime::PlayState(int32_t stateIndex) {
+		if (stateIndex < 0 || stateIndex >= _animator._states.size()) {
+			Log::Error("AnimatorRuntime::PlayState: Invalid state index %d", stateIndex);
+			return;
+		}
+
 		_currentStateIndex = stateIndex;
 		_currentTransitionIndex = -1;
 		_currentTime = 0.0f;

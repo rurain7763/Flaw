@@ -164,4 +164,12 @@
     {
         // MeshCollider specific properties and methods can be added here
     }
+
+    public class AnimatorComponent : EntityComponent
+    {
+        public void PlayState(int stateIndex)
+        {
+            InternalCalls.PlayState_Animator(entityId, stateIndex);
+        }
+    }
 }

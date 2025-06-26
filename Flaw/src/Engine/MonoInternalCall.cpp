@@ -6,6 +6,7 @@
 #include "Assets.h"
 #include "Physics.h"
 #include "PhysicsSystem.h"
+#include "AnimationSystem.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -207,5 +208,18 @@ namespace flaw {
 			
 			worldPos = ScreenToWorld(screenPos, viewPort, projectionMatrix, viewMatrix);
 		}
+	}
+
+	void PlayState_Animator(UUID uuid, int32_t stateIndex) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto& animationSys = Scripting::GetScene().GetAnimationSystem();
+		if (!animationSys.HasAnimatorRuntime(entity)) {
+			return;
+		}
+	
+		auto& runtimeAnimator = animationSys.GetAnimatorRuntime(entity);
+		runtimeAnimator.PlayState(stateIndex);
 	}
 }

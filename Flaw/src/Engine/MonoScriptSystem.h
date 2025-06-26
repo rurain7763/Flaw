@@ -93,7 +93,6 @@ namespace flaw {
 
 		MonoScriptObject& GetScriptObject() { return _scriptObject; }
 
-		std::unordered_map<std::string, MonoEngineComponentInstance>& GetEngineComponents() { return _engineComponents; }
 		std::unordered_map<std::string, MonoProjectComponentInstance>& GetProjectComponents() { return _projectComponents; }
 
 	private:
@@ -131,15 +130,15 @@ namespace flaw {
 
 	private:
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
+		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
 		template<typename T>
 		void RegisterComponent(entt::registry& registry, entt::entity entity) {
-			auto& enttComp = registry.get<EntityComponent>(entity);
-
 			if (!registry.any_of<T>(entity)) {
 				return;
 			}
-			
+
+			auto& enttComp = registry.get<EntityComponent>(entity);
 			auto monoEntt = GetMonoEntity(enttComp.uuid);
 			if (!monoEntt) {
 				return;
@@ -163,8 +162,6 @@ namespace flaw {
 
 		void RegisterMonoComponentInRuntime(entt::registry& registry, entt::entity entity);
 
-		void UnregisterEntity(entt::registry& registry, entt::entity entity);
-
 		void SetAllComponentFields(MonoProjectComponentInstance& monoProjectComp, MonoScriptComponent& monoScriptComp);
 
 		const char* GetMonoColliderClassName(PhysicsShapeType shapeType) const;
@@ -186,6 +183,6 @@ namespace flaw {
 		std::unordered_map<AssetHandle, MonoAsset> _monoAssets;
 
 		std::unordered_map<UUID, Ref<MonoEntity>> _monoEntities;
-		std::vector<UUID> _monoEntitiesToDestroy;
+		std::vector<Ref<MonoEntity>> _monoEntitiesToDestroy;
 	};
 }

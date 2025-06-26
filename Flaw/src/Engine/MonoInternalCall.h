@@ -41,4 +41,6 @@ namespace flaw {
 	bool GetMouseButton_Input(MouseButton button);
 
 	bool Raycast_Physics(const Ray& ray, RayHit& hit);
+
+	void PlayState_Animator(UUID uuid, int32_t stateIndex);
 }

@@ -77,6 +77,7 @@ namespace flaw {
 		RegisterEngineComponent<SphereColliderComponent>();
 		RegisterEngineComponent<MeshColliderComponent>();
 		RegisterEngineComponent<CameraComponent>();
+		RegisterEngineComponent<AnimatorComponent>();
 
 		g_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
 			projectMonoAssemblyPath.c_str(),
@@ -132,6 +133,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetMouseButtonUp_Input);
 		ADD_INTERNAL_CALL(GetMouseButton_Input);
 		ADD_INTERNAL_CALL(Raycast_Physics);
+		ADD_INTERNAL_CALL(PlayState_Animator);
 
 		LoadMonoScripting();
 	}

@@ -94,5 +94,8 @@ namespace Flaw
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static bool Raycast_Physics(ref Ray ray, out RayHit hit);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void PlayState_Animator(EntityID id, int stateIndex);
     }
 }
