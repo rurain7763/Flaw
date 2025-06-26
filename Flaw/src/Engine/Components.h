@@ -509,4 +509,15 @@ namespace flaw {
 			return *this;
 		}
 	};
+
+	struct AnimatorComponent {
+		AssetHandle animatorAsset;
+		
+		// TODO: 임시로 사용
+		AssetHandle skeletonAsset;
+
+		AnimatorComponent() = default;
+		AnimatorComponent(const AssetHandle& animatorAsset) : animatorAsset(animatorAsset) {}
+		AnimatorComponent(const AnimatorComponent& other) = default;
+	};
 }

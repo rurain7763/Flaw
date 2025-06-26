@@ -151,6 +151,7 @@ namespace flaw {
 
 	void ShadowSystem::Update() {
 		auto& registry = _scene.GetRegistry();
+		auto& animationSys = _scene.GetAnimationSystem();
 
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = _directionalShadowMaps[entity];
@@ -207,7 +208,7 @@ namespace flaw {
 			}
 		}
 
-		for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
+		for (auto&& [entity, transform, skeletalMeshComp] : registry.view<TransformComponent, SkeletalMeshComponent>().each()) {
 			if (!skeletalMeshComp.castShadow) {
 				continue;
 			}
@@ -219,13 +220,23 @@ namespace flaw {
 
 			Ref<Mesh> mesh = meshAsset->GetMesh();
 
-			auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((entt::entity)entity);
-			auto boneMatrices = skeletalAnimData.GetBoneMatrices();
-			if (boneMatrices == nullptr) {
+			Ref<StructuredBuffer> boneMatricesSB;
+
+			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
+			if (skeletonAsset) {
+				boneMatricesSB = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
+			}
+
+			if (animationSys.HasAnimatorRuntime(entity)) {
+				auto& animatorRuntime = animationSys.GetAnimatorRuntime(entity);
+				boneMatricesSB = animatorRuntime.GetAnimationMatricesGPUBuffer();
+			}
+
+			if (!boneMatricesSB) {
 				continue;
 			}
 
-			_shadowMapRenderQueue.Push(mesh, transform.worldTransform, _shadowMapSkeletalMaterial, boneMatrices);
+			_shadowMapRenderQueue.Push(mesh, transform.worldTransform, _shadowMapSkeletalMaterial, boneMatricesSB);
 		}
 
 		_shadowMapRenderQueue.Close();

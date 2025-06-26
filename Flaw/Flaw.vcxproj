@@ -106,6 +106,7 @@
     <ClInclude Include="src\Debug\Instrumentor.h" />
     <ClInclude Include="src\ECS\ECS.h" />
     <ClInclude Include="src\Engine\AnimationSystem.h" />
+    <ClInclude Include="src\Engine\Animator.h" />
     <ClInclude Include="src\Engine\Application.h" />
     <ClInclude Include="src\Engine\Asset.h" />
     <ClInclude Include="src\Engine\AssetManager.h" />
@@ -216,6 +217,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
+    <ClCompile Include="src\Engine\Animator.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />
     <ClCompile Include="src\Engine\Assets.cpp" />

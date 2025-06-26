@@ -126,7 +126,9 @@ namespace flaw {
 		_bindPosGPUBuffer = Graphics::CreateStructuredBuffer(desc);
 	}
 
-	void Skeleton::GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const {
+	void Skeleton::GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const {
+		const float timeSec = animation->GetDurationSec() * normalizedTime;
+		
 		ComputeTransformationMatricesInHierachy([this, &animation, &timeSec](int32_t nodeIndex) {
 			int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
 			if (animationNodeIndex != -1) {

@@ -6,116 +6,97 @@
 #include "Assets.h"
 #include "Time/Time.h"
 #include "Application.h"
+#include "Components.h"
 
 namespace flaw {
 	AnimationSystem::AnimationSystem(Application& app, Scene& scene)
 		: _app(app)
 		, _scene(scene)
 	{
-		auto& registry = _scene.GetRegistry();
-		registry.on_construct<SkeletalMeshComponent>().connect<&AnimationSystem::RegisterEntity>(*this);
-		registry.on_destroy<SkeletalMeshComponent>().connect<&AnimationSystem::UnregisterEntity>(*this);
-	}
-
-	AnimationSystem::~AnimationSystem() {
-		auto& registry = _scene.GetRegistry();
-		registry.on_construct<SkeletalMeshComponent>().disconnect<&AnimationSystem::RegisterEntity>(*this);
-		registry.on_destroy<SkeletalMeshComponent>().disconnect<&AnimationSystem::UnregisterEntity>(*this);
 	}
 
 	void AnimationSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
 		auto& enttComp = registry.get<EntityComponent>(entity);
-		auto& skeletalMeshComp = registry.get<SkeletalMeshComponent>(entity);
+		auto& skeletalMeshComp = registry.get<AnimatorComponent>(entity);
 
-		_skeletonAnimations[entity] = CreateRef<SkeletalAnimationData>();
+		// TODO: get animator asset and get animator from asset, but for now just test with test animator
+		static Scope<Animator> animator;
+		if (!animator) {
+			Ref<SkeletonAsset> skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(skeletalMeshComp.skeletonAsset);
+			if (!skeletonAsset) {
+				return;
+			}
+
+			Animator::Descriptor desc = {};
+			desc.skeleton = skeletonAsset->GetSkeleton();
+			
+			for (auto& animHandle : skeletonAsset->GetAnimationHandles()) {
+				auto animAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animHandle);
+				if (!animAsset) {
+					continue;
+				}
+
+				Ref<AnimatorAnimation1D> anim = CreateRef<AnimatorAnimation1D>(animAsset->GetAnimation());
+
+				Ref<AnimatorState> state = CreateRef<AnimatorState>();
+				state->SetAnimation(anim);
+				state->SetLoop(true);
+
+				desc.states.push_back(state);
+			}
+
+			desc.defaultStateIndex = 0;
+
+			animator = CreateScope<Animator>(desc);
+		}
+
+		auto it = _runtimeAnimators.emplace(std::piecewise_construct, std::forward_as_tuple(entity), std::forward_as_tuple(*animator));
+
+		auto& runtimeAnimator = it.first->second;
+		runtimeAnimator.SetToDefaultState();
 	}
 
 	void AnimationSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_skeletonAnimations.erase(entity);
+		_runtimeAnimators.erase(entity);
+	}
+
+	void AnimationSystem::Start() {
+		auto& registry = _scene.GetRegistry();
+
+		for (auto&& [entity, animatorComp] : registry.view<AnimatorComponent>().each()) {
+			RegisterEntity(registry, entity);
+		}
+
+		registry.on_construct<AnimatorComponent>().connect<&AnimationSystem::RegisterEntity>(*this);
+		registry.on_destroy<AnimatorComponent>().connect<&AnimationSystem::UnregisterEntity>(*this);
 	}
 
 	void AnimationSystem::Update() {
-		for (auto&& [entity, transformComp, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
-			auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
-			if (meshAsset == nullptr) {
-				continue;
-			}
-			
-			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
-			if (skeletonAsset == nullptr) {
-				continue;
+		for (auto&& [entity, animatorComp] : _scene.GetRegistry().view<AnimatorComponent>().each()) {
+			auto it = _runtimeAnimators.find(entity);
+			if (it == _runtimeAnimators.end()) {
+				continue; // Entity not registered
 			}
 
-			Ref<Skeleton> skeleton = skeletonAsset->GetSkeleton();
-			auto skeletalAnimData = _skeletonAnimations[entity];
-			auto bindingPosMatricesSB = skeleton->GetBindingPosGPUBuffer();
-
-			if (skeletalAnimData->_bindingPosMatrices != bindingPosMatricesSB) {
-				StructuredBuffer::Descriptor desc = {};
-				desc.elmSize = sizeof(mat4);
-				desc.count = skeleton->GetBoneCount();
-				desc.bindFlags = BindFlag::ShaderResource;
-				desc.accessFlags = AccessFlag::Write;
-				desc.initialData = nullptr;
-
-				skeletalAnimData->_animationMatricesSB = Graphics::CreateStructuredBuffer(desc);
-			}
-			skeletalAnimData->_bindingPosMatrices = bindingPosMatricesSB;
-
-			skeletalAnimData->_boneMatricesSB = skeletalAnimData->_bindingPosMatrices;
-
-#if true // TODO: Animation test		
-			const auto& animationHandles = skeletonAsset->GetAnimationHandles();
-
-			if (animationHandles.size() >= 2) {
-				auto animationAsset = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[1]);
-				if (animationAsset == nullptr) {
-					continue;
-				}
-
-				Ref<SkeletalAnimation> animation = animationAsset->GetAnimation();
-
-				skeletalAnimData->_animationTime += Time::DeltaTime();
-				if (skeletalAnimData->_animationTime > animation->GetDurationSec()) {
-					skeletalAnimData->_animationTime = 0.0f;
-				}
-
-				_app.AddAsyncTask([animation, skeleton, skeletalAnimData]() {
-					std::lock_guard<std::mutex> lock(skeletalAnimData->_mutex);
-					skeleton->GetAnimationMatrices(animation, skeletalAnimData->_animationTime, skeletalAnimData->_animationMatrices);
-					skeletalAnimData->_animationMatricesDirty = true;
-				});
-
-				skeletalAnimData->_boneMatricesSB = skeletalAnimData->_animationMatricesSB;
-			}
-#else
-			if (animationHandles.size() >= 2) {
-				auto animationAsset1 = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[0]);
-				auto animationAsset2 = AssetManager::GetAsset<SkeletalAnimationAsset>(animationHandles[1]);
-
-				if (animationAsset1 == nullptr || animationAsset2 == nullptr) {
-					continue;
-				}
-
-				Ref<SkeletalAnimation> animation1 = animationAsset1->GetAnimation();
-				Ref<SkeletalAnimation> animation2 = animationAsset2->GetAnimation();
-
-				skeletalAnimData->_animationTime += Time::DeltaTime();
-				if (skeletalAnimData->_animationTime > animation1->GetDurationSec()) {
-					skeletalAnimData->_animationTime = 0.0f;
-				}
-
-				float normalizedTime = skeletalAnimData->_animationTime / animation1->GetDurationSec();
-
-				_app.AddAsyncTask([animation1, animation2, skeleton, skeletalAnimData, normalizedTime, blendFactor = skeletalMeshComp.blendFactor]() {
-					std::lock_guard<std::mutex> lock(skeletalAnimData->_mutex);
-					skeleton->GetBlendedAnimationMatrices(animation1, animation2, normalizedTime, blendFactor, skeletalAnimData->_animationMatrices);
-					skeletalAnimData->_animationMatricesDirty = true;
-				});
-
-				skeletalAnimData->_boneMatricesSB = skeletalAnimData->_animationMatricesSB;
-			}
-#endif
+			auto& runtimeAnimator = it->second;
+			runtimeAnimator.Update(Time::DeltaTime());
 		}
+	}
+
+	void AnimationSystem::End() {
+		auto& registry = _scene.GetRegistry();
+
+		registry.on_construct<AnimatorComponent>().disconnect<&AnimationSystem::RegisterEntity>(*this);
+		registry.on_destroy<AnimatorComponent>().disconnect<&AnimationSystem::UnregisterEntity>(*this);
+
+		_runtimeAnimators.clear();
+	}
+
+	bool AnimationSystem::HasAnimatorRuntime(entt::entity entity) const {
+		return _runtimeAnimators.find(entity) != _runtimeAnimators.end();
+	}
+
+	AnimatorRuntime& AnimationSystem::GetAnimatorRuntime(entt::entity entity) {
+		return _runtimeAnimators.at(entity);
 	}
 }

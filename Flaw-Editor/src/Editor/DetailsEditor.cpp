@@ -558,6 +558,15 @@ namespace flaw {
 				}
 			});
 
+			DrawComponent<AnimatorComponent>(_selectedEntt, [](AnimatorComponent& animatorComp) {
+				EditorHelper::DrawAssetPayloadTarget("Skeleton Asset", animatorComp.skeletonAsset, [&animatorComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Skeleton) {
+						animatorComp.skeletonAsset = metadata.handle;
+					}
+				});
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -590,6 +599,7 @@ namespace flaw {
 				DrawAddComponentItem<SkyBoxComponent>(_selectedEntt);
 				DrawAddComponentItem<DecalComponent>(_selectedEntt);
 				DrawAddComponentItem<LandscapeComponent>(_selectedEntt);
+				DrawAddComponentItem<AnimatorComponent>(_selectedEntt);
 
 				ImGui::EndPopup();
 			}

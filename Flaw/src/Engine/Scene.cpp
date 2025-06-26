@@ -165,6 +165,7 @@ namespace flaw {
 		CloneComponent<SkyBoxComponent>(srcEntt, cloned);
 		CloneComponent<DecalComponent>(srcEntt, cloned);
 		CloneComponent<LandscapeComponent>(srcEntt, cloned);
+		CloneComponent<AnimatorComponent>(srcEntt, cloned);
 		CloneComponent<MonoScriptComponent>(srcEntt, cloned);
 
 		// clone children
@@ -262,12 +263,14 @@ namespace flaw {
 		}
 
 		_physicsSystem->Start();
+		_animationSystem->Start();
 		_monoScriptSystem->Start();
 	}
 
 	void Scene::OnUpdate() {
 		_monoScriptSystem->Update();
 		UpdateScript();
+		_animationSystem->Update();
 		UpdatePhysics2D();
 		_physicsSystem->Update();
 		UpdateSound();
@@ -279,6 +282,7 @@ namespace flaw {
 
 	void Scene::OnEnd() {
 		_monoScriptSystem->End();
+		_animationSystem->End();
 		_physicsSystem->End();
 		_physics2DWorld.reset();
 	}

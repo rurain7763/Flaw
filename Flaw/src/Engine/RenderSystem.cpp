@@ -309,7 +309,6 @@ namespace flaw {
 		_globalConstants.deltaTime = Time::DeltaTime();
 		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
 
-		_scene.GetAnimationSystem().Update();
 		_scene.GetLandscapeSystem().Update();
 		_scene.GetParticleSystem().Update(_globalCB);
 		_scene.GetSkyBoxSystem().Update();
@@ -371,11 +370,14 @@ namespace flaw {
 	}
 
 	void RenderSystem::GatherRenderableObjects() {
+		auto& enttRegistry = _scene.GetRegistry();
+		auto& animationSys = _scene.GetAnimationSystem();
+
 		for (auto& [depth, stage] : _renderStages) {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, transform, staticMeshCom] : _scene.GetRegistry().view<TransformComponent, StaticMeshComponent>().each()) {
+			for (auto&& [entity, transform, staticMeshCom] : enttRegistry.view<TransformComponent, StaticMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<StaticMeshAsset>(staticMeshCom.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -399,7 +401,7 @@ namespace flaw {
 				}
 			}
 
-			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
+			for (auto&& [entity, transform, skeletalMeshComp] : enttRegistry.view<TransformComponent, SkeletalMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -413,9 +415,19 @@ namespace flaw {
 					continue;
 				}
 
-				auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(entity);
-				auto boneMatrices = skeletalAnimData.GetBoneMatrices();
-				if (boneMatrices == nullptr) {
+				Ref<StructuredBuffer> boneMatricesSB;
+
+				auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
+				if (skeletonAsset) {
+					boneMatricesSB = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
+				}
+
+				if (animationSys.HasAnimatorRuntime(entity)) {
+					auto& animatorRuntime = animationSys.GetAnimatorRuntime(entity);
+					boneMatricesSB = animatorRuntime.GetAnimationMatricesGPUBuffer();
+				}
+
+				if (!boneMatricesSB) {
 					continue;
 				}
 
@@ -427,7 +439,7 @@ namespace flaw {
 						continue;
 					}
 
-					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), boneMatrices);
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), boneMatricesSB);
 				}
 			}
 

@@ -153,7 +153,7 @@ namespace flaw {
 
 		Ref<StructuredBuffer> GetBindingPosGPUBuffer() const { return _bindPosGPUBuffer; }
 
-		void GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const;
+		void GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const;
 		void GetBlendedAnimationMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const;
 
 	private:

@@ -161,6 +161,25 @@ namespace flaw {
 		outRotation = eulerAngles(toQuat(rotationMatrix));
 	}
 
+	inline void ExtractModelMatrix(const mat4& matrix, vec3& outPosition, quat& outRotation, vec3& outScale) {
+		// 위치 추출
+		outPosition.x = matrix[3][0];
+		outPosition.y = matrix[3][1];
+		outPosition.z = matrix[3][2];
+
+		// 스케일 추출
+		outScale.x = length(vec3(matrix[0][0], matrix[0][1], matrix[0][2]));
+		outScale.y = length(vec3(matrix[1][0], matrix[1][1], matrix[1][2]));
+		outScale.z = length(vec3(matrix[2][0], matrix[2][1], matrix[2][2]));
+
+		// 스케일 제거 후 회전 추출
+		mat4 rotationMatrix = matrix;
+		rotationMatrix[0] /= outScale.x;
+		rotationMatrix[1] /= outScale.y;
+		rotationMatrix[2] /= outScale.z;
+		outRotation = toQuat(rotationMatrix);
+	}
+
 	inline mat4 LookAt(const vec3& position, const vec3& target, const vec3& up) {
 		return glm::lookAt(position, target, up);
 	}
