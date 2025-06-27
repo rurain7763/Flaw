@@ -272,6 +272,11 @@ namespace flaw {
 			return;
 		}
 
+		if (_defferedInitComponents) {
+			_deferredInitComponents.push_back({ monoEntt, prjComp });
+			return;
+		}
+
 		SetAllComponentFields(*prjComp, monoScriptComp);
 
 		prjComp->CallOnCreate();
@@ -287,7 +292,9 @@ namespace flaw {
 
 		auto& monoScriptComp = registry.get<MonoScriptComponent>(entity);
 
-		_monoComponentsToDestroy.push_back(monoEntt->GetComponent<MonoProjectComponentRuntime>(monoScriptComp.name.c_str()));
+		auto prjComp = monoEntt->GetComponent<MonoProjectComponentRuntime>(monoScriptComp.name.c_str());
+		prjComp->CallOnDestroy();
+
 		monoEntt->RemoveComponent(monoScriptComp.name.c_str());
 	}
 
@@ -313,6 +320,8 @@ namespace flaw {
 		registry.on_destroy<SphereColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().connect<&MonoScriptSystem::RegisterComponent<MeshColliderComponent>>(*this);
 		registry.on_destroy<MeshColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
+		registry.on_construct<AnimatorComponent>().connect<&MonoScriptSystem::RegisterComponent<AnimatorComponent>>(*this);
+		registry.on_destroy<AnimatorComponent>().connect<&MonoScriptSystem::UnregisterComponent<AnimatorComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().connect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 		registry.on_destroy<MonoScriptComponent>().connect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 
@@ -444,7 +453,7 @@ namespace flaw {
 
 		auto& monoEnttA = GetMonoEntity(collisionInfo.entity0.GetUUID());
 		auto& monoEnttB = GetMonoEntity(collisionInfo.entity1.GetUUID());
-		
+
 		auto monoEnttAColliderComp = monoEnttA->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType0));
 		auto monoEnttBColliderComp = monoEnttB->GetComponent<MonoEngineComponentRuntime>(GetMonoColliderClassName(collisionInfo.shapeType1));
 
@@ -500,10 +509,6 @@ namespace flaw {
 			}
 		}
 
-		for (const auto& monoComp : _monoComponentsToDestroy) {
-			monoComp->CallOnDestroy();
-		}
-		_monoComponentsToDestroy.clear();
 		_monoEntitiesToDestroy.clear();
 
 		_timeSinceStart += Time::DeltaTime();
@@ -537,6 +542,8 @@ namespace flaw {
 		registry.on_destroy<SphereColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<SphereColliderComponent>>(*this);
 		registry.on_construct<MeshColliderComponent>().disconnect<&MonoScriptSystem::RegisterComponent<MeshColliderComponent>>(*this);
 		registry.on_destroy<MeshColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
+		registry.on_construct<AnimatorComponent>().disconnect<&MonoScriptSystem::RegisterComponent<AnimatorComponent>>(*this);
+		registry.on_destroy<AnimatorComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<AnimatorComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().disconnect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 		registry.on_destroy<MonoScriptComponent>().disconnect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 
@@ -558,5 +565,32 @@ namespace flaw {
 		}
 
 		throw std::runtime_error("Mono script instance not found for UUID");
+	}
+
+	void MonoScriptSystem::BeginDeferredInitComponents() {
+		_defferedInitComponents = true;
+	}
+
+	void MonoScriptSystem::EndDeferredInitComponents() {
+		_defferedInitComponents = false;
+
+		if (_deferredInitComponents.empty()) {
+			return;
+		}
+
+		for (const auto& entry : _deferredInitComponents) {
+			Entity entt = _scene.FindEntityByUUID(entry.monoEntity->GetUUID());
+			SetAllComponentFields(*entry.projectComponent, entt.GetComponent<MonoScriptComponent>());
+		}
+
+		for (const auto& entry : _deferredInitComponents) {
+			entry.projectComponent->CallOnCreate();
+		}
+
+		for (const auto& entry : _deferredInitComponents) {
+			entry.projectComponent->CallOnStart();
+		}
+
+		_deferredInitComponents.clear();
 	}
 }

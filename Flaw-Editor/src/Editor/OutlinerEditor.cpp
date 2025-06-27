@@ -7,9 +7,10 @@
 #include <filesystem>
 
 namespace flaw {
-	OutlinerEditor::OutlinerEditor(Application& app)
+	OutlinerEditor::OutlinerEditor(Application& app, const std::string& name)
 		: _app(app)
 		, _eventDispatcher(app.GetEventDispatcher())
+		, _name(name)
 	{
 		_eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
 	}
@@ -28,7 +29,7 @@ namespace flaw {
 			return;
 		}
 
-		ImGui::Begin("Outliner");
+		ImGui::Begin(_name.c_str(), &_isOpen);
 
 		static char searchBuffer[128] = { 0 };
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, sizeof(searchBuffer));

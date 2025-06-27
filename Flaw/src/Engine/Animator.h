@@ -2,7 +2,6 @@
 
 #include "Core.h"
 #include "Skeleton.h"
-#include "Graphics.h"
 
 #include <unordered_map>
 
@@ -126,14 +125,13 @@ namespace flaw {
 		void SetToDefaultState();
 		void PlayState(int32_t stateIndex);
 
-		void Update(float deltaTime);
+		void Update(float deltaTime, std::vector<mat4>& animationMatrices);
 
 		bool IsInTransition() const { return _currentTransitionIndex != -1; }
-		Ref<StructuredBuffer> GetAnimationMatricesGPUBuffer() const { return _animationMatricesSB; }
 
 	private:
-		void UpdateTransition(float deltaTime);
-		void UpdateState(float deltaTime);
+		void UpdateTransition(float deltaTime, std::vector<mat4>& animationMatrices);
+		void UpdateState(float deltaTime, std::vector<mat4>& animationMatrices);
 
 	private:
 		Animator& _animator;
@@ -142,7 +140,5 @@ namespace flaw {
 		int32_t _currentTransitionIndex;
 
 		float _currentTime;
-
-		Ref<StructuredBuffer> _animationMatricesSB;
 	};
 }

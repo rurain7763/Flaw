@@ -96,8 +96,11 @@ namespace flaw {
 			return std::dynamic_pointer_cast<T>(GetComponent(name));
 		}
 
+		const UUID& GetUUID() const { return _uuid; }
+
 		MonoScriptObject& GetScriptObject() { return _scriptObject; }
 
+		// TODO: think about better way to get all project components
 		std::unordered_set<Ref<MonoProjectComponentRuntime>> GetProjectComponents() const {
 			return _projectComponents;
 		}
@@ -131,6 +134,9 @@ namespace flaw {
 
 		bool IsMonoEntityExists(const UUID& uuid) const;
 		Ref<MonoEntity> GetMonoEntity(const UUID& uuid) const;
+
+		void BeginDeferredInitComponents();
+		void EndDeferredInitComponents();
 
 		Scene& GetScene() const { return _scene; }
 		float GetTimeSinceStart() const { return _timeSinceStart; }
@@ -196,7 +202,14 @@ namespace flaw {
 		std::unordered_map<AssetHandle, MonoAsset> _monoAssets;
 
 		std::unordered_map<UUID, Ref<MonoEntity>> _monoEntities;
-		std::vector<Ref<MonoProjectComponentRuntime>> _monoComponentsToDestroy;
 		std::vector<Ref<MonoEntity>> _monoEntitiesToDestroy;
+
+		struct DefferedInitComponentEntry {
+			Ref<MonoEntity> monoEntity;
+			Ref<MonoProjectComponentRuntime> projectComponent;
+		};
+
+		bool _defferedInitComponents;
+		std::vector<DefferedInitComponentEntry> _deferredInitComponents;
 	};
 }

@@ -111,6 +111,7 @@
     <ClInclude Include="src\Editor\MaterialEditor.h" />
     <ClInclude Include="src\Editor\OutlinerEditor.h" />
     <ClInclude Include="src\Editor\ParticleComponentDrawer.h" />
+    <ClInclude Include="src\Editor\PrefabEditor.h" />
     <ClInclude Include="src\Editor\SkeletonEditor.h" />
     <ClInclude Include="src\Editor\ViewportEditor.h" />
     <ClInclude Include="src\EditorCamera.h" />
@@ -134,6 +135,7 @@
     <ClCompile Include="src\Editor\MaterialEditor.cpp" />
     <ClCompile Include="src\Editor\OutlinerEditor.cpp" />
     <ClCompile Include="src\Editor\ParticleComponentDrawer.cpp" />
+    <ClCompile Include="src\Editor\PrefabEditor.cpp" />
     <ClCompile Include="src\Editor\SkeletonEditor.cpp" />
     <ClCompile Include="src\Editor\ViewportEditor.cpp" />
     <ClCompile Include="src\EditorCamera.cpp" />

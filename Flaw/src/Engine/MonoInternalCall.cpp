@@ -215,11 +215,11 @@ namespace flaw {
 		FASSERT(entity, "Entity not found with UUID");
 
 		auto& animationSys = Scripting::GetScene().GetAnimationSystem();
-		if (!animationSys.HasAnimatorRuntime(entity)) {
+		if (!animationSys.HasAnimatorJobContext(entity)) {
 			return;
 		}
 	
-		auto& runtimeAnimator = animationSys.GetAnimatorRuntime(entity);
-		runtimeAnimator.PlayState(stateIndex);
+		auto runtimeAnimator = animationSys.GetAnimatorJobContext(entity).runtimeAnimator;
+		runtimeAnimator->PlayState(stateIndex);
 	}
 }

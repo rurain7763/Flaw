@@ -11,6 +11,20 @@ namespace flaw {
 	class Application;
 	class Scene;
 
+	struct AnimatorJobContext {
+		Ref<AnimatorRuntime> runtimeAnimator;
+
+		std::vector<mat4> animationMatrices0;
+		std::vector<mat4> animationMatrices1;
+
+		std::vector<mat4>* front;
+		std::vector<mat4>* back;
+
+		std::atomic<bool> isBackBufferReady;
+
+		Ref<StructuredBuffer> animationMatricesSB;
+	};
+
 	class AnimationSystem {
 	public:
 		AnimationSystem(Application& app, Scene& scene);
@@ -19,8 +33,8 @@ namespace flaw {
 		void Update();
 		void End();
 
-		bool HasAnimatorRuntime(entt::entity entity) const;
-		AnimatorRuntime& GetAnimatorRuntime(entt::entity entity);
+		bool HasAnimatorJobContext(entt::entity entity) const;
+		AnimatorJobContext& GetAnimatorJobContext(entt::entity entity);
 
 	private:
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
@@ -30,7 +44,7 @@ namespace flaw {
 		Application& _app;
 		Scene& _scene;
 
-		std::unordered_map<entt::entity, AnimatorRuntime> _runtimeAnimators;
+		std::unordered_map<entt::entity, Ref<AnimatorJobContext>> _animatorJobContexts;
 	};
 }
 

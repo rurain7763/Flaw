@@ -1,18 +1,18 @@
 #pragma once
 
 #include <Flaw.h>
-
+#include "Editor.h"
 #include "EditorHelper.h"
 
 namespace flaw {
-	class DetailsEditor {
+	class DetailsEditor : public Editor {
 	public:
-		DetailsEditor(Application& app);
+		DetailsEditor(Application& app, const std::string& editorName);
 		~DetailsEditor();
 
 		void SetScene(const Ref<Scene>& scene);
 
-		void OnRender();
+		void OnRender() override;
 
 	private:
 		template <typename T>
@@ -63,6 +63,8 @@ namespace flaw {
 
 	private:
 		Application& _app;
+
+		std::string _editorName;
 
 		Ref<Scene> _scene;
 

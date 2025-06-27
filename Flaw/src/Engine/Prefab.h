@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Entity.h"
+#include "Components.h"
 
 namespace flaw {
 	class Scene;
@@ -17,7 +18,7 @@ namespace flaw {
 		static std::vector<int8_t> ExportData(Entity entity);
 
 	private:
-		std::unordered_map<UUID, std::function<void(Entity&)>> _componentCreators;
+		std::unordered_map<UUID, std::function<void(const std::unordered_map<UUID, UUID>&, Entity&)>> _componentCreators;
 		std::unordered_map<UUID, UUID> _parentMap;
 	};
 }

@@ -62,6 +62,7 @@
     <ClInclude Include="src\EditorTypes.h" />
     <ClInclude Include="src\FlawEditor.h" />
     <ClInclude Include="src\Editor\SkeletonEditor.h" />
+    <ClInclude Include="src\Editor\PrefabEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetDatabase.cpp" />
@@ -110,5 +111,6 @@
     <ClCompile Include="src\FlawEditor.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Editor\SkeletonEditor.cpp" />
+    <ClCompile Include="src\Editor\PrefabEditor.cpp" />
   </ItemGroup>
 </Project>

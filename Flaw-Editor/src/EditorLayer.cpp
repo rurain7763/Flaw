@@ -5,6 +5,7 @@
 #include "AssetDatabase.h"
 #include "Editor/MaterialEditor.h"
 #include "Editor/SkeletonEditor.h"
+#include "Editor/PrefabEditor.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -17,10 +18,10 @@ namespace flaw {
     EditorLayer::EditorLayer(flaw::Application& app) 
 	    : _app(app)
 		, _graphicsContext(Graphics::GetGraphicsContext())
-		, _outlinerEditor(app)
+		, _outlinerEditor(app, "Outliner")
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
-		, _detailsEditor(app)
+		, _detailsEditor(app, "Details")
 		, _landscapeEditor(app, _camera, _viewportEditor, _contentBrowserEditor)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
@@ -45,6 +46,10 @@ namespace flaw {
 				label = "Skeleton Editor: " + std::to_string(metadata.handle);
 				editor = CreateRef<SkeletonEditor>(_app, label, evn.assetFilePath.c_str());
 			}
+            else if (metadata.type == AssetType::Prefab) {
+				label = "Prefab Editor: " + std::to_string(metadata.handle);
+				editor = CreateRef<PrefabEditor>(_app, label, evn.assetFilePath.c_str());
+            }
 
             if (editor) {
                 RegisterEditor(label.c_str(), editor);

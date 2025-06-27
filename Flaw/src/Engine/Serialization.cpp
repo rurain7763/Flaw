@@ -473,7 +473,305 @@ namespace flaw {
 		config.startScene = root["StartScene"].as<std::string>();
 	}
 
-	void Deserialize(const YAML::Node& node, Entity& entity) {
+	void DeserializeEntityComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.GetComponent<EntityComponent>();
+		comp.name = component.second["Name"].as<std::string>();
+	}
+
+	void DeserializeTransformComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.GetComponent<TransformComponent>();
+		comp.position = component.second["Position"].as<vec3>();
+		comp.rotation = component.second["Rotation"].as<vec3>();
+		comp.scale = component.second["Scale"].as<vec3>();
+	}
+
+	void DeserializeCameraComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<CameraComponent>();
+		comp.perspective = component.second["Perspective"].as<bool>();
+		comp.fov = component.second["Fov"].as<float>();
+		comp.aspectRatio = component.second["AspectRatio"].as<float>();
+		comp.nearClip = component.second["NearClip"].as<float>();
+		comp.farClip = component.second["FarClip"].as<float>();
+		comp.orthoSize = component.second["OrthoSize"].as<float>();
+		comp.depth = component.second["Depth"].as<uint32_t>();
+	}
+
+	void DeserializeSpriteRendererComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SpriteRendererComponent>();
+		comp.color = component.second["Color"].as<vec4>();
+		comp.texture = component.second["Texture"].as<uint64_t>();
+	}
+
+	void DeserializeRigidbody2DComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<Rigidbody2DComponent>();
+		comp.bodyType = (Rigidbody2DComponent::BodyType)component.second["BodyType"].as<int32_t>();
+		comp.fixedRotation = component.second["FixedRotation"].as<bool>();
+		comp.density = component.second["Density"].as<float>();
+		comp.friction = component.second["Friction"].as<float>();
+		comp.restitution = component.second["Restitution"].as<float>();
+		comp.restitutionThreshold = component.second["RestitutionThreshold"].as<float>();
+	}
+
+	void DeserializeBoxCollider2DComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<BoxCollider2DComponent>();
+		comp.offset = component.second["Offset"].as<vec2>();
+		comp.size = component.second["Size"].as<vec2>();
+	}
+
+	void DeserializeCircleCollider2DComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<CircleCollider2DComponent>();
+		comp.offset = component.second["Offset"].as<vec2>();
+		comp.radius = component.second["Radius"].as<float>();
+	}
+
+	void DeserializeRigidbodyComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<RigidbodyComponent>();
+		comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
+		comp.isKinematic = component.second["IsKinematic"].as<bool>();
+		comp.mass = component.second["Mass"].as<float>();
+	}
+
+	void DeserializeBoxColliderComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<BoxColliderComponent>();
+		comp.isTrigger = component.second["IsTrigger"].as<bool>();
+		comp.staticFriction = component.second["StaticFriction"].as<float>();
+		comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+		comp.restitution = component.second["Restitution"].as<float>();
+		comp.offset = component.second["Offset"].as<vec3>();
+		comp.size = component.second["Size"].as<vec3>();
+	}
+
+	void DeserializeSphereColliderComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SphereColliderComponent>();
+		comp.isTrigger = component.second["IsTrigger"].as<bool>();
+		comp.staticFriction = component.second["StaticFriction"].as<float>();
+		comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+		comp.restitution = component.second["Restitution"].as<float>();
+		comp.offset = component.second["Offset"].as<vec3>();
+		comp.radius = component.second["Radius"].as<float>();
+	}
+
+	void DeserializeMeshColliderComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<MeshColliderComponent>();
+		comp.isTrigger = component.second["IsTrigger"].as<bool>();
+		comp.staticFriction = component.second["StaticFriction"].as<float>();
+		comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
+		comp.restitution = component.second["Restitution"].as<float>();
+		comp.mesh = component.second["Mesh"].as<uint64_t>();
+	}
+
+	void DeserializeTextComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<TextComponent>();
+		comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
+		comp.color = component.second["Color"].as<vec4>();
+		comp.font = component.second["Font"].as<uint64_t>();
+	}
+
+	void DeserializeSoundListenerComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SoundListenerComponent>();
+		comp.velocity = component.second["Velocity"].as<vec3>();
+	}
+
+	void DeserializeSoundSourceComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SoundSourceComponent>();
+		comp.sound = component.second["Sound"].as<uint64_t>();
+		comp.loop = component.second["Loop"].as<bool>();
+		comp.autoPlay = component.second["AutoPlay"].as<bool>();
+		comp.volume = component.second["Volume"].as<float>();
+	}
+
+	void DeserializeStaticMeshComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<StaticMeshComponent>();
+		comp.mesh = component.second["Mesh"].as<uint64_t>();
+		comp.materials.clear();
+		for (const auto& mat : component.second["Materials"]) {
+			comp.materials.push_back(mat.as<uint64_t>());
+		}
+		comp.castShadow = component.second["CastShadow"].as<bool>();
+	}
+
+	void DeserializeSkeletalMeshComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SkeletalMeshComponent>();
+		comp.mesh = component.second["Mesh"].as<uint64_t>();
+		comp.materials.clear();
+		for (const auto& mat : component.second["Materials"]) {
+			comp.materials.push_back(mat.as<uint64_t>());
+		}
+		comp.skeleton = component.second["Skeleton"].as<uint64_t>();
+		comp.castShadow = component.second["CastShadow"].as<bool>();
+	}
+
+	void DeserializeParticleComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<ParticleComponent>();
+
+		comp.maxParticles = component.second["MaxParticles"].as<uint32_t>();
+		comp.spaceType = (ParticleComponent::SpaceType)component.second["SpaceType"].as<int32_t>();
+		comp.startSpeed = component.second["StartSpeed"].as<float>();
+		comp.startLifeTime = component.second["StartLifeTime"].as<float>();
+		comp.startColor = component.second["StartColor"].as<vec4>();
+		comp.startSize = component.second["StartSize"].as<vec3>();
+		comp.modules = component.second["Modules"].as<uint32_t>();
+
+		auto& particleSys = entity.GetScene().GetParticleSystem();
+
+		if (comp.modules & ParticleComponent::ModuleType::Emission) {
+			auto module = particleSys.AddModule<EmissionModule>(entity);
+			auto moduleNode = component.second["EmissionModule"];
+
+			module->spawnOverTime = moduleNode["SpawnOverTime"].as<int32_t>();
+			module->burst = moduleNode["Burst"].as<bool>();
+			module->burstStartTime = moduleNode["BurstStartTime"].as<float>();
+			module->burstParticleCount = moduleNode["BurstParticleCount"].as<uint32_t>();
+			module->burstCycleCount = moduleNode["BurstCycleCount"].as<uint32_t>();
+			module->burstCycleInterval = moduleNode["BurstCycleInterval"].as<float>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::Shape) {
+			auto module = particleSys.AddModule<ShapeModule>(entity);
+			auto moduleNode = component.second["ShapeModule"];
+
+			module->shapeType = (ShapeModule::ShapeType)moduleNode["ShapeType"].as<int32_t>();
+			if (module->shapeType == ShapeModule::ShapeType::Sphere) {
+				module->sphere.radius = moduleNode["Radius"].as<float>();
+				module->sphere.thickness = moduleNode["Thickness"].as<float>();
+			}
+			else if (module->shapeType == ShapeModule::ShapeType::Box) {
+				module->box.size = moduleNode["Size"].as<vec3>();
+				module->box.thickness = moduleNode["Thickness"].as<vec3>();
+			}
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::RandomSpeed) {
+			auto module = particleSys.AddModule<RandomSpeedModule>(entity);
+			auto moduleNode = component.second["RandomSpeedModule"];
+
+			module->minSpeed = moduleNode["MinSpeed"].as<float>();
+			module->maxSpeed = moduleNode["MaxSpeed"].as<float>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::RandomColor) {
+			auto module = particleSys.AddModule<RandomColorModule>(entity);
+			auto moduleNode = component.second["RandomColorModule"];
+
+			module->minColor = moduleNode["MinColor"].as<vec4>();
+			module->maxColor = moduleNode["MaxColor"].as<vec4>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::RandomSize) {
+			auto module = particleSys.AddModule<RandomSizeModule>(entity);
+			auto moduleNode = component.second["RandomSizeModule"];
+
+			module->minSize = moduleNode["MinSize"].as<vec3>();
+			module->maxSize = moduleNode["MaxSize"].as<vec3>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::ColorOverLifetime) {
+			auto module = particleSys.AddModule<ColorOverLifetimeModule>(entity);
+			auto moduleNode = component.second["ColorOverLifetimeModule"];
+
+			module->easing = (Easing)moduleNode["Easing"].as<int32_t>();
+			module->easingStartRatio = moduleNode["EasingStartRatio"].as<float>();
+			module->redFactorRange = moduleNode["RedFactorRange"].as<vec2>();
+			module->greenFactorRange = moduleNode["GreenFactorRange"].as<vec2>();
+			module->blueFactorRange = moduleNode["BlueFactorRange"].as<vec2>();
+			module->alphaFactorRange = moduleNode["AlphaFactorRange"].as<vec2>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::SizeOverLifetime) {
+			auto module = particleSys.AddModule<SizeOverLifetimeModule>(entity);
+			auto moduleNode = component.second["SizeOverLifetimeModule"];
+
+			module->easing = (Easing)moduleNode["Easing"].as<int32_t>();
+			module->easingStartRatio = moduleNode["EasingStartRatio"].as<float>();
+			module->sizeFactorRange = moduleNode["SizeFactorRange"].as<vec2>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::Noise) {
+			auto module = particleSys.AddModule<NoiseModule>(entity);
+			auto moduleNode = component.second["NoiseModule"];
+
+			module->strength = moduleNode["Strength"].as<float>();
+			module->frequency = moduleNode["Frequency"].as<float>();
+		}
+
+		if (comp.modules & ParticleComponent::ModuleType::Renderer) {
+			auto module = particleSys.AddModule<RendererModule>(entity);
+			auto moduleNode = component.second["RendererModule"];
+
+			module->alignment = (RendererModule::Alignment)moduleNode["Alignment"].as<int32_t>();
+		}
+	}
+
+	void DeserializeSkyLightComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SkyLightComponent>();
+		comp.color = component.second["Color"].as<vec3>();
+		comp.intensity = component.second["Intensity"].as<float>();
+	}
+
+	void DeserializeDirectionalLightComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<DirectionalLightComponent>();
+		comp.color = component.second["Color"].as<vec3>();
+		comp.intensity = component.second["Intensity"].as<float>();
+	}
+
+	void DeserializePointLightComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<PointLightComponent>();
+		comp.color = component.second["Color"].as<vec3>();
+		comp.intensity = component.second["Intensity"].as<float>();
+		comp.range = component.second["Range"].as<float>();
+	}
+
+	void DeserializeSpotLightComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SpotLightComponent>();
+		comp.color = component.second["Color"].as<vec3>();
+		comp.intensity = component.second["Intensity"].as<float>();
+		comp.range = component.second["Range"].as<float>();
+		comp.inner = component.second["Inner"].as<float>();
+		comp.outer = component.second["Outer"].as<float>();
+	}
+
+	void DeserializeSkyBoxComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<SkyBoxComponent>();
+		comp.texture = component.second["Texture"].as<uint64_t>();
+	}
+
+	void DeserializeDecalComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<DecalComponent>();
+		comp.texture = component.second["Texture"].as<uint64_t>();
+	}
+
+	void DeserializeLandscapeComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<LandscapeComponent>();
+		comp.tilingX = component.second["TilingX"].as<float>();
+		comp.tilingY = component.second["TilingY"].as<float>();
+		comp.heightMap = component.second["HeightMap"].as<uint64_t>();
+		comp.lodLevelMax = component.second["LODLevelMax"].as<uint32_t>();
+		comp.lodDistanceRange = component.second["LODDistanceRange"].as<vec2>();
+		comp.albedoTexture2DArray = component.second["AlbedoTexture2DArray"].as<uint64_t>();
+	}
+
+	void DeserializeAnimatorComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<AnimatorComponent>();
+		comp.skeletonAsset = component.second["SkeletonAsset"].as<uint64_t>();
+	}
+
+	void DeserializeMonoScriptComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		std::string scriptName = component.second["Name"].as<std::string>();
+		std::vector<MonoScriptComponent::FieldInfo> fields;
+
+		auto fieldsNode = component.second["Fields"];
+		for (const auto& field : fieldsNode) {
+			MonoScriptComponent::FieldInfo fieldInfo;
+			fieldInfo.fieldName = field.first.as<std::string>();
+			fieldInfo.fieldType = field.second[0].as<std::string>();
+			fieldInfo.fieldValue = field.second[1].as<std::string>();
+			fields.emplace_back(std::move(fieldInfo));
+		}
+
+		entity.AddComponent<MonoScriptComponent>(scriptName.data(), fields);
+	}
+
+	void Deserialize(const YAML::Node& node, Entity& entity, const std::unordered_map<std::string, std::function<void(const YAML::iterator::value_type&, Entity&)>>& userComponentDeserializer) {
 		auto components = node["Components"];
 
 		if (components) {
@@ -481,277 +779,89 @@ namespace flaw {
 			for (auto component : components) {
 				std::string name = component.first.as<std::string>();
 
+				auto it = userComponentDeserializer.find(name);
+				if (it != userComponentDeserializer.end()) {
+					it->second(component, entity);
+					continue;
+				}
+
 				if (name == TypeName<EntityComponent>()) {
-					auto& comp = entity.GetComponent<EntityComponent>();
-					comp.name = component.second["Name"].as<std::string>();
+					DeserializeEntityComponent(component, entity);
 				}
 				else if (name == TypeName<TransformComponent>()) {
-					auto& comp = entity.GetComponent<TransformComponent>();
-					comp.position = component.second["Position"].as<vec3>();
-					comp.rotation = component.second["Rotation"].as<vec3>();
-					comp.scale = component.second["Scale"].as<vec3>();
+					DeserializeTransformComponent(component, entity);
 				}
-				else if (name == "CameraComponent") {
-					auto& comp = entity.AddComponent<CameraComponent>();
-					comp.perspective = component.second["Perspective"].as<bool>();
-					comp.fov = component.second["Fov"].as<float>();
-					comp.aspectRatio = component.second["AspectRatio"].as<float>();
-					comp.nearClip = component.second["NearClip"].as<float>();
-					comp.farClip = component.second["FarClip"].as<float>();
-					comp.orthoSize = component.second["OrthoSize"].as<float>();
-					comp.depth = component.second["Depth"].as<uint32_t>();
+				else if (name == TypeName<CameraComponent>()) {
+					DeserializeCameraComponent(component, entity);
 				}
-				else if (name == "SpriteRendererComponent") {
-					auto& comp = entity.AddComponent<SpriteRendererComponent>();
-					comp.color = component.second["Color"].as<vec4>();
-					comp.texture = component.second["Texture"].as<uint64_t>();
+				else if (name == TypeName<SpriteRendererComponent>()) {
+					DeserializeSpriteRendererComponent(component, entity);
 				}
-				else if (name == "Rigidbody2DComponent") {
-					auto& comp = entity.AddComponent<Rigidbody2DComponent>();
-					comp.bodyType = (Rigidbody2DComponent::BodyType)component.second["BodyType"].as<int32_t>();
-					comp.fixedRotation = component.second["FixedRotation"].as<bool>();
-					comp.density = component.second["Density"].as<float>();
-					comp.friction = component.second["Friction"].as<float>();
-					comp.restitution = component.second["Restitution"].as<float>();
-					comp.restitutionThreshold = component.second["RestitutionThreshold"].as<float>();
+				else if (name == TypeName<Rigidbody2DComponent>()) {
+					DeserializeRigidbody2DComponent(component, entity);
 				}
-				else if (name == "BoxCollider2DComponent") {
-					auto& comp = entity.AddComponent<BoxCollider2DComponent>();
-					comp.offset = component.second["Offset"].as<vec2>();
-					comp.size = component.second["Size"].as<vec2>();
+				else if (name == TypeName<BoxCollider2DComponent>()) {
+					DeserializeBoxCollider2DComponent(component, entity);
 				}
-				else if (name == "CircleCollider2DComponent") {
-					auto& comp = entity.AddComponent<CircleCollider2DComponent>();
-					comp.offset = component.second["Offset"].as<vec2>();
-					comp.radius = component.second["Radius"].as<float>();
+				else if (name == TypeName<CircleCollider2DComponent>()) {
+					DeserializeCircleCollider2DComponent(component, entity);
 				}
 				else if (name == TypeName<RigidbodyComponent>()) {
-					auto& comp = entity.AddComponent<RigidbodyComponent>();
-					comp.bodyType = (PhysicsBodyType)component.second["BodyType"].as<int32_t>();
-					comp.isKinematic = component.second["IsKinematic"].as<bool>();
-					comp.mass = component.second["Mass"].as<float>();
+					DeserializeRigidbodyComponent(component, entity);
 				}
 				else if (name == TypeName<BoxColliderComponent>()) {
-					auto& comp = entity.AddComponent<BoxColliderComponent>();
-					comp.isTrigger = component.second["IsTrigger"].as<bool>();
-					comp.staticFriction = component.second["StaticFriction"].as<float>();
-					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
-					comp.restitution = component.second["Restitution"].as<float>();
-					comp.offset = component.second["Offset"].as<vec3>();
-					comp.size = component.second["Size"].as<vec3>();
+					DeserializeBoxColliderComponent(component, entity);
 				}
 				else if (name == TypeName<SphereColliderComponent>()) {
-					auto& comp = entity.AddComponent<SphereColliderComponent>();
-					comp.isTrigger = component.second["IsTrigger"].as<bool>();
-					comp.staticFriction = component.second["StaticFriction"].as<float>();
-					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
-					comp.restitution = component.second["Restitution"].as<float>();
-					comp.offset = component.second["Offset"].as<vec3>();
-					comp.radius = component.second["Radius"].as<float>();
+					DeserializeSphereColliderComponent(component, entity);
 				}
 				else if (name == TypeName<MeshColliderComponent>()) {
-					auto& comp = entity.AddComponent<MeshColliderComponent>();
-					comp.isTrigger = component.second["IsTrigger"].as<bool>();
-					comp.staticFriction = component.second["StaticFriction"].as<float>();
-					comp.dynamicFriction = component.second["DynamicFriction"].as<float>();
-					comp.restitution = component.second["Restitution"].as<float>();
-					comp.mesh = component.second["Mesh"].as<uint64_t>();
+					DeserializeMeshColliderComponent(component, entity);
 				}
-				else if (name == "TextComponent") {
-					auto& comp = entity.AddComponent<TextComponent>();
-					comp.text = Utf8ToUtf16(component.second["Text"].as<std::string>());
-					comp.color = component.second["Color"].as<vec4>();
-					comp.font = component.second["Font"].as<uint64_t>();
+				else if (name == TypeName<TextComponent>()) {
+					DeserializeTextComponent(component, entity);
 				}
-				else if (name == "SoundListenerComponent") {
-					auto& comp = entity.AddComponent<SoundListenerComponent>();
-					comp.velocity = component.second["Velocity"].as<vec3>();
+				else if (name == TypeName<SoundListenerComponent>()) {
+					DeserializeSoundListenerComponent(component, entity);
 				}
-				else if (name == "SoundSourceComponent") {
-					auto& comp = entity.AddComponent<SoundSourceComponent>();
-					comp.sound = component.second["Sound"].as<uint64_t>();
-					comp.loop = component.second["Loop"].as<bool>();
-					comp.autoPlay = component.second["AutoPlay"].as<bool>();
-					comp.volume = component.second["Volume"].as<float>();
+				else if (name == TypeName<SoundSourceComponent>()) {
+					DeserializeSoundSourceComponent(component, entity);
 				}
 				else if (name == TypeName<StaticMeshComponent>()) {
-					auto& comp = entity.AddComponent<StaticMeshComponent>();
-					comp.mesh = component.second["Mesh"].as<uint64_t>();
-					comp.materials.clear();
-					for (const auto& mat : component.second["Materials"]) {
-						comp.materials.push_back(mat.as<uint64_t>());
-					}
-					comp.castShadow = component.second["CastShadow"].as<bool>();
+					DeserializeStaticMeshComponent(component, entity);
 				}
 				else if (name == TypeName<SkeletalMeshComponent>()) {
-					auto& comp = entity.AddComponent<SkeletalMeshComponent>();
-					comp.mesh = component.second["Mesh"].as<uint64_t>();
-					comp.materials.clear();
-					for (const auto& mat : component.second["Materials"]) {
-						comp.materials.push_back(mat.as<uint64_t>());
-					}
-					comp.skeleton = component.second["Skeleton"].as<uint64_t>();
-					comp.castShadow = component.second["CastShadow"].as<bool>();
+					DeserializeSkeletalMeshComponent(component, entity);
 				}
-				else if (name == "ParticleComponent") {
-					auto& comp = entity.AddComponent<ParticleComponent>();
-
-					comp.maxParticles = component.second["MaxParticles"].as<uint32_t>();
-					comp.spaceType = (ParticleComponent::SpaceType)component.second["SpaceType"].as<int32_t>();
-					comp.startSpeed = component.second["StartSpeed"].as<float>();
-					comp.startLifeTime = component.second["StartLifeTime"].as<float>();
-					comp.startColor = component.second["StartColor"].as<vec4>();
-					comp.startSize = component.second["StartSize"].as<vec3>();
-					comp.modules = component.second["Modules"].as<uint32_t>();
-
-					auto& particleSys = entity.GetScene().GetParticleSystem();
-
-					if (comp.modules & ParticleComponent::ModuleType::Emission) {
-						auto module = particleSys.AddModule<EmissionModule>(entity);
-						auto moduleNode = component.second["EmissionModule"];
-
-						module->spawnOverTime = moduleNode["SpawnOverTime"].as<int32_t>();
-						module->burst = moduleNode["Burst"].as<bool>();
-						module->burstStartTime = moduleNode["BurstStartTime"].as<float>();
-						module->burstParticleCount = moduleNode["BurstParticleCount"].as<uint32_t>();
-						module->burstCycleCount = moduleNode["BurstCycleCount"].as<uint32_t>();
-						module->burstCycleInterval = moduleNode["BurstCycleInterval"].as<float>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::Shape) {
-						auto module = particleSys.AddModule<ShapeModule>(entity);
-						auto moduleNode = component.second["ShapeModule"];
-
-						module->shapeType = (ShapeModule::ShapeType)moduleNode["ShapeType"].as<int32_t>();
-						if (module->shapeType == ShapeModule::ShapeType::Sphere) {
-							module->sphere.radius = moduleNode["Radius"].as<float>();
-							module->sphere.thickness = moduleNode["Thickness"].as<float>();
-						}
-						else if (module->shapeType == ShapeModule::ShapeType::Box) {
-							module->box.size = moduleNode["Size"].as<vec3>();
-							module->box.thickness = moduleNode["Thickness"].as<vec3>();
-						}
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::RandomSpeed) {
-						auto module = particleSys.AddModule<RandomSpeedModule>(entity);
-						auto moduleNode = component.second["RandomSpeedModule"];
-
-						module->minSpeed = moduleNode["MinSpeed"].as<float>();
-						module->maxSpeed = moduleNode["MaxSpeed"].as<float>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::RandomColor) {
-						auto module = particleSys.AddModule<RandomColorModule>(entity);
-						auto moduleNode = component.second["RandomColorModule"];
-
-						module->minColor = moduleNode["MinColor"].as<vec4>();
-						module->maxColor = moduleNode["MaxColor"].as<vec4>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::RandomSize) {
-						auto module = particleSys.AddModule<RandomSizeModule>(entity);
-						auto moduleNode = component.second["RandomSizeModule"];
-
-						module->minSize = moduleNode["MinSize"].as<vec3>();
-						module->maxSize = moduleNode["MaxSize"].as<vec3>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::ColorOverLifetime) {
-						auto module = particleSys.AddModule<ColorOverLifetimeModule>(entity);
-						auto moduleNode = component.second["ColorOverLifetimeModule"];
-
-						module->easing = (Easing)moduleNode["Easing"].as<int32_t>();
-						module->easingStartRatio = moduleNode["EasingStartRatio"].as<float>();
-						module->redFactorRange = moduleNode["RedFactorRange"].as<vec2>();
-						module->greenFactorRange = moduleNode["GreenFactorRange"].as<vec2>();
-						module->blueFactorRange = moduleNode["BlueFactorRange"].as<vec2>();
-						module->alphaFactorRange = moduleNode["AlphaFactorRange"].as<vec2>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::SizeOverLifetime) {
-						auto module = particleSys.AddModule<SizeOverLifetimeModule>(entity);
-						auto moduleNode = component.second["SizeOverLifetimeModule"];
-
-						module->easing = (Easing)moduleNode["Easing"].as<int32_t>();
-						module->easingStartRatio = moduleNode["EasingStartRatio"].as<float>();
-						module->sizeFactorRange = moduleNode["SizeFactorRange"].as<vec2>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::Noise) {
-						auto module = particleSys.AddModule<NoiseModule>(entity);
-						auto moduleNode = component.second["NoiseModule"];
-
-						module->strength = moduleNode["Strength"].as<float>();
-						module->frequency = moduleNode["Frequency"].as<float>();
-					}
-
-					if (comp.modules & ParticleComponent::ModuleType::Renderer) {
-						auto module = particleSys.AddModule<RendererModule>(entity);
-						auto moduleNode = component.second["RendererModule"];
-
-						module->alignment = (RendererModule::Alignment)moduleNode["Alignment"].as<int32_t>();
-					}
+				else if (name == TypeName<ParticleComponent>()) {
+					DeserializeParticleComponent(component, entity);
 				}
-				else if (name == "SkyLightComponent") {
-					auto& comp = entity.AddComponent<SkyLightComponent>();
-					comp.color = component.second["Color"].as<vec3>();
-					comp.intensity = component.second["Intensity"].as<float>();
+				else if (name == TypeName<SkyLightComponent>()) {
+					DeserializeSkyLightComponent(component, entity);
 				}
-				else if (name == "DirectionalLightComponent") {
-					auto& comp = entity.AddComponent<DirectionalLightComponent>();
-					comp.color = component.second["Color"].as<vec3>();
-					comp.intensity = component.second["Intensity"].as<float>();
+				else if (name == TypeName<DirectionalLightComponent>()) {
+					DeserializeDirectionalLightComponent(component, entity);
 				}
-				else if (name == "PointLightComponent") {
-					auto& comp = entity.AddComponent<PointLightComponent>();
-					comp.color = component.second["Color"].as<vec3>();
-					comp.intensity = component.second["Intensity"].as<float>();
-					comp.range = component.second["Range"].as<float>();
+				else if (name == TypeName<PointLightComponent>()) {
+					DeserializePointLightComponent(component, entity);
 				}
-				else if (name == "SpotLightComponent") {
-					auto& comp = entity.AddComponent<SpotLightComponent>();
-					comp.color = component.second["Color"].as<vec3>();
-					comp.intensity = component.second["Intensity"].as<float>();
-					comp.range = component.second["Range"].as<float>();
-					comp.inner = component.second["Inner"].as<float>();
-					comp.outer = component.second["Outer"].as<float>();
+				else if (name == TypeName<SpotLightComponent>()) {
+					DeserializeSpotLightComponent(component, entity);
 				}
-				else if (name == "SkyBoxComponent") {
-					auto& comp = entity.AddComponent<SkyBoxComponent>();
-					comp.texture = component.second["Texture"].as<uint64_t>();
+				else if (name == TypeName<SkyBoxComponent>()) {
+					DeserializeSkyBoxComponent(component, entity);
 				}
-				else if (name == "DecalComponent") {
-					auto& comp = entity.AddComponent<DecalComponent>();
-					comp.texture = component.second["Texture"].as<uint64_t>();
+				else if (name == TypeName<DecalComponent>()) {
+					DeserializeDecalComponent(component, entity);
 				}
 				else if (name == TypeName<LandscapeComponent>()) {
-					auto& comp = entity.AddComponent<LandscapeComponent>();
-					comp.tilingX = component.second["TilingX"].as<float>();
-					comp.tilingY = component.second["TilingY"].as<float>();
-					comp.heightMap = component.second["HeightMap"].as<uint64_t>();
-					comp.lodLevelMax = component.second["LODLevelMax"].as<uint32_t>();
-					comp.lodDistanceRange = component.second["LODDistanceRange"].as<vec2>();
-					comp.albedoTexture2DArray = component.second["AlbedoTexture2DArray"].as<uint64_t>();
+					DeserializeLandscapeComponent(component, entity);
 				}
 				else if (name == TypeName<AnimatorComponent>()) {
-					auto& comp = entity.AddComponent<AnimatorComponent>();
-					comp.skeletonAsset = component.second["SkeletonAsset"].as<uint64_t>();
+					DeserializeAnimatorComponent(component, entity);
 				}
 				else if (name == TypeName<MonoScriptComponent>()) {
-					std::string scriptName = component.second["Name"].as<std::string>();
-					std::vector<MonoScriptComponent::FieldInfo> fields;
-					
-					auto fieldsNode = component.second["Fields"];
-					for (const auto& field : fieldsNode) {
-						MonoScriptComponent::FieldInfo fieldInfo;
-						fieldInfo.fieldName = field.first.as<std::string>();
-						fieldInfo.fieldType = field.second[0].as<std::string>();
-						fieldInfo.fieldValue = field.second[1].as<std::string>();
-						fields.push_back(fieldInfo);
-					}
-
-					entity.AddComponent<MonoScriptComponent>(scriptName.data(), fields);
+					DeserializeMonoScriptComponent(component, entity);
 				}
 			}
 		}

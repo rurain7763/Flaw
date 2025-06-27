@@ -37,7 +37,13 @@ namespace flaw {
         _outlineGraphicsPipeline->SetDepthTest(DepthTest::Less, false);
 		_outlineGraphicsPipeline->SetCullMode(CullMode::Front);
 
-        _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
+        _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { 
+			if (&evn.entity.GetScene() != _scene.get()) {
+				return;
+			}
+            _selectedEntt = evn.entity; 
+        }, PID(this));
+
         _eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) { CreateRequiredTextures(); }, PID(this));
 		_eventDispatcher.Register<OnSceneStateChangeEvent>([this](const OnSceneStateChangeEvent& evn) { _useEditorCamera = evn.state == SceneState::Edit; }, PID(this));
 		_eventDispatcher.Register<OnScenePauseEvent>([this](const OnScenePauseEvent& evn) { _useEditorCamera = evn.pause; }, PID(this));

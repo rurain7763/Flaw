@@ -5,10 +5,16 @@
 #include "ParticleComponentDrawer.h"
 
 namespace flaw {
-	DetailsEditor::DetailsEditor(Application& app)
+	DetailsEditor::DetailsEditor(Application& app, const std::string& editorName)
 		: _app(app)
+		, _editorName(editorName)
 	{
-		_app.GetEventDispatcher().Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
+		_app.GetEventDispatcher().Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { 
+			if (&evn.entity.GetScene() != _scene.get()) {
+				return;
+			}
+			_selectedEntt = evn.entity; 
+		}, PID(this));
 	}
 
 	DetailsEditor::~DetailsEditor() {
@@ -21,7 +27,7 @@ namespace flaw {
 	}
 
 	void DetailsEditor::OnRender() {
-		ImGui::Begin("Details");
+		ImGui::Begin(_editorName.c_str(), &_isOpen);
 
 		if (_selectedEntt) {
 			auto& entityComp = _selectedEntt.GetComponent<EntityComponent>();

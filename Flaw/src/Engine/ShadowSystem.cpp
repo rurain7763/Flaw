@@ -227,9 +227,8 @@ namespace flaw {
 				boneMatricesSB = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
 			}
 
-			if (animationSys.HasAnimatorRuntime(entity)) {
-				auto& animatorRuntime = animationSys.GetAnimatorRuntime(entity);
-				boneMatricesSB = animatorRuntime.GetAnimationMatricesGPUBuffer();
+			if (animationSys.HasAnimatorJobContext(entity)) {
+				boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animationMatricesSB;
 			}
 
 			if (!boneMatricesSB) {

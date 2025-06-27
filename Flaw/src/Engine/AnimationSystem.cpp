@@ -50,14 +50,30 @@ namespace flaw {
 			animator = CreateScope<Animator>(desc);
 		}
 
-		auto it = _runtimeAnimators.emplace(std::piecewise_construct, std::forward_as_tuple(entity), std::forward_as_tuple(*animator));
+		auto context = CreateRef<AnimatorJobContext>();
+		context->runtimeAnimator = CreateRef<AnimatorRuntime>(*animator);
+		context->runtimeAnimator->SetToDefaultState();
+		context->isBackBufferReady.store(false);
 
-		auto& runtimeAnimator = it.first->second;
-		runtimeAnimator.SetToDefaultState();
+		context->animationMatrices0.resize(animator->GetSkeleton()->GetBoneCount());
+		context->animationMatrices1.resize(animator->GetSkeleton()->GetBoneCount());
+
+		context->front = &context->animationMatrices0;
+		context->back = &context->animationMatrices1;
+
+		StructuredBuffer::Descriptor desc = {};
+		desc.elmSize = sizeof(mat4);
+		desc.count = animator->GetSkeleton()->GetBoneCount();
+		desc.bindFlags = BindFlag::ShaderResource;
+		desc.accessFlags = AccessFlag::Write;
+
+		context->animationMatricesSB = Graphics::CreateStructuredBuffer(desc);
+
+		_animatorJobContexts[entity] = context;
 	}
 
 	void AnimationSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_runtimeAnimators.erase(entity);
+		_animatorJobContexts.erase(entity);
 	}
 
 	void AnimationSystem::Start() {
@@ -73,13 +89,17 @@ namespace flaw {
 
 	void AnimationSystem::Update() {
 		for (auto&& [entity, animatorComp] : _scene.GetRegistry().view<AnimatorComponent>().each()) {
-			auto it = _runtimeAnimators.find(entity);
-			if (it == _runtimeAnimators.end()) {
+			auto it = _animatorJobContexts.find(entity);
+			if (it == _animatorJobContexts.end()) {
 				continue; // Entity not registered
 			}
 
-			auto& runtimeAnimator = it->second;
-			runtimeAnimator.Update(Time::DeltaTime());
+			auto context = it->second;
+
+			_app.AddAsyncTask([context]() {
+				context->runtimeAnimator->Update(Time::DeltaTime(), *context->back);
+				context->isBackBufferReady.store(true);
+			});
 		}
 	}
 
@@ -89,14 +109,26 @@ namespace flaw {
 		registry.on_construct<AnimatorComponent>().disconnect<&AnimationSystem::RegisterEntity>(*this);
 		registry.on_destroy<AnimatorComponent>().disconnect<&AnimationSystem::UnregisterEntity>(*this);
 
-		_runtimeAnimators.clear();
+		_animatorJobContexts.clear();
 	}
 
-	bool AnimationSystem::HasAnimatorRuntime(entt::entity entity) const {
-		return _runtimeAnimators.find(entity) != _runtimeAnimators.end();
+	bool AnimationSystem::HasAnimatorJobContext(entt::entity entity) const {
+		return _animatorJobContexts.find(entity) != _animatorJobContexts.end();
 	}
 
-	AnimatorRuntime& AnimationSystem::GetAnimatorRuntime(entt::entity entity) {
-		return _runtimeAnimators.at(entity);
+	AnimatorJobContext& AnimationSystem::GetAnimatorJobContext(entt::entity entity) {
+		auto it = _animatorJobContexts.find(entity);
+		if (it == _animatorJobContexts.end()) {
+			throw std::runtime_error("Animator runtime not found for entity");
+		}
+
+		auto context = it->second;
+		
+		if (context->isBackBufferReady.exchange(false)) {
+			std::swap(context->front, context->back);
+			context->animationMatricesSB->Update(context->front->data(), context->front->size() * sizeof(mat4));
+		}
+
+		return *context;
 	}
 }

@@ -70,14 +70,6 @@ namespace flaw {
 		, _currentTime(0.0f)
 	{
 		_currentStateIndex = animator._defaultStateIndex;
-
-		StructuredBuffer::Descriptor desc = {};
-		desc.elmSize = sizeof(mat4);
-		desc.count = animator._skeleton->GetBoneCount();
-		desc.bindFlags = BindFlag::ShaderResource;
-		desc.accessFlags = AccessFlag::Write;
-
-		_animationMatricesSB = Graphics::CreateStructuredBuffer(desc);
 	}
 
 	void AnimatorRuntime::SetToDefaultState() {
@@ -97,26 +89,23 @@ namespace flaw {
 		_currentTime = 0.0f;
 	}
 
-	void AnimatorRuntime::Update(float deltaTime) {
+	void AnimatorRuntime::Update(float deltaTime, std::vector<mat4>& animationMatrices) {
 		if (IsInTransition()) {
-			UpdateTransition(deltaTime);
+			UpdateTransition(deltaTime, animationMatrices);
 		}
 		else {
-			UpdateState(deltaTime);
+			UpdateState(deltaTime, animationMatrices);
 		}
 	}
 
-	void AnimatorRuntime::UpdateTransition(float deltaTime) {
+	void AnimatorRuntime::UpdateTransition(float deltaTime, std::vector<mat4>& animationMatrices) {
 		if (_currentTransitionIndex == -1) {
 			return;
 		}
 
 		Ref<AnimatorTransition> transition = _animator._transitions[_currentTransitionIndex];
 
-		std::vector<mat4> transitionMatrices;
-		transition->GetAnimationMatrices(_currentTime, transitionMatrices);
-
-		_animationMatricesSB->Update(transitionMatrices.data(), transitionMatrices.size() * sizeof(mat4));
+		transition->GetAnimationMatrices(_currentTime, animationMatrices);
 
 		_currentTime += deltaTime;
 		if (_currentTime >= transition->GetDuration()) {
@@ -126,16 +115,14 @@ namespace flaw {
 		}
 	}
 
-	void AnimatorRuntime::UpdateState(float deltaTime) {
+	void AnimatorRuntime::UpdateState(float deltaTime, std::vector<mat4>& animationMatrices) {
 		if (_currentStateIndex == -1) {
 			return;
 		}
 
 		Ref<AnimatorState> currentState = _animator._states[_currentStateIndex];
 
-		std::vector<mat4> animationMatrices;
 		currentState->GetAnimation()->GetAnimationMatrices(_animator._skeleton, _currentTime, animationMatrices);
-		_animationMatricesSB->Update(animationMatrices.data(), animationMatrices.size() * sizeof(mat4));
 		
 		_currentTime += deltaTime;
 		if (currentState->IsLooping() && _currentTime >= currentState->GetAnimation()->GetDuration()) {
