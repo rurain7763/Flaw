@@ -207,7 +207,13 @@ namespace flaw {
 		Descriptor desc;
 		_getDesc(desc);
 
-		_skeleton = CreateRef<Skeleton>(desc.globalInvMatrix, desc.nodes, desc.boneMap);
+		Skeleton::Descriptor skeletonDesc = {};
+		skeletonDesc.globalInvMatrix = desc.globalInvMatrix;
+		skeletonDesc.nodes = desc.nodes;
+		skeletonDesc.bones = desc.bones;
+		skeletonDesc.sockets = desc.sockets;
+
+		_skeleton = CreateRef<Skeleton>(skeletonDesc);
 		_animationHandles = desc.animationHandles;
 	}
 

@@ -20,6 +20,7 @@ namespace flaw {
 	class AnimationSystem;
 	class MonoScriptSystem;
 	class PhysicsSystem;
+	class SkeletalSystem;
 
 	class Scene {
 	public:
@@ -60,6 +61,7 @@ namespace flaw {
 		AnimationSystem& GetAnimationSystem() { return *_animationSystem; }
 		MonoScriptSystem& GetMonoScriptSystem() { return *_monoScriptSystem; }
 		PhysicsSystem& GetPhysicsSystem() { return *_physicsSystem; }
+		SkeletalSystem& GetSkeletalSystem() { return *_skeletalSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -79,6 +81,7 @@ namespace flaw {
 		Scope<AnimationSystem> _animationSystem;
 		Scope<MonoScriptSystem> _monoScriptSystem;
 		Scope<PhysicsSystem> _physicsSystem;
+		Scope<SkeletalSystem> _skeletalSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

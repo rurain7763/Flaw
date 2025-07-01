@@ -14,15 +14,21 @@ namespace flaw {
 	struct AnimatorJobContext {
 		Ref<AnimatorRuntime> runtimeAnimator;
 
-		std::vector<mat4> animationMatrices0;
-		std::vector<mat4> animationMatrices1;
+		std::vector<mat4> animatedBoneMatrices0;
+		std::vector<mat4> animatedBoneMatrices1;
 
-		std::vector<mat4>* front;
-		std::vector<mat4>* back;
+		std::vector<mat4>* frontAnimatedBoneMatrices;
+		std::vector<mat4>* backAnimatedBoneMatrices;
+
+		std::vector<mat4> animatedSkinMatrices0;
+		std::vector<mat4> animatedSkinMatrices1;
+
+		std::vector<mat4>* frontAnimatedSkinMatrices;
+		std::vector<mat4>* backAnimatedSkinMatrices;
 
 		std::atomic<bool> isBackBufferReady;
 
-		Ref<StructuredBuffer> animationMatricesSB;
+		Ref<StructuredBuffer> animatedSkinMatricesSB;
 	};
 
 	class AnimationSystem {

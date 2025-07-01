@@ -25,18 +25,6 @@ namespace flaw {
 
         CreateRequiredTextures();
 
-        _mvpConstantBuffer = _graphicsContext.CreateConstantBuffer(sizeof(MVPMatrices));
-
-		Ref<GraphicsShader> shader = _graphicsContext.CreateGraphicsShader("Resources/Shaders/std3d_outline.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-        shader->AddInputElement<float>("POSITION", 3);
-		shader->AddInputElement<float>("NORMAL", 3);
-        shader->CreateInputLayout();
-        
-        _outlineGraphicsPipeline = _graphicsContext.CreateGraphicsPipeline();
-		_outlineGraphicsPipeline->SetShader(shader);
-        _outlineGraphicsPipeline->SetDepthTest(DepthTest::Less, false);
-		_outlineGraphicsPipeline->SetCullMode(CullMode::Front);
-
         _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { 
 			if (&evn.entity.GetScene() != _scene.get()) {
 				return;
@@ -102,7 +90,6 @@ namespace flaw {
         }
 
         if (_selectedEntt) {
-            DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
             DrawDebugComponent();
         }
 
@@ -112,8 +99,6 @@ namespace flaw {
         renderTargetTex->CopyTo(_captureRenderTargetTexture);
 
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
-
-        // NOTE: 마우스 피킹 render target 테스트
 
         if (_selectionEnabled) {
 		    vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
@@ -308,39 +293,5 @@ namespace flaw {
         }
 
 		Renderer2D::End();
-    }
-
-    void ViewportEditor::DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj) {
-        if (!_selectedEntt.HasComponent<StaticMeshComponent>() || !_selectedEntt.HasComponent<SkeletalMeshComponent>()) {
-            return;
-        }
-
-		AssetHandle meshHandle = _selectedEntt.GetComponent<SkeletalMeshComponent>().mesh;
-		auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(meshHandle);
-		if (!meshAsset) {
-			return;
-		}
-
-		auto& mainPass = Graphics::GetMainRenderPass();
-        auto& cmdQueue = _graphicsContext.GetCommandQueue();
-
-		Ref<Mesh> mesh = meshAsset->GetMesh();
-
-		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
-		mainPass->Bind(false, false);
-
-		MVPMatrices mvp;
-		mvp.world = _selectedEntt.GetComponent<TransformComponent>().worldTransform;
-		mvp.view = view;
-		mvp.projection = proj;
-		_mvpConstantBuffer->Update(&mvp, sizeof(MVPMatrices));
-
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		cmdQueue.SetPipeline(_outlineGraphicsPipeline);
-		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
-		cmdQueue.SetConstantBuffer(_mvpConstantBuffer, 0);
-		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
-
-        cmdQueue.Execute();
     }
 }

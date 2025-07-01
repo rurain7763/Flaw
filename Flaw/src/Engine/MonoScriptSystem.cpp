@@ -322,6 +322,8 @@ namespace flaw {
 		registry.on_destroy<MeshColliderComponent>().connect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
 		registry.on_construct<AnimatorComponent>().connect<&MonoScriptSystem::RegisterComponent<AnimatorComponent>>(*this);
 		registry.on_destroy<AnimatorComponent>().connect<&MonoScriptSystem::UnregisterComponent<AnimatorComponent>>(*this);
+		registry.on_construct<SkeletalMeshComponent>().connect<&MonoScriptSystem::RegisterComponent<SkeletalMeshComponent>>(*this);
+		registry.on_destroy<SkeletalMeshComponent>().connect<&MonoScriptSystem::UnregisterComponent<SkeletalMeshComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().connect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 		registry.on_destroy<MonoScriptComponent>().connect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 
@@ -341,6 +343,7 @@ namespace flaw {
 			RegisterComponent<SphereColliderComponent>(registry, entity);
 			RegisterComponent<MeshColliderComponent>(registry, entity);
 			RegisterComponent<AnimatorComponent>(registry, entity);
+			RegisterComponent<SkeletalMeshComponent>(registry, entity);
 			RegisterMonoComponent(registry, entity);
 		}
 
@@ -544,6 +547,8 @@ namespace flaw {
 		registry.on_destroy<MeshColliderComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<MeshColliderComponent>>(*this);
 		registry.on_construct<AnimatorComponent>().disconnect<&MonoScriptSystem::RegisterComponent<AnimatorComponent>>(*this);
 		registry.on_destroy<AnimatorComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<AnimatorComponent>>(*this);
+		registry.on_construct<SkeletalMeshComponent>().disconnect<&MonoScriptSystem::RegisterComponent<SkeletalMeshComponent>>(*this);
+		registry.on_destroy<SkeletalMeshComponent>().disconnect<&MonoScriptSystem::UnregisterComponent<SkeletalMeshComponent>>(*this);
 		registry.on_construct<MonoScriptComponent>().disconnect<&MonoScriptSystem::RegisterMonoComponentInRuntime>(*this);
 		registry.on_destroy<MonoScriptComponent>().disconnect<&MonoScriptSystem::UnregisterMonoComponent>(*this);
 

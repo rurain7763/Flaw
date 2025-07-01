@@ -5,6 +5,7 @@
 #include "Assets.h"
 #include "AnimationSystem.h"
 #include "RenderSystem.h"
+#include "SkeletalSystem.h"
 #include "Graphics/GraphicsFunc.h"
 
 namespace flaw {
@@ -152,6 +153,7 @@ namespace flaw {
 	void ShadowSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 		auto& animationSys = _scene.GetAnimationSystem();
+		auto& skeletalSys = _scene.GetSkeletalSystem();
 
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = _directionalShadowMaps[entity];
@@ -223,12 +225,16 @@ namespace flaw {
 			Ref<StructuredBuffer> boneMatricesSB;
 
 			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
-			if (skeletonAsset) {
-				boneMatricesSB = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
+			if (!skeletonAsset) {
+				continue;
 			}
 
 			if (animationSys.HasAnimatorJobContext(entity)) {
-				boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animationMatricesSB;
+				boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animatedSkinMatricesSB;
+			}
+			else {
+				auto& skeletonUniforms = skeletalSys.GetSkeletonUniforms(skeletonAsset->GetSkeleton());
+				boneMatricesSB = skeletonUniforms.bindingPoseSkinMatricesSB;
 			}
 
 			if (!boneMatricesSB) {

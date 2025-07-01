@@ -441,12 +441,6 @@ namespace flaw {
 					}
 				});
 
-				// TODO: 임시 테스트
-				ImGui::Text("Blend Factor");
-				if (ImGui::DragFloat("Blend Factor", &skeletalMeshComp.blendFactor, 0.1f, 0.0, 1.0)) {
-					skeletalMeshComp.blendFactor = glm::clamp(skeletalMeshComp.blendFactor, 0.f, 1.f);
-				}
-
 				ImGui::Checkbox("Cast Shadow", &skeletalMeshComp.castShadow);
 			});
 

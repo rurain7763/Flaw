@@ -172,4 +172,12 @@
             InternalCalls.PlayState_Animator(entityId, stateIndex);
         }
     }
+
+    public class SkeletalMeshComponent : EntityComponent
+    {
+        public void AttachEntityToSocket(Entity entity, string socketName)
+        {
+            InternalCalls.AttachEntityToSocket_SkeletalMesh(entityId, entity.id, socketName);
+        }
+    }
 }

@@ -285,7 +285,8 @@ namespace flaw {
 		struct Descriptor {
 			mat4 globalInvMatrix;
 			std::vector<SkeletonNode> nodes;
-			std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+			std::vector<SkeletonBoneNode> bones;
+			std::vector<SkeletonBoneSocket> sockets;
 			std::vector<AssetHandle> animationHandles;
 		};
 

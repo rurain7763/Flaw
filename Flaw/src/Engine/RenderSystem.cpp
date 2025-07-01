@@ -10,6 +10,7 @@
 #include "AnimationSystem.h"
 #include "ShadowSystem.h"
 #include "SkyBoxSystem.h"
+#include "SkeletalSystem.h"
 
 // TODO: remove this
 #include "Renderer2D.h"
@@ -372,6 +373,7 @@ namespace flaw {
 	void RenderSystem::GatherRenderableObjects() {
 		auto& enttRegistry = _scene.GetRegistry();
 		auto& animationSys = _scene.GetAnimationSystem();
+		auto& skeletalSys = _scene.GetSkeletalSystem();
 
 		for (auto& [depth, stage] : _renderStages) {
 			stage.renderQueue.Open();
@@ -418,12 +420,16 @@ namespace flaw {
 				Ref<StructuredBuffer> boneMatricesSB;
 
 				auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
-				if (skeletonAsset) {
-					boneMatricesSB = skeletonAsset->GetSkeleton()->GetBindingPosGPUBuffer();
+				if (!skeletonAsset) {
+					continue;
 				}
 
 				if (animationSys.HasAnimatorJobContext(entity)) {
-					boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animationMatricesSB;
+					boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animatedSkinMatricesSB;
+				}
+				else {
+					auto& skeletonUniforms = skeletalSys.GetSkeletonUniforms(skeletonAsset->GetSkeleton());
+					boneMatricesSB = skeletonUniforms.bindingPoseSkinMatricesSB;
 				}
 
 				if (!boneMatricesSB) {

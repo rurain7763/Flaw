@@ -14,6 +14,7 @@
 #include "AnimationSystem.h"
 #include "MonoScriptSystem.h"
 #include "PhysicsSystem.h"
+#include "SkeletalSystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -30,6 +31,7 @@ namespace flaw {
 		_landscapeSystem = CreateScope<LandscapeSystem>(*this);		
 		_shadowSystem = CreateScope<ShadowSystem>(*this);		
 		_animationSystem = CreateScope<AnimationSystem>(_app, *this);
+		_skeletalSystem = CreateScope<SkeletalSystem>(_app, *this);
 		_monoScriptSystem = CreateScope<MonoScriptSystem>(_app, *this);
 		_physicsSystem = CreateScope<PhysicsSystem>(*this);
 		_renderSystem = CreateScope<RenderSystem>(*this);
@@ -271,6 +273,7 @@ namespace flaw {
 		_monoScriptSystem->Update();
 		UpdateScript();
 		_animationSystem->Update();
+		_skeletalSystem->Update();
 		UpdatePhysics2D();
 		_physicsSystem->Update();
 		UpdateSound();

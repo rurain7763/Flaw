@@ -20,6 +20,7 @@ namespace flaw {
 		constexpr static const char* MonoBoxColliderComponentClassName = "Flaw.BoxColliderComponent";
 		constexpr static const char* MonoSphereColliderComponentClassName = "Flaw.SphereColliderComponent";
 		constexpr static const char* MonoMeshColliderComponentClassName = "Flaw.MeshColliderComponent";
+		constexpr static const char* MonoSkeletarMeshComponentClassName = "Flaw.SkeletalMeshComponent";
 
 		static void Init(Application& app);
 		static void Reload();

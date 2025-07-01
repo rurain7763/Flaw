@@ -84,7 +84,8 @@ namespace flaw {
 	struct SkeletonCreateSettings : public AssetCreateSettings {
 		mat4 globalInvMatrix = mat4(1.0f);
 		std::vector<SkeletonNode> nodes;
-		std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+		std::vector<SkeletonBoneNode> bones;
+		std::vector<SkeletonBoneSocket> sockets;
 		std::vector<AssetHandle> animationHandles;
 
 		SkeletonCreateSettings() {

@@ -43,4 +43,6 @@ namespace flaw {
 	bool Raycast_Physics(const Ray& ray, RayHit& hit);
 
 	void PlayState_Animator(UUID uuid, int32_t stateIndex);
+
+	void AttachEntityToSocket_SkeletalMesh(UUID uuid, UUID target, MonoString* socketName);
 }

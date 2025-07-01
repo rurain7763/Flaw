@@ -12,6 +12,11 @@ namespace flaw {
 		void OnRender() override;
 
 	private:
+		void DrawBone(int32_t currentNodeIndex);
+		void DrawSkeleton(Ref<Skeleton> skeleton);
+		void DrawSockets(Ref<Skeleton> skeleton);
+
+	private:
 		Application& _app;
 
 		bool _dirty;

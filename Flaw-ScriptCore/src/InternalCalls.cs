@@ -97,5 +97,8 @@ namespace Flaw
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal extern static void PlayState_Animator(EntityID id, int stateIndex);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void AttachEntityToSocket_SkeletalMesh(EntityID id, EntityID target, string socketName);
     }
 }

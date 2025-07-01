@@ -103,9 +103,16 @@ namespace flaw {
 		static bool DrawCombo(const char* label, int32_t& value, const std::vector<std::string>& items) {
 			bool dirty = false;
 
+			ImGui::PushID(label);
+
+			ImGui::Text("%s", label);
+
+			ImGui::SameLine();
+
 			std::string current = (value >= 0 && value < items.size()) ? items[value] : "None";
 
-			if (ImGui::BeginCombo(label, current.c_str())) {
+			ImGui::SetNextItemWidth(150.f);
+			if (ImGui::BeginCombo("##Combo", current.c_str())) {
 				for (int32_t i = 0; i < items.size(); i++) {
 					bool isSelected = items[i] == current;
 					if (ImGui::Selectable(items[i].c_str(), isSelected)) {
@@ -118,6 +125,8 @@ namespace flaw {
 				}
 				ImGui::EndCombo();
 			}
+
+			ImGui::PopID();
 
 			return dirty;
 		}
@@ -394,8 +403,10 @@ namespace flaw {
 		}
 
 		template<typename T>
-		static bool DrawList(const char* label, std::vector<T>& items, const std::function<bool(T&)>& itemDrawFunc, const std::function<T()>* createNewItemFunc = nullptr) {
+		static bool DrawList(const char* label, std::vector<T>& items, const std::function<bool(T&)>& itemDrawFunc) {
 			bool dirty = false;
+
+			ImGui::PushID(label);
 
 			if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
@@ -436,18 +447,73 @@ namespace flaw {
 				ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - 60);
 
 				if (ImGui::Button("Add item", ImVec2(60, 0))) {
-					if (createNewItemFunc) {
-						items.emplace_back((*createNewItemFunc)());
-					}
-					else {
-						items.emplace_back();
-					}
+					items.emplace_back();
 					dirty = true;
 				}
 
 				ImGui::EndChild();
 				ImGui::PopStyleVar();
 			}
+
+			ImGui::PopID();
+
+			return dirty;
+		}
+
+		template<typename T>
+		static bool DrawList(const char* label, std::vector<T>& items, const std::function<bool(T&)>& itemDrawFunc, const std::function<T()>& createNewItemFunc) {
+			bool dirty = false;
+
+			ImGui::PushID(label);
+
+			if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetColorU32(ImGuiCol_FrameBg));
+
+				ImGui::BeginChild("ItemListArea", ImVec2(0, 180), true, ImGuiWindowFlags_AlwaysUseWindowPadding);
+				if (items.empty()) {
+					ImGui::TextDisabled("No items.");
+				}
+				else {
+					for (size_t i = 0; i < items.size(); ) {
+						ImGui::PushID(static_cast<int>(i));
+
+						ImGui::Columns(2, nullptr, false);
+						dirty |= itemDrawFunc(items[i]);
+
+						ImGui::NextColumn();
+						if (ImGui::Button("Remove")) {
+							items.erase(items.begin() + i);
+							dirty = true;
+						}
+						else {
+							++i;
+						}
+
+						ImGui::Columns(1);
+						ImGui::Separator();
+						ImGui::PopID();
+					}
+				}
+				ImGui::EndChild();
+
+				ImGui::PopStyleColor();
+				ImGui::Spacing();
+
+				ImGui::Separator();
+				ImGui::BeginChild("ListControls", ImVec2(0, 40), false);
+				ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - 60);
+
+				if (ImGui::Button("Add item", ImVec2(60, 0))) {
+					items.emplace_back(createNewItemFunc());
+					dirty = true;
+				}
+
+				ImGui::EndChild();
+				ImGui::PopStyleVar();
+			}
+
+			ImGui::PopID();
 
 			return dirty;
 		}

@@ -7,6 +7,7 @@
 #include "Physics.h"
 #include "PhysicsSystem.h"
 #include "AnimationSystem.h"
+#include "SkeletalSystem.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -221,5 +222,22 @@ namespace flaw {
 	
 		auto runtimeAnimator = animationSys.GetAnimatorJobContext(entity).runtimeAnimator;
 		runtimeAnimator->PlayState(stateIndex);
+	}
+
+	void AttachEntityToSocket_SkeletalMesh(UUID uuid, UUID target, MonoString* socketName) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto targetEntity = Scripting::GetScene().FindEntityByUUID(target);
+		FASSERT(targetEntity, "Target entity not found with UUID");
+
+		if (entity.HasComponent<SkeletalMeshComponent>()) {
+			auto& skeletalSys = Scripting::GetScene().GetSkeletalSystem();
+			char* socketNameStr = mono_string_to_utf8(socketName);
+
+			skeletalSys.AttachEntityToSocket(entity, targetEntity, socketNameStr);
+
+			mono_free(socketNameStr);
+		}
 	}
 }

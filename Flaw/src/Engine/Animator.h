@@ -12,7 +12,7 @@ namespace flaw {
 	public:
 		virtual ~AnimatorAnimation() = default;
 
-		virtual void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animationMatrices) = 0;
+		virtual void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices) = 0;
 		virtual float GetDuration() const = 0;
 	};
 
@@ -21,7 +21,7 @@ namespace flaw {
 		AnimatorAnimation1D(Ref<SkeletalAnimation> animation) : _animation(animation) {}
 		virtual ~AnimatorAnimation1D() = default;
 
-		void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animationMatrices) override;
+		void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices) override;
 		float GetDuration() const override;
 
 	private:
@@ -39,7 +39,7 @@ namespace flaw {
 
 		virtual ~AnimatorAnimation2D() = default;
 
-		void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animationMatrices) override;
+		void GetAnimationMatrices(Ref<Skeleton> skeleton, float time, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices) override;
 		float GetDuration() const override;
 
 		void SetBlendFactor(float factor) { _blendFactor = glm::clamp(factor, 0.0f, 1.0f); }
@@ -56,7 +56,7 @@ namespace flaw {
 
 		bool CanTransition() const;
 
-		void GetAnimationMatrices(float time, std::vector<mat4>& outMatrices);
+		void GetAnimationMatrices(float time, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices);
 
 		float GetDuration() const { return _duration; }
 
@@ -125,13 +125,13 @@ namespace flaw {
 		void SetToDefaultState();
 		void PlayState(int32_t stateIndex);
 
-		void Update(float deltaTime, std::vector<mat4>& animationMatrices);
+		void Update(float deltaTime, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices);
 
 		bool IsInTransition() const { return _currentTransitionIndex != -1; }
 
 	private:
-		void UpdateTransition(float deltaTime, std::vector<mat4>& animationMatrices);
-		void UpdateState(float deltaTime, std::vector<mat4>& animationMatrices);
+		void UpdateTransition(float deltaTime, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices);
+		void UpdateState(float deltaTime, std::vector<mat4>& animatedBoneMatrices, std::vector<mat4>& animatedSkinMatrices);
 
 	private:
 		Animator& _animator;

@@ -417,9 +417,6 @@ namespace flaw {
 		std::vector<AssetHandle> materials;
 		AssetHandle skeleton;
 
-		// TODO: 임시 테스트
-		float blendFactor = 0.0f;
-
 		bool castShadow = true;
 
 		SkeletalMeshComponent() = default;

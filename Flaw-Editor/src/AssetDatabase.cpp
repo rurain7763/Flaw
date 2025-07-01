@@ -249,7 +249,8 @@ namespace flaw {
 					SerializationArchive archive(&data[dataOffset], data.size() - dataOffset);
 					archive >> desc.globalInvMatrix;
 					archive >> desc.nodes;
-					archive >> desc.boneMap;
+					archive >> desc.bones;
+					archive >> desc.sockets;
 					archive >> desc.animationHandles;
 				}
 			);
@@ -463,7 +464,8 @@ namespace flaw {
 	void AssetDatabase::FillSerializationArchive(SerializationArchive& archive, const SkeletonCreateSettings* settings) {
 		archive << settings->globalInvMatrix;
 		archive << settings->nodes;
-		archive << settings->boneMap;
+		archive << settings->bones;
+		archive << settings->sockets;
 		archive << settings->animationHandles;
 	}
 
@@ -778,8 +780,8 @@ namespace flaw {
 					std::transform(modelSkeleton.nodes.begin(), modelSkeleton.nodes.end(), std::back_inserter(skeletonSettings.nodes), [](const ModelSkeletonNode& node) {
 						return SkeletonNode{ node.name, node.parentIndex, node.transformMatrix, node.childrenIndices };
 					});
-					std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.boneMap, skeletonSettings.boneMap.end()), [](const auto& pair) {
-						return std::make_pair(pair.first, SkeletonBoneNode{ pair.second.nodeIndex, pair.second.boneIndex, pair.second.offsetMatrix });
+					std::transform(modelSkeleton.boneMap.begin(), modelSkeleton.boneMap.end(), std::inserter(skeletonSettings.bones, skeletonSettings.bones.end()), [](const auto& pair) {
+						return SkeletonBoneNode{ pair.second.nodeIndex, pair.second.boneIndex, pair.second.offsetMatrix };
 					});
 					skeletonSettings.animationHandles = skeletalAnimHandles;
 

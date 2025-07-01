@@ -78,6 +78,7 @@ namespace flaw {
 		RegisterEngineComponent<MeshColliderComponent>();
 		RegisterEngineComponent<CameraComponent>();
 		RegisterEngineComponent<AnimatorComponent>();
+		RegisterEngineComponent<SkeletalMeshComponent>();
 
 		g_scriptAsmWatcher = CreateScope<filewatch::FileWatch<std::string>>(
 			projectMonoAssemblyPath.c_str(),
@@ -134,6 +135,7 @@ namespace flaw {
 		ADD_INTERNAL_CALL(GetMouseButton_Input);
 		ADD_INTERNAL_CALL(Raycast_Physics);
 		ADD_INTERNAL_CALL(PlayState_Animator);
+		ADD_INTERNAL_CALL(AttachEntityToSocket_SkeletalMesh);
 
 		LoadMonoScripting();
 	}

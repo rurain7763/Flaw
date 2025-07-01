@@ -373,6 +373,7 @@
     <ClInclude Include="src\Scripting\MonoScriptArray.h" />
     <ClInclude Include="src\Utils\BiMap.h" />
     <ClInclude Include="src\Engine\Animator.h" />
+    <ClInclude Include="src\Engine\SkeletalSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">
@@ -568,5 +569,6 @@
     <ClCompile Include="src\Scripting\MonoScriptDomain.cpp" />
     <ClCompile Include="src\Scripting\MonoScriptArray.cpp" />
     <ClCompile Include="src\Engine\Animator.cpp" />
+    <ClCompile Include="src\Engine\SkeletalSystem.cpp" />
   </ItemGroup>
 </Project>

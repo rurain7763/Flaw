@@ -479,7 +479,7 @@ namespace flaw {
 		int32_t selectedMode = static_cast<int32_t>(_editorMode);
         
         ImGui::SetNextItemWidth(120);
-        if (EditorHelper::DrawCombo("##Editor mode", selectedMode, editorModes)) {
+        if (EditorHelper::DrawCombo("Editor mode", selectedMode, editorModes)) {
 			_editorMode = static_cast<EditorMode>(selectedMode);
 			_app.GetEventDispatcher().Dispatch<OnEditorModeChangeEvent>(_editorMode);
         }

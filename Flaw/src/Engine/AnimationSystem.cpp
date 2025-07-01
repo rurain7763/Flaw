@@ -55,11 +55,17 @@ namespace flaw {
 		context->runtimeAnimator->SetToDefaultState();
 		context->isBackBufferReady.store(false);
 
-		context->animationMatrices0.resize(animator->GetSkeleton()->GetBoneCount());
-		context->animationMatrices1.resize(animator->GetSkeleton()->GetBoneCount());
+		context->animatedBoneMatrices0.resize(animator->GetSkeleton()->GetBoneCount());
+		context->animatedBoneMatrices1.resize(animator->GetSkeleton()->GetBoneCount());
 
-		context->front = &context->animationMatrices0;
-		context->back = &context->animationMatrices1;
+		context->frontAnimatedBoneMatrices = &context->animatedBoneMatrices0;
+		context->backAnimatedBoneMatrices = &context->animatedBoneMatrices1;
+
+		context->animatedSkinMatrices0.resize(animator->GetSkeleton()->GetBoneCount());
+		context->animatedSkinMatrices1.resize(animator->GetSkeleton()->GetBoneCount());
+
+		context->frontAnimatedSkinMatrices = &context->animatedSkinMatrices0;
+		context->backAnimatedSkinMatrices = &context->animatedSkinMatrices1;
 
 		StructuredBuffer::Descriptor desc = {};
 		desc.elmSize = sizeof(mat4);
@@ -67,7 +73,7 @@ namespace flaw {
 		desc.bindFlags = BindFlag::ShaderResource;
 		desc.accessFlags = AccessFlag::Write;
 
-		context->animationMatricesSB = Graphics::CreateStructuredBuffer(desc);
+		context->animatedSkinMatricesSB = Graphics::CreateStructuredBuffer(desc);
 
 		_animatorJobContexts[entity] = context;
 	}
@@ -97,7 +103,7 @@ namespace flaw {
 			auto context = it->second;
 
 			_app.AddAsyncTask([context]() {
-				context->runtimeAnimator->Update(Time::DeltaTime(), *context->back);
+				context->runtimeAnimator->Update(Time::DeltaTime(), *context->backAnimatedBoneMatrices, *context->backAnimatedSkinMatrices);
 				context->isBackBufferReady.store(true);
 			});
 		}
@@ -125,8 +131,9 @@ namespace flaw {
 		auto context = it->second;
 		
 		if (context->isBackBufferReady.exchange(false)) {
-			std::swap(context->front, context->back);
-			context->animationMatricesSB->Update(context->front->data(), context->front->size() * sizeof(mat4));
+			std::swap(context->frontAnimatedBoneMatrices, context->backAnimatedBoneMatrices);
+			std::swap(context->frontAnimatedSkinMatrices, context->backAnimatedSkinMatrices);
+			context->animatedSkinMatricesSB->Update(context->frontAnimatedSkinMatrices->data(), context->frontAnimatedSkinMatrices->size() * sizeof(mat4));
 		}
 
 		return *context;

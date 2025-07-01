@@ -141,30 +141,68 @@ namespace flaw {
 		}
 	};
 
+	struct SkeletonBoneSocket {
+		std::string name;
+		int32_t boneIndex = -1;
+		mat4 localTransform = mat4(1.0f);
+	};
+
+	template<>
+	struct Serializer<SkeletonBoneSocket> {
+		static void Serialize(SerializationArchive& archive, const SkeletonBoneSocket& value) {
+			archive << value.name;
+			archive << value.boneIndex;
+			archive << value.localTransform;
+		}
+
+		static void Deserialize(SerializationArchive& archive, SkeletonBoneSocket& value) {
+			archive >> value.name;
+			archive >> value.boneIndex;
+			archive >> value.localTransform;
+		}
+	};
+
 	class Skeleton {
 	public:
-		Skeleton(const mat4& globalInvMatrix, const std::vector<SkeletonNode>& nodes, const std::unordered_map<std::string, SkeletonBoneNode>& boneMap);
+		struct Descriptor {
+			mat4 globalInvMatrix;
+			std::vector<SkeletonNode> nodes;
+			std::vector<SkeletonBoneNode> bones;
+			std::vector<SkeletonBoneSocket> sockets;
+		};
 
-		int32_t GetBoneCount() const { return _boneMap.size(); }
+		Skeleton(const Descriptor& desc);
+
+		int32_t GetBoneCount() const { return _bones.size(); }
 
 		const mat4& GetGlobalInvMatrix() const { return _globalInvMatrix; }
 		const std::vector<SkeletonNode>& GetNodes() const { return _nodes; }
-		const std::unordered_map<std::string, SkeletonBoneNode>& GetBoneMap() const { return _boneMap; }
 
-		Ref<StructuredBuffer> GetBindingPosGPUBuffer() const { return _bindPosGPUBuffer; }
+		bool HasSocket(const std::string& socketName) const;
+		const SkeletonBoneSocket& GetSocket(const std::string& socketName) const;
 
-		void GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const;
-		void GetBlendedAnimationMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const;
+		void GetBindingPoseBoneMatrices(std::vector<mat4>& out) const;
+		void GetAnimatedBoneMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const;
+		void GetBlendedAnimatedBoneMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const;
+
+		void GetBindingPoseSkinMatrices(std::vector<mat4>& out) const;
+		void GetAnimatedSkinMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const;
+		void GetBlendedAnimatedSkinMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const;
+
+		void GetBindingPoseBoneAndSkinMatrices(std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const;
+		void GetAnimatedBoneAndSkinMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const;
+		void GetBlendedAnimatedBoneAndSkinMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const;
 
 	private:
-		void ComputeTransformationMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const;
-		void GenerateBindingPosMatrices();
+		void ComputeMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, const std::function<void(const mat4&, const mat4&, int32_t)>& hanldeFunc) const;
 
 	private:
 		mat4 _globalInvMatrix = mat4(1.0f);
 		std::vector<SkeletonNode> _nodes;
-		std::unordered_map<std::string, SkeletonBoneNode> _boneMap;
+		
+		std::vector<SkeletonBoneNode> _bones;
+		std::unordered_map<std::string, int32_t> _boneNameToIndexMap;
 
-		Ref<StructuredBuffer> _bindPosGPUBuffer;
+		std::unordered_map<std::string, SkeletonBoneSocket> _socketMap;
 	};
 }

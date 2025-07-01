@@ -180,6 +180,17 @@ namespace flaw {
 		outRotation = toQuat(rotationMatrix);
 	}
 
+	inline mat4 RemoveScaleFromMatrix(const mat4& matrix) {
+		vec3 scale = ExtractScale(matrix);
+
+		mat4 result = matrix;
+		result[0] /= scale.x;
+		result[1] /= scale.y;
+		result[2] /= scale.z;
+
+		return result;
+	}
+
 	inline mat4 LookAt(const vec3& position, const vec3& target, const vec3& up) {
 		return glm::lookAt(position, target, up);
 	}

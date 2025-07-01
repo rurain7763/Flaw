@@ -136,6 +136,7 @@
     <ClInclude Include="src\Engine\Scripting.h" />
     <ClInclude Include="src\Engine\Serialization.h" />
     <ClInclude Include="src\Engine\ShadowSystem.h" />
+    <ClInclude Include="src\Engine\SkeletalSystem.h" />
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Sounds.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\ShadowSystem.cpp" />
+    <ClCompile Include="src\Engine\SkeletalSystem.cpp" />
     <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
