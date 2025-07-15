@@ -140,6 +140,8 @@
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Sounds.h" />
+    <ClInclude Include="src\Engine\TransformSystem.h" />
+    <ClInclude Include="src\Engine\UISystem.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
     <ClInclude Include="src\Flaw.h" />
     <ClInclude Include="src\Font\Font.h" />
@@ -247,6 +249,8 @@
     <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
+    <ClCompile Include="src\Engine\TransformSystem.cpp" />
+    <ClCompile Include="src\Engine\UISystem.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />

@@ -4,7 +4,6 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "AnimationSystem.h"
-#include "RenderSystem.h"
 #include "SkeletalSystem.h"
 #include "Graphics/GraphicsFunc.h"
 
@@ -373,8 +372,8 @@ namespace flaw {
 		outProjection = Orthographic(minCornerInLightView.x, maxCornerInLightView.x, minCornerInLightView.y, maxCornerInLightView.y, minCornerInLightView.z, maxCornerInLightView.z);
 	}
 
-	void ShadowSystem::Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB) {
-		auto worldSpaceCornersArr = GetCascadeFrustumCorners(stage.frustum);
+	void ShadowSystem::Render(const vec3& cameraPos, const Frustum& cameraFrustum) {
+		auto worldSpaceCornersArr = GetCascadeFrustumCorners(cameraFrustum);
 		
 		while (!_shadowMapRenderQueue.Empty()) {
 			auto& entry = _shadowMapRenderQueue.Front();
@@ -391,31 +390,32 @@ namespace flaw {
 					vec3 p1 = glm::mix(worldSpaceCorners.bottomLeftFar, worldSpaceCorners.bottomRightFar, 0.5f);
 					vec3 center = glm::mix(p0, p1, 0.5f);
 					
-					shadowMap.cascadeDistances[i] = glm::length(center - stage.cameraPosition);
+					shadowMap.cascadeDistances[i] = glm::length(center - cameraPos);
 
 					shadowMap.renderPasses[i]->Bind(false, false);
-					DrawRenderEntry(entry, batchedTransformSB, &vpMatrix, 1);
+					DrawRenderEntry(entry, &vpMatrix, 1);
 					shadowMap.renderPasses[i]->Unbind();
 				}
 			}
 
 			for (const auto& [entt, shadowMap] : _spotLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, &shadowMap.lightVPMatrix, 1);
+				DrawRenderEntry(entry, &shadowMap.lightVPMatrix, 1);
 				shadowMap.renderPass->Unbind();
 			}
 
 			for (const auto& [entt, shadowMap] : _pointLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, shadowMap.lightVPMatrices.data(), 6);
+				DrawRenderEntry(entry, shadowMap.lightVPMatrices.data(), 6);
 				shadowMap.renderPass->Unbind();
 			}
 		}
 	}
 
-	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
+	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+		auto batchedTransformSB = Graphics::GetBatchedTransformSB();
 		
 		pipeline->SetShader(entry.material->shader);
 		pipeline->SetFillMode(FillMode::Solid);

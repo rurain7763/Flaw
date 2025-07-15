@@ -13,6 +13,8 @@ namespace flaw {
 	constexpr uint32_t ReservedTextureStartSlot = 50;
 	constexpr uint32_t CubeTextureStartSlot = 57;
 	constexpr uint32_t TextureArrayStartSlot = 61;
+	
+	constexpr static uint32_t MaxBatchTransformCount = 10000;
 
 	enum class GraphicsType {
 		DX11
@@ -121,6 +123,11 @@ namespace flaw {
 
 		static void CaptureTexture(const Ref<Texture2D>& srcTex, std::vector<uint8_t>& outData);
 		static void CaptureTextureArray(const Ref<Texture2DArray>& srcTex, std::vector<uint8_t>& outData);
+
+		static Ref<ConstantBuffer> GetGlobalConstantsCB();
+		static Ref<ConstantBuffer> GetMaterialConstantsCB();
+		
+		static Ref<StructuredBuffer> GetBatchedTransformSB();
 
 		static GraphicsContext& GetGraphicsContext();
 	};

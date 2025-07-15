@@ -2,6 +2,7 @@
 #include "PhysicsSystem.h"
 #include "Scene.h"
 #include "Time/Time.h"
+#include "TransformSystem.h"
 
 namespace flaw {
 	PhysicsSystem::PhysicsSystem(Scene& scene)
@@ -314,7 +315,7 @@ namespace flaw {
 		auto staticActor = std::dynamic_pointer_cast<PhysicsActorStatic>(pEntt.actor);
 		Entity entity((entt::entity)(uint32_t)staticActor->GetUserData(), &_scene);
 
-		_scene.UpdateTransformImmediate(entity);
+		_scene.GetTransformSystem().UpdateTransformImmediate(entity);
 
 		vec3 position, rotation;
 		staticActor->GetTransform(position, rotation);
@@ -341,7 +342,7 @@ namespace flaw {
 			dynamicActor->UpdateMassAndInertia();
 		}
 
-		_scene.UpdateTransformImmediate(entity);
+		_scene.GetTransformSystem().UpdateTransformImmediate(entity);
 
 		if (dynamicActor->IsKinematic()) {
 			dynamicActor->SetKinematicTarget(transComp.GetWorldPosition(), transComp.GetWorldRotation());

@@ -2,16 +2,13 @@
 #include "Graphics.h"
 #include "Platform.h"
 #include "Graphics/GraphicsFunc.h"
+#include "Material.h"
+#include "Time/Time.h"
 
 #define NOMINMAX
 #include "Graphics/DX11/DXContext.h"
 
 namespace flaw {
-	static Scope<GraphicsContext> g_graphicsContext;
-	
-	static Ref<GraphicsPipeline> g_graphicsPipeline;
-	static Ref<ComputePipeline> g_computePipeline;
-
 	struct RaycastUniform {
 		vec4 rayOrigin;
 		vec4 rayDirection;
@@ -41,6 +38,16 @@ namespace flaw {
 	constexpr int32_t MaxRaycastTriangles = 10000;
 	constexpr int32_t MaxRayHits = MaxRaycastTriangles + 1;
 
+	static Scope<GraphicsContext> g_graphicsContext;
+
+	static Ref<GraphicsPipeline> g_graphicsPipeline;
+	static Ref<ComputePipeline> g_computePipeline;
+
+	static Ref<ConstantBuffer> g_globalConstantsCB;
+	static Ref<ConstantBuffer> g_materialConstantsCB;
+
+	static Ref<StructuredBuffer> g_batchedTransformSB;
+
 	static Ref<ComputeShader> g_raycastShader;
 	static Ref<ConstantBuffer> g_raycastUniformCB;
 	static Ref<StructuredBuffer> g_raycastTriSB;
@@ -63,6 +70,16 @@ namespace flaw {
 		g_graphicsPipeline = CreateGraphicsPipeline();
 		g_computePipeline = CreateComputePipeline();
 
+		g_globalConstantsCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
+		g_materialConstantsCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
+
+		StructuredBuffer::Descriptor batchedTransformSBDesc = {};
+		batchedTransformSBDesc.elmSize = sizeof(mat4);
+		batchedTransformSBDesc.count = MaxBatchTransformCount;
+		batchedTransformSBDesc.bindFlags = BindFlag::ShaderResource;
+		batchedTransformSBDesc.accessFlags = AccessFlag::Write;
+		g_batchedTransformSB = Graphics::CreateStructuredBuffer(batchedTransformSBDesc);
+
 		// NOTE: for raycasting
 		g_raycastShader = CreateComputeShader("Resources/Shaders/raycast.fx");
 
@@ -81,7 +98,7 @@ namespace flaw {
 		sbDesc.accessFlags = AccessFlag::Read | AccessFlag::Write;
 		g_raycastResultSB = CreateStructuredBuffer(sbDesc);
 
-		// TODO: think about this
+		// TODO: think about this, this is for object picker. but not use in build
 		auto mainMrt = Graphics::GetMainRenderPass();
 
 		Texture2D::Descriptor desc = {};
@@ -120,6 +137,8 @@ namespace flaw {
 		g_raycastTriSB.reset();
 		g_raycastUniformCB.reset();
 		g_raycastShader.reset();
+		g_materialConstantsCB.reset();
+		g_globalConstantsCB.reset();
 		g_computePipeline.reset();
 		g_graphicsPipeline.reset();
 		g_graphicsContext.reset();
@@ -127,6 +146,17 @@ namespace flaw {
 
 	void Graphics::Prepare() {
 		g_graphicsContext->Prepare();
+
+		GlobalConstants globalConstants = {};
+
+		int32_t width, height;
+		Graphics::GetSize(width, height);
+
+		globalConstants.screenResolution = vec2((float)width, (float)height);
+		globalConstants.time = Time::GetTime();
+		globalConstants.deltaTime = Time::DeltaTime();
+
+		g_globalConstantsCB->Update(&globalConstants, sizeof(GlobalConstants));
 	}
 
 	void Graphics::Present() {
@@ -325,6 +355,18 @@ namespace flaw {
 		stagingTexture->FetchAll(outData.data());
 	}
 
+	Ref<ConstantBuffer> Graphics::GetGlobalConstantsCB() {
+		return g_globalConstantsCB;
+	}
+
+	Ref<ConstantBuffer> Graphics::GetMaterialConstantsCB() {
+		return g_materialConstantsCB;
+	}
+
+	Ref<StructuredBuffer> Graphics::GetBatchedTransformSB() {
+		return g_batchedTransformSB;
+	}
+	
 	GraphicsContext& Graphics::GetGraphicsContext() {
 		return *g_graphicsContext;
 	}

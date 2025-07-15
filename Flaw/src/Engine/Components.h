@@ -310,15 +310,6 @@ namespace flaw {
 		MeshColliderComponent(const MeshColliderComponent& other) = default;
 	};
 
-	struct TextComponent {
-		std::wstring text;
-		AssetHandle font;
-		vec4 color = vec4(1.0f);
-
-		TextComponent() = default;
-		TextComponent(const TextComponent& other) = default;
-	};
-
 	struct SoundListenerComponent {
 		vec3 velocity = vec3(0.0f);
 
@@ -516,5 +507,58 @@ namespace flaw {
 		AnimatorComponent() = default;
 		AnimatorComponent(const AssetHandle& animatorAsset) : animatorAsset(animatorAsset) {}
 		AnimatorComponent(const AnimatorComponent& other) = default;
+	};
+
+	// ui
+	struct CanvasComponent {
+		enum class RenderMode {
+			ScreenSpaceOverlay,
+			ScreenSpaceCamera,
+			WorldSpace
+		};
+
+		RenderMode renderMode = RenderMode::ScreenSpaceOverlay;
+
+		UUID renderCamera;
+		float planeDistance = 1.0f;
+
+		CanvasComponent() = default;
+		CanvasComponent(const CanvasComponent& other) = default;
+	};
+
+	struct RectLayoutComponent {
+		vec2 anchorMin = vec2(0.5f, 0.5f);
+		vec2 anchorMax = vec2(0.5f, 0.5f);
+		vec2 pivot = vec2(0.5f, 0.5f);
+		vec2 anchoredPosition = vec2(0.0f, 0.0f);
+		vec2 sizeDelta = vec2(1.0);
+
+		RectLayoutComponent() = default;
+		RectLayoutComponent(const RectLayoutComponent& other) = default;
+
+		bool IsLRStretched() const {
+			return !EpsilonEqual(anchorMin.x, anchorMax.x);
+		}
+
+		bool IsTBStretched() const {
+			return !EpsilonEqual(anchorMin.y, anchorMax.y);
+		}
+	};
+
+	struct ImageComponent {
+		AssetHandle texture;
+		vec4 color = vec4(1.0f);
+
+		ImageComponent() = default;
+		ImageComponent(const ImageComponent& other) = default;
+	};
+
+	struct TextComponent {
+		std::wstring text;
+		AssetHandle font;
+		vec4 color = vec4(1.0f);
+
+		TextComponent() = default;
+		TextComponent(const TextComponent& other) = default;
 	};
 }

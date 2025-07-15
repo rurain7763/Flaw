@@ -57,7 +57,7 @@ namespace flaw {
 				dirty |= true;
 			}
 			ImGui::PopStyleColor(3);
-			
+
 			ImGui::PopStyleVar();
 			ImGui::Columns(1);
 			ImGui::PopID();
@@ -129,6 +129,75 @@ namespace flaw {
 			ImGui::PopID();
 
 			return dirty;
+		}
+
+		static bool DrawVec2(const char* label, vec2& vec, float resetValue = 0, float columnWidth = 100.f) {
+			bool changed = false;
+
+			ImGuiIO& io = ImGui::GetIO();
+			ImFont* font = io.Fonts->Fonts[0];
+
+			ImGui::PushID(label);
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, columnWidth);
+			ImGui::Text(label);
+			ImGui::NextColumn();
+
+			ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.05f, 0.1f, 1.0f));
+			ImGui::PushFont(font);
+			if (ImGui::Button("X", buttonSize)) {
+				vec.x = resetValue;
+				changed = true;
+			}
+			ImGui::PopFont();
+			ImGui::PopStyleColor(3);
+
+			ImGui::SameLine();
+
+			if (ImGui::DragFloat("##X", &vec.x, 0.1f)) {
+				vec.x = vec.x;
+				changed = true;
+			}
+
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.3f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.4f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.6f, 0.2f, 1.0f));
+			ImGui::PushFont(font);
+			if (ImGui::Button("Y", buttonSize)) {
+				vec.y = resetValue;
+				changed = true;
+			}
+			ImGui::PopFont();
+			ImGui::PopStyleColor(3);
+
+			ImGui::SameLine();
+
+			if (ImGui::DragFloat("##Y", &vec.y, 0.1f)) {
+				vec.y = vec.y;
+				changed = true;
+			}
+
+			ImGui::PopItemWidth();
+
+			ImGui::PopStyleVar();
+
+			ImGui::Columns(1);
+
+			ImGui::PopID();
+
+			return changed;
 		}
 
 		static bool DrawVec3(const char* label, vec3& vec, float resetValue = 0, float columnWidth = 100.f) {
@@ -319,7 +388,9 @@ namespace flaw {
 			return dirty;
 		}
 
-		static void DrawEntityPayloadTarget(const char* label, Ref<Scene> scene, UUID uuid, const std::function<bool(Entity)>& checkComponent, const std::function<void(Entity)>& onEntityDropped) {
+		static bool DrawEntityPayloadTarget(const char* label, Ref<Scene> scene, UUID& uuid, const std::function<bool(Entity)>& checkComponent) {
+			bool dirty = false;
+
 			ImGui::Text("%s", label);
 
 			ImGui::SameLine();
@@ -344,11 +415,14 @@ namespace flaw {
 					entt::entity id = *(entt::entity*)payload->Data;
 					Entity entity(id, scene.get());
 					if (checkComponent(entity)) {
-						onEntityDropped(entity);
+						uuid = entity.GetUUID();
+						dirty = true;
 					}
 				}
 				ImGui::EndDragDropTarget();
 			}
+
+			return dirty;
 		}
 
 		static bool DrawInputFilePath(const char* label, std::filesystem::path& filePath, const char* filter) {

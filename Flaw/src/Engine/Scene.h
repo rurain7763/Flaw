@@ -21,6 +21,8 @@ namespace flaw {
 	class MonoScriptSystem;
 	class PhysicsSystem;
 	class SkeletalSystem;
+	class TransformSystem;
+	class UISystem;
 
 	class Scene {
 	public:
@@ -44,8 +46,6 @@ namespace flaw {
 		void UpdateSound();
 		void UpdateScript();
 		void UpdatePhysics2D();
-		void UpdateTransform();
-		void UpdateTransformImmediate(entt::entity entity);
 
 		void ToFile(const char* filepath);
 		void FromFile(const char* filepath);
@@ -62,6 +62,8 @@ namespace flaw {
 		MonoScriptSystem& GetMonoScriptSystem() { return *_monoScriptSystem; }
 		PhysicsSystem& GetPhysicsSystem() { return *_physicsSystem; }
 		SkeletalSystem& GetSkeletalSystem() { return *_skeletalSystem; }
+		TransformSystem& GetTransformSystem() { return *_transformSystem; }
+		UISystem& GetUISystem() { return *_uiSystem; }
 
 	private:
 		void DestroyEntityRecursive(Entity entity);
@@ -82,6 +84,8 @@ namespace flaw {
 		Scope<MonoScriptSystem> _monoScriptSystem;
 		Scope<PhysicsSystem> _physicsSystem;
 		Scope<SkeletalSystem> _skeletalSystem;
+		Scope<TransformSystem> _transformSystem;
+		Scope<UISystem> _uiSystem;
 
 		std::unordered_map<UUID, entt::entity> _entityMap; // uuid -> entity
 

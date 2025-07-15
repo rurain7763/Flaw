@@ -12,7 +12,6 @@ namespace flaw {
 	constexpr static uint32_t CascadeShadowCount = 3;
 
 	class Scene;
-	struct CameraRenderStage;
 
 	struct ShadowUniforms {
 		uint32_t lightVPMatrixCount = 0;
@@ -48,7 +47,7 @@ namespace flaw {
 		~ShadowSystem();
 
 		void Update();
-		void Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB);
+		void Render(const vec3& cameraPos, const Frustum& cameraFrustum);
 
 		DirectionalLightShadowMap& GetDirectionalLightShadowMap(const entt::entity id) { return _directionalShadowMaps[id]; }
 		SpotLightShadowMap& GetSpotLightShadowMap(const entt::entity id) { return _spotLightShadowMaps[id]; }
@@ -94,7 +93,7 @@ namespace flaw {
 		std::vector<Frustum::Corners> GetCascadeFrustumCorners(const Frustum& frustum);
 		void CalcTightDirectionalLightMatrices(const Frustum::Corners& worldSpaceCorners, const vec3& lightDirection, mat4& outView, mat4& outProjection);
 
-		void DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount);
+		void DrawRenderEntry(const RenderEntry& entry, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount);
 
 	private:
 		constexpr static uint32_t ShadowMapSize = 2048;

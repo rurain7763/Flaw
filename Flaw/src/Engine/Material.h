@@ -62,5 +62,48 @@ namespace flaw {
 		float floatConstants[4];
 		vec2 vec2Constants[4];
 		vec4 vec4Constants[4];
+
+		inline void FillMaterialConstants(MaterialConstants& outConstants) const {
+			outConstants.reservedTextureBitMask = 0;
+			if (albedoTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
+			}
+			if (normalTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
+			}
+			if (emissiveTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
+			}
+			if (heightTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Height;
+			}
+			if (metallicTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Metallic;
+			}
+			if (roughnessTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Roughness;
+			}
+			if (ambientOcclusionTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::AmbientOcclusion;
+			}
+			for (int32_t i = 0; i < cubeTextures.size(); ++i) {
+				if (cubeTextures[i]) {
+					outConstants.cubeTextureBitMask |= (1 << i);
+				}
+			}
+			for (int32_t i = 0; i < textureArrays.size(); ++i) {
+				if (textureArrays[i]) {
+					outConstants.textureArrayBitMask |= (1 << i);
+				}
+			}
+
+			std::memcpy(
+				outConstants.intConstants, 
+				intConstants, 
+				sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4
+			);
+
+			outConstants.baseColor = baseColor;
+		}
 	};
 }

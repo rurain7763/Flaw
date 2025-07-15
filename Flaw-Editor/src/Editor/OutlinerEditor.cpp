@@ -128,6 +128,20 @@ namespace flaw {
 				}
 			}
 
+			if (ImGui::MenuItem("Create Canvas")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Canvas";
+				newEntity.AddComponent<RectLayoutComponent>();
+				newEntity.AddComponent<CanvasComponent>();
+			}
+
+			if (ImGui::MenuItem("Create Image")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Image";
+				newEntity.AddComponent<RectLayoutComponent>();
+				newEntity.AddComponent<ImageComponent>();
+			}
+
 			ImGui::EndPopup();
 		}
 

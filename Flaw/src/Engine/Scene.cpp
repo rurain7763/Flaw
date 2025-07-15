@@ -15,6 +15,8 @@
 #include "MonoScriptSystem.h"
 #include "PhysicsSystem.h"
 #include "SkeletalSystem.h"
+#include "TransformSystem.h"
+#include "UISystem.h"
 #include "Scripting.h"
 #include "Renderer2D.h"
 #include "AssetManager.h"
@@ -34,6 +36,8 @@ namespace flaw {
 		_skeletalSystem = CreateScope<SkeletalSystem>(_app, *this);
 		_monoScriptSystem = CreateScope<MonoScriptSystem>(_app, *this);
 		_physicsSystem = CreateScope<PhysicsSystem>(*this);
+		_transformSystem = CreateScope<TransformSystem>(*this);
+		_uiSystem = CreateScope<UISystem>(*this);
 		_renderSystem = CreateScope<RenderSystem>(*this);
 
 		_app.GetEventDispatcher().Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) {
@@ -169,6 +173,9 @@ namespace flaw {
 		CloneComponent<LandscapeComponent>(srcEntt, cloned);
 		CloneComponent<AnimatorComponent>(srcEntt, cloned);
 		CloneComponent<MonoScriptComponent>(srcEntt, cloned);
+		CloneComponent<CanvasComponent>(srcEntt, cloned);
+		CloneComponent<RectLayoutComponent>(srcEntt, cloned);
+		CloneComponent<ImageComponent>(srcEntt, cloned);
 
 		// clone children
 		srcEntt.EachChildren([this, &cloned, sameUUID](const Entity& child) {
@@ -277,10 +284,13 @@ namespace flaw {
 		UpdatePhysics2D();
 		_physicsSystem->Update();
 		UpdateSound();
-		UpdateTransform();
-		_renderSystem->Update();
+		_transformSystem->Update();
 
+		_renderSystem->Update();
 		_renderSystem->Render();
+
+		_uiSystem->Update();
+		_uiSystem->Render();
 	}
 
 	void Scene::OnEnd() {
@@ -362,45 +372,6 @@ namespace flaw {
 
 			rigidbody2D.linearVelocity = vec2(body->GetLinearVelocity().x, body->GetLinearVelocity().y);
 		}
-	}
-
-	static void CalculateWorldTransformRecursive(const mat4& parentTransform, Entity entity, bool calculateAnyway = false) {
-		TransformComponent& transform = entity.GetComponent<TransformComponent>();
-
-		bool shouldCalculate = calculateAnyway || transform.dirty;
-
-		// 항상 parent 기준으로 초기화
-		if (shouldCalculate) {
-			transform.worldTransform = parentTransform * ModelMatrix(transform.position, transform.rotation, transform.scale);
-			transform.dirty = false;
-		}
-
-		// 자식들에게 재귀적으로 전파
-		entity.EachChildren([&worldTransform = transform.worldTransform, shouldCalculate](const Entity& child) {
-			CalculateWorldTransformRecursive(worldTransform, child, shouldCalculate);
-		});
-	}
-
-	void Scene::UpdateTransform() {
-		for (auto&& [entity, transform] : _registry.view<TransformComponent>().each()) {
-			Entity entt(entity, this);
-
-			if (entt.HasParent()) {
-				continue;
-			}
-
-			CalculateWorldTransformRecursive(mat4(1.0f), entt);
-		}
-	}
-
-	void Scene::UpdateTransformImmediate(entt::entity entity) {
-		Entity entt(entity, this);
-		
-		while (entt.HasParent()) {
-			entt = entt.GetParent();
-		}
-
-		CalculateWorldTransformRecursive(mat4(1.0f), entt, true);
 	}
 
 	void Scene::ToFile(const char* filepath) {

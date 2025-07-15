@@ -2,7 +2,9 @@
 #include "RenderQueue.h"
 
 namespace flaw {
-	RenderQueue::RenderQueue() {
+	RenderQueue::RenderQueue()
+		: _currentRenderMode(RenderMode::Count)
+	{
 		_renderEntries.resize(uint32_t(RenderMode::Count));
 	}
 

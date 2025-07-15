@@ -47,7 +47,7 @@ namespace flaw {
 				}
 
 				vec3 degreeRotation = glm::degrees(transformComp.rotation);
-				if (EditorHelper::DrawVec3("Rotation", degreeRotation, 0.f, 100.f)) {
+				if (EditorHelper::DrawVec3("Rotation", degreeRotation)) {
 					transformComp.dirty = true;
 					transformComp.rotation = glm::radians(degreeRotation);
 				}
@@ -55,7 +55,14 @@ namespace flaw {
 				if (EditorHelper::DrawVec3("Scale", transformComp.scale)) {
 					transformComp.dirty = true;
 				}
-				});
+			});
+
+			DrawComponent<RectLayoutComponent>(_selectedEntt, [this](RectLayoutComponent& rectLayoutComp) {
+				EditorHelper::DrawVec2("Anchor Min", rectLayoutComp.anchorMin);
+				EditorHelper::DrawVec2("Anchor Max", rectLayoutComp.anchorMax);
+				EditorHelper::DrawVec2("Pivot", rectLayoutComp.pivot);
+				EditorHelper::DrawVec2("Size Delta", rectLayoutComp.sizeDelta);
+			});
 
 			DrawComponent<CameraComponent>(_selectedEntt, [](CameraComponent& cameraComp) {
 				bool perspective = cameraComp.perspective;
@@ -78,7 +85,7 @@ namespace flaw {
 				ImGui::DragFloat("Aspect Ratio", &cameraComp.aspectRatio, 0.1f);
 				ImGui::DragFloat("Near Clip", &cameraComp.nearClip, 0.1f);
 				ImGui::DragFloat("Far Clip", &cameraComp.farClip, 0.1f);
-				});
+			});
 
 			DrawComponent<SpriteRendererComponent>(_selectedEntt, [this](SpriteRendererComponent& spriteComp) {
 				ImGui::ColorEdit4("Color", &spriteComp.color.x);
@@ -248,11 +255,9 @@ namespace flaw {
 								else {
 									return Scripting::HasEngineComponent(entity, fieldClass.GetTypeName().data());
 								}
-								};
+							};
 
-							auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
-
-							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkComponents, onDrop);
+							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkComponents);
 
 							newFieldInfo.SetValue(uuid);
 						}
@@ -270,10 +275,7 @@ namespace flaw {
 								}
 							}
 
-							auto checkEntity = [](Entity entity) { return true; };
-							auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
-
-							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkEntity, onDrop);
+							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, [](Entity entity) { return true; });
 
 							newFieldInfo.SetValue(uuid);
 						}
@@ -567,6 +569,30 @@ namespace flaw {
 				});
 			});
 
+			DrawComponent<CanvasComponent>(_selectedEntt, [this](CanvasComponent& canvasComp) {
+				std::vector<std::string> renderModes = { "Screen Space Overlay", "Screen Space Camera", "World Space" };
+
+				int32_t renderModeSelected = (int32_t)canvasComp.renderMode;
+				if (EditorHelper::DrawCombo("Render Mode", renderModeSelected, renderModes)) {
+					canvasComp.renderMode = (CanvasComponent::RenderMode)renderModeSelected;
+				}
+
+				if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
+					EditorHelper::DrawEntityPayloadTarget("Camera", _scene, canvasComp.renderCamera, [](Entity entity) { return entity.HasComponent<CameraComponent>(); } );
+				}
+			});
+
+			DrawComponent<ImageComponent>(_selectedEntt, [](ImageComponent& imageComp) {
+				EditorHelper::DrawAssetPayloadTarget("Image Texture", imageComp.texture, [&imageComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
+						imageComp.texture = metadata.handle;
+					}
+				});
+
+				ImGui::ColorEdit4("Color", &imageComp.color.x);
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -600,6 +626,9 @@ namespace flaw {
 				DrawAddComponentItem<DecalComponent>(_selectedEntt);
 				DrawAddComponentItem<LandscapeComponent>(_selectedEntt);
 				DrawAddComponentItem<AnimatorComponent>(_selectedEntt);
+				DrawAddComponentItem<CanvasComponent>(_selectedEntt);
+				DrawAddComponentItem<RectLayoutComponent>(_selectedEntt);
+				DrawAddComponentItem<ImageComponent>(_selectedEntt);
 
 				ImGui::EndPopup();
 			}

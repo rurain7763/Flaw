@@ -447,14 +447,20 @@ namespace flaw {
     }
 
     void EditorLayer::UpdateSceneAsEditorMode(const Ref<Scene>& scene) {
+		auto& registry = scene->GetRegistry();
+		auto& transSys = scene->GetTransformSystem();
 		auto& renderSys = scene->GetRenderSystem();
+		auto& uiSys = scene->GetUISystem();
 
-        // Updating
-        scene->UpdateTransform();
+        transSys.Update();
+
         _camera.OnUpdate();
 
 		renderSys.Update(_camera.GetCurrentCamera());
         renderSys.Render();
+
+        uiSys.Update();
+		uiSys.Render(_camera.GetCurrentCamera());
     }
 
     void EditorLayer::OnRenderToolbar() {

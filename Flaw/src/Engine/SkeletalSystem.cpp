@@ -6,6 +6,7 @@
 #include "Assets.h"
 #include "AssetManager.h"
 #include "AnimationSystem.h"
+#include "TransformSystem.h"
 
 namespace flaw {
 	SkeletalSystem::SkeletalSystem(Application& app, Scene& scene)
@@ -35,6 +36,7 @@ namespace flaw {
 	void SkeletalSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 		auto& animationSys = _scene.GetAnimationSystem();
+		auto& transformSys = _scene.GetTransformSystem();
 
 		for (auto&& [entity, transComp, skeletalMeshComp] : registry.view<TransformComponent, SkeletalMeshComponent>().each()) {
 			auto it = _skeletonDatas.find(entity);
@@ -81,7 +83,7 @@ namespace flaw {
 					globalTransform = transComp.worldTransform * bindingPoseBoneMatrices[socketNode.boneIndex] * socketNode.localTransform;
 				}
 
-				_scene.UpdateTransformImmediate(targetEntity);
+				transformSys.UpdateTransformImmediate(targetEntity);
 
 				mat4 parentWorldMatrix = targetEntity.HasParent() ? targetEntity.GetParent().GetComponent<TransformComponent>().worldTransform : mat4(1.0f);
 				mat4 localMatrix = glm::inverse(parentWorldMatrix) * globalTransform;

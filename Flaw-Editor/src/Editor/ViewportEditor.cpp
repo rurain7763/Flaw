@@ -292,6 +292,15 @@ namespace flaw {
             }
         }
 
+        if (_selectedEntt.HasComponent<CanvasComponent>()) {
+			auto& rectLayoutComp = _selectedEntt.GetComponent<RectLayoutComponent>();
+            Renderer2D::DrawLineRect(
+                _selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0), vec3(0.0), vec3(rectLayoutComp.sizeDelta, 0.0)),
+                vec4(1.0, 1.0, 1.0, 1.0)
+            );
+        }
+
 		Renderer2D::End();
     }
 }

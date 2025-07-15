@@ -19,6 +19,8 @@
 #include "Engine/LandscapeSystem.h"
 #include "Engine/MonoScriptSystem.h"
 #include "Engine/SkeletalSystem.h"
+#include "Engine/TransformSystem.h"
+#include "Engine/UISystem.h"
 #include "Engine/Mesh.h"
 #include "Engine/Material.h"
 #include "Engine/Camera.h"
