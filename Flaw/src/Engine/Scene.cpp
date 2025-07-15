@@ -174,6 +174,7 @@ namespace flaw {
 		CloneComponent<AnimatorComponent>(srcEntt, cloned);
 		CloneComponent<MonoScriptComponent>(srcEntt, cloned);
 		CloneComponent<CanvasComponent>(srcEntt, cloned);
+		CloneComponent<CanvasScalerComponent>(srcEntt, cloned);
 		CloneComponent<RectLayoutComponent>(srcEntt, cloned);
 		CloneComponent<ImageComponent>(srcEntt, cloned);
 

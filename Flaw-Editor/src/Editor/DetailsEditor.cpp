@@ -579,6 +579,26 @@ namespace flaw {
 
 				if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
 					EditorHelper::DrawEntityPayloadTarget("Camera", _scene, canvasComp.renderCamera, [](Entity entity) { return entity.HasComponent<CameraComponent>(); } );
+					EditorHelper::DrawNumericInput("Plane Distance", canvasComp.planeDistance, 0.1f, 0.1f);
+				}
+				else if (canvasComp.renderMode == CanvasComponent::RenderMode::WorldSpace) {
+					EditorHelper::DrawEntityPayloadTarget("Camera", _scene, canvasComp.renderCamera, [](Entity entity) { return entity.HasComponent<CameraComponent>(); });
+				}
+			});
+
+			DrawComponent<CanvasScalerComponent>(_selectedEntt, [this](CanvasScalerComponent& scalerComp) {
+				std::vector<std::string> uiScaleModes = { "Constant Pixel Size", "Scale With Screen Size" };
+
+				int32_t scaleModeSelected = (int32_t)scalerComp.scaleMode;
+				if (EditorHelper::DrawCombo("UI Scale Mode", scaleModeSelected, uiScaleModes)) {
+					scalerComp.scaleMode = (CanvasScalerComponent::ScaleMode)scaleModeSelected;
+				}
+
+				if (scalerComp.scaleMode == CanvasScalerComponent::ScaleMode::ConstantPixelSize) {
+					EditorHelper::DrawNumericInput("Scale Factor", scalerComp.scaleFactor, 0.1f, 0.1f);
+				}
+				else if (scalerComp.scaleMode == CanvasScalerComponent::ScaleMode::ScaleWithScreenSize) {
+					EditorHelper::DrawVec2("Reference Resolution", scalerComp.referenceResolution);
 				}
 			});
 
@@ -627,6 +647,7 @@ namespace flaw {
 				DrawAddComponentItem<LandscapeComponent>(_selectedEntt);
 				DrawAddComponentItem<AnimatorComponent>(_selectedEntt);
 				DrawAddComponentItem<CanvasComponent>(_selectedEntt);
+				DrawAddComponentItem<CanvasScalerComponent>(_selectedEntt);
 				DrawAddComponentItem<RectLayoutComponent>(_selectedEntt);
 				DrawAddComponentItem<ImageComponent>(_selectedEntt);
 

@@ -526,11 +526,25 @@ namespace flaw {
 		CanvasComponent(const CanvasComponent& other) = default;
 	};
 
+	struct CanvasScalerComponent {
+		enum class ScaleMode {
+			ConstantPixelSize,
+			ScaleWithScreenSize
+		};
+
+		ScaleMode scaleMode = ScaleMode::ConstantPixelSize;
+
+		float scaleFactor = 1.0f;
+		vec2 referenceResolution = vec2(1920.0f, 1080.0f);
+
+		CanvasScalerComponent() = default;
+		CanvasScalerComponent(const CanvasScalerComponent& other) = default;
+	};
+
 	struct RectLayoutComponent {
 		vec2 anchorMin = vec2(0.5f, 0.5f);
 		vec2 anchorMax = vec2(0.5f, 0.5f);
 		vec2 pivot = vec2(0.5f, 0.5f);
-		vec2 anchoredPosition = vec2(0.0f, 0.0f);
 		vec2 sizeDelta = vec2(1.0);
 
 		RectLayoutComponent() = default;

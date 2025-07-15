@@ -406,6 +406,45 @@ namespace flaw {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<flaw::CanvasComponent>()) {
+			auto& comp = entity.GetComponent<flaw::CanvasComponent>();
+			out << YAML::Key << TypeName<flaw::CanvasComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "RenderMode" << YAML::Value << (int32_t)comp.renderMode;
+			out << YAML::Key << "RenderCamera" << YAML::Value << comp.renderCamera;
+			out << YAML::Key << "PlaneDistance" << YAML::Value << comp.planeDistance;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::CanvasScalerComponent>()) {
+			auto& comp = entity.GetComponent<flaw::CanvasScalerComponent>();
+			out << YAML::Key << TypeName<flaw::CanvasScalerComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "ScaleMode" << YAML::Value << (int32_t)comp.scaleMode;
+			out << YAML::Key << "ScaleFactor" << YAML::Value << comp.scaleFactor;
+			out << YAML::Key << "ReferenceResolution" << YAML::Value << comp.referenceResolution;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::RectLayoutComponent>()) {
+			auto& comp = entity.GetComponent<flaw::RectLayoutComponent>();
+			out << YAML::Key << TypeName<flaw::RectLayoutComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "AnchorMin" << YAML::Value << comp.anchorMin;
+			out << YAML::Key << "AnchorMax" << YAML::Value << comp.anchorMax;
+			out << YAML::Key << "Pivot" << YAML::Value << comp.pivot;
+			out << YAML::Key << "SizeDelta" << YAML::Value << comp.sizeDelta;
+			out << YAML::EndMap;
+		}
+
+		if (entity.HasComponent<flaw::ImageComponent>()) {
+			auto& comp = entity.GetComponent<flaw::ImageComponent>();
+			out << YAML::Key << TypeName<flaw::ImageComponent>().data();
+			out << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Texture" << YAML::Value << comp.texture;
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<flaw::MonoScriptComponent>()) {
 			auto& comp = entity.GetComponent<flaw::MonoScriptComponent>();
 			out << YAML::Key << TypeName<flaw::MonoScriptComponent>().data();
@@ -771,6 +810,33 @@ namespace flaw {
 		entity.AddComponent<MonoScriptComponent>(scriptName.data(), fields);
 	}
 
+	void DeserializeCanvasComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<CanvasComponent>();
+		comp.renderMode = (CanvasComponent::RenderMode)component.second["RenderMode"].as<int32_t>();
+		comp.renderCamera = component.second["RenderCamera"].as<uint64_t>();
+		comp.planeDistance = component.second["PlaneDistance"].as<float>();
+	}
+
+	void DeserializeCanvasScalerComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<CanvasScalerComponent>();
+		comp.scaleMode = (CanvasScalerComponent::ScaleMode)component.second["ScaleMode"].as<int32_t>();
+		comp.scaleFactor = component.second["ScaleFactor"].as<float>();
+		comp.referenceResolution = component.second["ReferenceResolution"].as<vec2>();
+	}
+
+	void DeserializeRectLayoutComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<RectLayoutComponent>();
+		comp.anchorMin = component.second["AnchorMin"].as<vec2>();
+		comp.anchorMax = component.second["AnchorMax"].as<vec2>();
+		comp.pivot = component.second["Pivot"].as<vec2>();
+		comp.sizeDelta = component.second["SizeDelta"].as<vec2>();
+	}
+
+	void DeserializeImageComponent(const YAML::iterator::value_type& component, Entity& entity) {
+		auto& comp = entity.AddComponent<ImageComponent>();
+		comp.texture = component.second["Texture"].as<uint64_t>();
+	}
+
 	void Deserialize(const YAML::Node& node, Entity& entity, const std::unordered_map<std::string, std::function<void(const YAML::iterator::value_type&, Entity&)>>& userComponentDeserializer) {
 		auto components = node["Components"];
 
@@ -859,6 +925,18 @@ namespace flaw {
 				}
 				else if (name == TypeName<AnimatorComponent>()) {
 					DeserializeAnimatorComponent(component, entity);
+				}
+				else if (name == TypeName<CanvasComponent>()) {
+					DeserializeCanvasComponent(component, entity);
+				}
+				else if (name == TypeName<CanvasScalerComponent>()) {
+					DeserializeCanvasScalerComponent(component, entity);
+				}
+				else if (name == TypeName<RectLayoutComponent>()) {
+					DeserializeRectLayoutComponent(component, entity);
+				}
+				else if (name == TypeName<ImageComponent>()) {
+					DeserializeImageComponent(component, entity);
 				}
 				else if (name == TypeName<MonoScriptComponent>()) {
 					DeserializeMonoScriptComponent(component, entity);

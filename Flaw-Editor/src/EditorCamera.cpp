@@ -14,7 +14,7 @@ namespace flaw {
         Graphics::GetSize(width, height);
 
 		const float nearClip = 0.1f;
-		const float farClip = 100.0f;
+		const float farClip = 100000.0f;
 		const float aspectRatio = (float)width / (float)height;
 
 		const float fovY = glm::radians(45.0f);

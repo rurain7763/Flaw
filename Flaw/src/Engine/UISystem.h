@@ -16,9 +16,11 @@ namespace flaw {
 	struct Canvas {
 		CanvasComponent::RenderMode renderMode = CanvasComponent::RenderMode::ScreenSpaceOverlay;
 
-		RenderQueue _overlayRenderQueue;
-		RenderQueue _cameraRenderQueue;
-		RenderQueue _worldSpaceRenderQueue;
+		Entity renderCamera;
+
+		vec2 size;
+
+		RenderQueue _renderQueue;
 	};
 
 	class UISystem {
@@ -31,9 +33,10 @@ namespace flaw {
 		void Render(Ref<Camera> camera);
 
 	private:
-		void UpdateUIObjectRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity);
+		void UpdateUIObjectsRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity);
+		void HandleImageComponentIfExists(Canvas& canvas, Entity entity, const mat4& worldTransform);
 
-		void RenderImpl(CameraConstants& cameraConstants, RenderQueue& queue);
+		void RenderImpl(CameraConstants& cameraConstants, DepthTest depthTest, bool depthWrite, RenderQueue& queue);
 
 	private:
 		Scene& _scene;

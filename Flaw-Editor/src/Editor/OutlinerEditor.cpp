@@ -133,6 +133,7 @@ namespace flaw {
 				newEntity.GetComponent<EntityComponent>().name = "New Canvas";
 				newEntity.AddComponent<RectLayoutComponent>();
 				newEntity.AddComponent<CanvasComponent>();
+				newEntity.AddComponent<CanvasScalerComponent>();
 			}
 
 			if (ImGui::MenuItem("Create Image")) {

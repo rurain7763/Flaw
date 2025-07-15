@@ -12,7 +12,7 @@ namespace flaw {
 	void TransformSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 
-		for (auto&& [entity, transform] : registry.view<TransformComponent>().each()) {
+		for (auto&& [entity, transform] : registry.view<TransformComponent>(entt::exclude_t<RectLayoutComponent>()).each()) {
 			Entity entt(entity, &_scene);
 
 			if (entt.HasParent()) {

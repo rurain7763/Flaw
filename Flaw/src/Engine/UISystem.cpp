@@ -4,6 +4,7 @@
 #include "RenderSystem.h"
 #include "AssetManager.h"
 #include "Assets.h"
+#include "TransformSystem.h"
 
 namespace flaw {
 	UISystem::UISystem(Scene& scene)
@@ -26,32 +27,86 @@ namespace flaw {
 		_uiImageMaterialMap.clear();
 		_canvases.clear();
 
-;		for (auto&& [entity, transComp, rectLayoutComp, canvasComp] : registry.view<TransformComponent, RectLayoutComponent, CanvasComponent>().each()) {
+		for (auto&& [entity, transComp, rectLayoutComp, canvasComp, canvasScaler] : registry.view<TransformComponent, RectLayoutComponent, CanvasComponent, CanvasScalerComponent>().each()) {
 			Entity canvasEntt(entity, &_scene);
+
+			if (canvasEntt.HasParent()) {
+				continue;
+			}
 
 			rectLayoutComp.anchorMin = vec2(0.5);
 			rectLayoutComp.anchorMax = vec2(0.5);
 			rectLayoutComp.pivot = vec2(0.5);
 
+			if (canvasComp.renderMode == CanvasComponent::RenderMode::WorldSpace) {
+				_scene.GetTransformSystem().UpdateTransformImmediate(canvasEntt);
+				continue;
+			}
+
+			int32_t width, height;
+			Graphics::GetSize(width, height);
+
+			rectLayoutComp.sizeDelta = vec2((float)width, (float)height);
+
+			if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceOverlay) {
+				transComp.position = vec3(0.0f);
+				transComp.rotation = vec3(0.0f);
+				transComp.scale = vec3(1.0f);
+			}
+			else if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
+				Entity cameraEntt = _scene.FindEntityByUUID(canvasComp.renderCamera);
+				if (cameraEntt) {
+					// TODO: under from this line, codes must have performance issue
+					auto& cameraTransComp = cameraEntt.GetComponent<TransformComponent>();
+					auto& cameraComp = cameraEntt.GetComponent<CameraComponent>();
+
+					if (cameraComp.perspective) {
+						const float fovY = cameraComp.fov;
+						const float height = (tan(fovY * 0.5f) * canvasComp.planeDistance) * 2.0f;
+						const float width = height * cameraComp.aspectRatio;
+						transComp.scale.x = width / rectLayoutComp.sizeDelta.x;
+						transComp.scale.y = height / rectLayoutComp.sizeDelta.y;
+					}
+					else {
+						const float orthoHeight = cameraComp.orthoSize;
+						const float height = orthoHeight * 2.0f;
+						const float width = orthoHeight * cameraComp.aspectRatio * 2.0f;
+						transComp.scale.x = width / rectLayoutComp.sizeDelta.x;
+						transComp.scale.y = height / rectLayoutComp.sizeDelta.y;
+					}
+
+					transComp.position = cameraTransComp.position + cameraTransComp.GetWorldFront() * canvasComp.planeDistance;
+					transComp.rotation = cameraTransComp.rotation;
+				}
+			}
+
+			_scene.GetTransformSystem().UpdateTransformImmediate(canvasEntt);
+		}
+
+;		for (auto&& [entity, transComp, rectLayoutComp, canvasComp] : registry.view<TransformComponent, RectLayoutComponent, CanvasComponent>().each()) {
+			Entity canvasEntt(entity, &_scene);
+
+			if (canvasEntt.HasParent()) {
+				continue;
+			}
+
 			_canvases.resize(_canvases.size() + 1);
 
 			auto& canvas = _canvases.back();  
 			canvas.renderMode = canvasComp.renderMode;
-			canvas._overlayRenderQueue.Open();
-			canvas._cameraRenderQueue.Open();
-			canvas._worldSpaceRenderQueue.Open();
+			canvas.renderCamera = _scene.FindEntityByUUID(canvasComp.renderCamera);
+			canvas.size = rectLayoutComp.sizeDelta * vec2(transComp.GetWorldScale());
+			canvas._renderQueue.Open();
 
 			canvasEntt.EachChildren([this, &transComp, &rectLayoutComp, &canvas](const Entity& childEntity) {
-				UpdateUIObjectRecurcive(canvas, rectLayoutComp.sizeDelta * vec2(transComp.scale), childEntity);
+				UpdateUIObjectsRecurcive(canvas, rectLayoutComp.sizeDelta * vec2(transComp.scale), childEntity);
 			});
 
-			canvas._overlayRenderQueue.Close();
-			canvas._cameraRenderQueue.Close();
-			canvas._worldSpaceRenderQueue.Close();
+			canvas._renderQueue.Close();
 		}
 	}
 
-	void UISystem::UpdateUIObjectRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity) {
+	void UISystem::UpdateUIObjectsRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity) {
 		auto& transComp = entity.GetComponent<TransformComponent>();
 		auto& rectLayoutComp = entity.GetComponent<RectLayoutComponent>();
 
@@ -62,7 +117,7 @@ namespace flaw {
 		vec2 size = worladScale;
 
 		if (rectLayoutComp.IsLRStretched()) {
-			size.x = (parentScaledSize.x * (rectLayoutComp.anchorMax.x - rectLayoutComp.anchorMin.x) + rectLayoutComp.sizeDelta.x) * worladScale.x;
+			size.x = parentScaledSize.x * (rectLayoutComp.anchorMax.x - rectLayoutComp.anchorMin.x) + rectLayoutComp.sizeDelta.x;
 		}
 		else {
 			size.x = rectLayoutComp.sizeDelta.x * worladScale.x;
@@ -70,7 +125,7 @@ namespace flaw {
 		}
 
 		if (rectLayoutComp.IsTBStretched()) {
-			size.y = (parentScaledSize.y * (rectLayoutComp.anchorMax.y - rectLayoutComp.anchorMin.y) + rectLayoutComp.sizeDelta.y) * worladScale.y;
+			size.y = parentScaledSize.y * (rectLayoutComp.anchorMax.y - rectLayoutComp.anchorMin.y) + rectLayoutComp.sizeDelta.y;
 		}
 		else {
 			size.y = rectLayoutComp.sizeDelta.y * worladScale.y;
@@ -79,47 +134,45 @@ namespace flaw {
 
 		mat4 worldTransform = ModelMatrix(vec3(position, worldPos.z), worldRotation, vec3(size, 1.0));
 
-		// Handle ImageComponent
-		if (entity.HasComponent<ImageComponent>()) {
-			auto& imageComp = entity.GetComponent<ImageComponent>();
-
-			auto texAsset = AssetManager::GetAsset<Texture2DAsset>(imageComp.texture);
-			if (texAsset) {
-				Ref<Material> material;
-				auto materialIt = _uiImageMaterialMap.find(texAsset->GetTexture());
-				if (materialIt == _uiImageMaterialMap.end()) {
-					material = CreateRef<Material>();
-					material->shader = _defaultUIImageShader;
-					material->renderMode = RenderMode::Transparent;
-					material->cullMode = CullMode::None;
-					material->depthTest = DepthTest::Disabled;
-					material->depthWrite = false;
-					material->albedoTexture = texAsset->GetTexture();
-					_uiImageMaterialMap[texAsset->GetTexture()] = material;
-				}
-				else {
-					material = materialIt->second;
-				}
-
-				auto quadMeshAsset = AssetManager::GetAsset<StaticMeshAsset>(AssetManager::DefaultStaticQuadMeshKey);
-				if (canvas.renderMode == CanvasComponent::RenderMode::ScreenSpaceOverlay) {
-					canvas._overlayRenderQueue.Push(quadMeshAsset->GetMesh(), worldTransform, material);
-				}
-				else if (canvas.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
-					canvas._cameraRenderQueue.Push(quadMeshAsset->GetMesh(), worldTransform, material);
-				}
-				else if (canvas.renderMode == CanvasComponent::RenderMode::WorldSpace) {
-					canvas._worldSpaceRenderQueue.Push(quadMeshAsset->GetMesh(), worldTransform, material);
-				}
-			}
-		}
+		HandleImageComponentIfExists(canvas, entity, worldTransform);
 
 		entity.EachChildren([this, &canvas, &size](const Entity& childEntity) {
-			UpdateUIObjectRecurcive(canvas, size, childEntity);
+			UpdateUIObjectsRecurcive(canvas, size, childEntity);
 		});
 	}
 
-	void UISystem::RenderImpl(CameraConstants& cameraConstants, RenderQueue& queue) {
+	void UISystem::HandleImageComponentIfExists(Canvas& canvas, Entity entity, const mat4& worldTransform) {
+		if (!entity.HasComponent<ImageComponent>()) {
+			return;
+		}
+
+		auto& imageComp = entity.GetComponent<ImageComponent>();
+
+		auto texAsset = AssetManager::GetAsset<Texture2DAsset>(imageComp.texture);
+		if (!texAsset) {
+			return;
+		}
+
+		Ref<Material> material;
+		auto materialIt = _uiImageMaterialMap.find(texAsset->GetTexture());
+		if (materialIt == _uiImageMaterialMap.end()) {
+			material = CreateRef<Material>();
+			material->shader = _defaultUIImageShader;
+			material->renderMode = RenderMode::Transparent;
+			material->cullMode = CullMode::None;
+			material->albedoTexture = texAsset->GetTexture();
+			_uiImageMaterialMap[texAsset->GetTexture()] = material;
+		}
+		else {
+			material = materialIt->second;
+		}
+
+		auto quadMeshAsset = AssetManager::GetAsset<StaticMeshAsset>(AssetManager::DefaultStaticQuadMeshKey);
+
+		canvas._renderQueue.Push(quadMeshAsset->GetMesh(), worldTransform, material);
+	}
+
+	void UISystem::RenderImpl(CameraConstants& cameraConstants, DepthTest depthTest, bool depthWrite, RenderQueue& queue) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 		auto materialCB = Graphics::GetMaterialConstantsCB();
@@ -133,7 +186,7 @@ namespace flaw {
 			pipeline->SetShader(entry.material->shader);
 			pipeline->SetFillMode(FillMode::Solid);
 			pipeline->SetCullMode(entry.material->cullMode);
-			pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
+			pipeline->SetDepthTest(depthTest, depthWrite);
 
 			MaterialConstants materialConstants;
 			entry.material->FillMaterialConstants(materialConstants);
@@ -197,17 +250,46 @@ namespace flaw {
 	}
 
 	void UISystem::Render() {
-		// TODO: Implement default camera rendering logic if needed
+		CameraConstants cameraConstants = {};
+
+		for (auto& canvas : _canvases) {
+			if (canvas.renderMode == CanvasComponent::RenderMode::WorldSpace || canvas.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
+				if (!canvas.renderCamera) {
+					continue;
+				}
+
+				auto& transComp = canvas.renderCamera.GetComponent<TransformComponent>();
+				auto& cameraComp = canvas.renderCamera.GetComponent<CameraComponent>();
+
+				vec3 cameraPosition = transComp.GetWorldPosition();
+				vec3 cameraFront = transComp.GetWorldFront();
+
+				cameraConstants.position = cameraPosition;
+				cameraConstants.view = LookAt(cameraPosition, cameraPosition + cameraFront, Up);
+				cameraConstants.projection = cameraComp.GetProjectionMatrix();
+
+				RenderImpl(cameraConstants, DepthTest::Less, true, canvas._renderQueue);
+			}
+			else if (canvas.renderMode == CanvasComponent::RenderMode::ScreenSpaceOverlay) {
+				vec2 halfSize = canvas.size * 0.5f;
+
+				cameraConstants.position = vec3(0.0f);
+				cameraConstants.view = mat4(1.0f);
+				cameraConstants.projection = Orthographic(-halfSize.x, halfSize.x, -halfSize.y, halfSize.y, -1.0f, 1.0f);
+
+				RenderImpl(cameraConstants, DepthTest::Disabled, false, canvas._renderQueue);
+			}
+		}
 	}
 
 	void UISystem::Render(Ref<Camera> camera) {
-		CameraConstants defaultCameraConstants = {};
-		defaultCameraConstants.position = camera->GetPosition();
-		defaultCameraConstants.view = camera->GetViewMatrix();
-		defaultCameraConstants.projection = camera->GetProjectionMatrix();
+		CameraConstants cameraConstants = {};
+		cameraConstants.position = camera->GetPosition();
+		cameraConstants.view = camera->GetViewMatrix();
+		cameraConstants.projection = camera->GetProjectionMatrix();
 
 		for (auto& canvas : _canvases) {
-			RenderImpl(defaultCameraConstants, canvas._worldSpaceRenderQueue);
+			RenderImpl(cameraConstants, DepthTest::Less, true, canvas._renderQueue);
 		}
 	}
 }
