@@ -4,6 +4,8 @@
 #include "Editor/EditorHelper.h"
 #include "AssetDatabase.h"
 #include "Editor/MaterialEditor.h"
+#include "Editor/SkeletonEditor.h"
+#include "Editor/PrefabEditor.h"
 
 #include <Windows.h>
 #include <imgui/imgui.h>
@@ -16,10 +18,10 @@ namespace flaw {
     EditorLayer::EditorLayer(flaw::Application& app) 
 	    : _app(app)
 		, _graphicsContext(Graphics::GetGraphicsContext())
-		, _outlinerEditor(app)
+		, _outlinerEditor(app, "Outliner")
 		, _viewportEditor(app, _camera)
 		, _contentBrowserEditor(app)
-		, _detailsEditor(app)
+		, _detailsEditor(app, "Details")
 		, _landscapeEditor(app, _camera, _viewportEditor, _contentBrowserEditor)
 		, _sceneState(SceneState::Edit)
 		, _pause(false)
@@ -39,6 +41,14 @@ namespace flaw {
             if (metadata.type == AssetType::Material) {
                 label = "Material Editor: " + std::to_string(metadata.handle);
                 editor = CreateRef<MaterialEditor>(_app, label, evn.assetFilePath.c_str());
+            }
+            else if (metadata.type == AssetType::Skeleton) {
+				label = "Skeleton Editor: " + std::to_string(metadata.handle);
+				editor = CreateRef<SkeletonEditor>(_app, label, evn.assetFilePath.c_str());
+			}
+            else if (metadata.type == AssetType::Prefab) {
+				label = "Prefab Editor: " + std::to_string(metadata.handle);
+				editor = CreateRef<PrefabEditor>(_app, label, evn.assetFilePath.c_str());
             }
 
             if (editor) {
@@ -221,6 +231,12 @@ namespace flaw {
         {
             ImGui::Begin("Status");
             ImGui::Text("FPS: %d", flaw::Time::FPS());
+
+			int64_t monoHeapSize = 0, monoHeapUsed = 0;
+			Scripting::GetMonoHeapInfo(monoHeapSize, monoHeapUsed);
+			ImGui::Text("Mono Heap Size: %.2f KB", monoHeapSize / 1024.f);
+			ImGui::Text("Mono Heap Used: %.2f KB", monoHeapUsed / 1024.f);
+
             ImGui::End();
         }
 
@@ -431,14 +447,19 @@ namespace flaw {
     }
 
     void EditorLayer::UpdateSceneAsEditorMode(const Ref<Scene>& scene) {
+		auto& transSys = scene->GetTransformSystem();
 		auto& renderSys = scene->GetRenderSystem();
+		auto& uiSys = scene->GetUISystem();
 
-        // Updating
-        scene->UpdateTransform();
+        transSys.Update();
+
         _camera.OnUpdate();
 
 		renderSys.Update(_camera.GetCurrentCamera());
         renderSys.Render();
+
+        uiSys.Update();
+		uiSys.Render(_camera.GetCurrentCamera());
     }
 
     void EditorLayer::OnRenderToolbar() {
@@ -446,8 +467,7 @@ namespace flaw {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
 
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar |
-                                        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize |
                                         ImGuiWindowFlags_NoScrollbar |
                                         ImGuiWindowFlags_NoCollapse;
 
@@ -464,7 +484,7 @@ namespace flaw {
 		int32_t selectedMode = static_cast<int32_t>(_editorMode);
         
         ImGui::SetNextItemWidth(120);
-        if (EditorHelper::DrawCombo("##Editor mode", selectedMode, editorModes)) {
+        if (EditorHelper::DrawCombo("Editor mode", selectedMode, editorModes)) {
 			_editorMode = static_cast<EditorMode>(selectedMode);
 			_app.GetEventDispatcher().Dispatch<OnEditorModeChangeEvent>(_editorMode);
         }

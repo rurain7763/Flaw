@@ -42,8 +42,6 @@ namespace flaw {
 		void GatherDecals();
 		void GatherRenderableObjects();
 
-		void UpdateMateraialConstants(GraphicsCommandQueue& cmdQueue, const Ref<Material>& material);
-
 		void RenderGeometry(CameraRenderStage& stage);
 		void RenderDecal(CameraRenderStage& stage);
 		void RenderDefferdLighting(CameraRenderStage& stage);
@@ -51,12 +49,7 @@ namespace flaw {
 		void FinalizeRender(CameraRenderStage& stage);
 
 	private:
-		constexpr static uint32_t MaxBatchVertexCount = 10000;
-		constexpr static uint32_t MaxBatchIndexCount = 30000;
-		constexpr static uint32_t MaxBatchTransformCount = 10000;
 		constexpr static uint32_t MaxDecalCount = 1000;
-		constexpr static uint32_t MaxPointLights = 10;
-		constexpr static uint32_t MaxSpotLights = 10;
 
 		Scene& _scene;
 
@@ -83,10 +76,7 @@ namespace flaw {
 		std::map<uint32_t, CameraRenderStage> _renderStages;
 
 		Ref<ConstantBuffer> _vpCB;
-		Ref<ConstantBuffer> _globalCB;
 		Ref<ConstantBuffer> _lightCB;
-		Ref<ConstantBuffer> _materialCB;
-		Ref<StructuredBuffer> _batchedTransformSB;
 
 		struct DirectionalLightUniforms {
 			mat4 view0;
@@ -145,7 +135,5 @@ namespace flaw {
 		std::vector<Ref<Texture2D>> _decalTextures;
 
 		CameraConstants _cameraConstansCB;
-		GlobalConstants _globalConstants;
-		MaterialConstants _materialConstants;
 	};
 }

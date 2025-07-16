@@ -26,8 +26,6 @@ namespace flaw {
 		MaterialAsset::Descriptor desc;
 		_targetMaterialAsset->GetDescriptor(desc);
 
-		Ref<Material> material = _targetMaterialAsset->GetMaterial();
-
 		_editedMaterialSettings.destPath = assetFile;
 		_editedMaterialSettings.shaderHandle = desc.shaderHandle;
 		_editedMaterialSettings.renderMode = desc.renderMode;
@@ -40,6 +38,7 @@ namespace flaw {
 		_editedMaterialSettings.metallicTexture = desc.metallicTexture;
 		_editedMaterialSettings.roughnessTexture = desc.roughnessTexture;
 		_editedMaterialSettings.ambientOcclusionTexture = desc.ambientOcclusionTexture;
+		_editedMaterialSettings.baseColor = desc.baseColor;
 	}
 
 	void MaterialEditor::OnRender() {
@@ -179,6 +178,15 @@ namespace flaw {
 				}
 			}
 		});
+
+		ImGui::Separator();
+
+		ImGui::Text("Base Color");
+		if (ImGui::ColorEdit3("##BaseColor", (float*)&_editedMaterialSettings.baseColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+			_dirty = true;
+		}
+		
+		ImGui::Separator();
 
 		if (_dirty && ImGui::Button("Save")) {
 			AssetDatabase::RecreateAsset(_editedMaterialSettings.destPath.c_str(), &_editedMaterialSettings);

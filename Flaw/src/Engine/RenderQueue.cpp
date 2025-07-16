@@ -2,7 +2,9 @@
 #include "RenderQueue.h"
 
 namespace flaw {
-	RenderQueue::RenderQueue() {
+	RenderQueue::RenderQueue()
+		: _currentRenderMode(RenderMode::Count)
+	{
 		_renderEntries.resize(uint32_t(RenderMode::Count));
 	}
 
@@ -72,7 +74,7 @@ namespace flaw {
 		}
 
 		auto& instance = entry.instancingObjects[instanceIndex];
-		instance.modelMatrices.emplace_back(worldMat);
+		instance.batchedDatas.emplace_back(BatchedData{ worldMat });
 		instance.instanceCount++;
 	}
 
@@ -102,7 +104,7 @@ namespace flaw {
 		}
 
 		auto& instance = entry.skeletalInstancingObjects[instanceIndex];
-		instance.modelMatrices.emplace_back(worldMat);
+		instance.batchedDatas.emplace_back(BatchedData{ worldMat });
 		instance.instanceCount++;
 	}
 

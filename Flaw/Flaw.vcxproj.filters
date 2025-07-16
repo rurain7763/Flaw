@@ -130,6 +130,9 @@
     <ClInclude Include="src\Engine\Physics.h">
       <Filter>Engine</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\PhysicsSystem.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Platform.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -278,6 +281,9 @@
     <ClInclude Include="src\Model\Model.h">
       <Filter>Model</Filter>
     </ClInclude>
+    <ClInclude Include="src\Physics\Physics.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
     <ClInclude Include="src\Physics\Physics2D.h">
       <Filter>Physics</Filter>
     </ClInclude>
@@ -308,7 +314,7 @@
     <ClInclude Include="src\Platform\Windows\WindowsContext.h">
       <Filter>Platform\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="src\Scripting\MonoScripting.h">
+    <ClInclude Include="src\Scripting\MonoScriptContext.h">
       <Filter>Scripting</Filter>
     </ClInclude>
     <ClInclude Include="src\Sound\FMod\FModSoundChannel.h">
@@ -354,8 +360,22 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Engine\PhysicsSystem.h" />
-    <ClInclude Include="src\Physics\Physics.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXActors.h" />
+    <ClInclude Include="src\Physics\PhysicsTypes.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
+    <ClInclude Include="src\Utils\HandlerRegistry.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClassField.h" />
+    <ClInclude Include="src\Scripting\MonoScriptObject.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClass.h" />
+    <ClInclude Include="src\Scripting\MonoScriptDomain.h" />
+    <ClInclude Include="src\Scripting\MonoScriptTypes.h" />
+    <ClInclude Include="src\Scripting\MonoScriptArray.h" />
+    <ClInclude Include="src\Utils\BiMap.h" />
+    <ClInclude Include="src\Engine\Animator.h" />
+    <ClInclude Include="src\Engine\SkeletalSystem.h" />
+    <ClInclude Include="src\Engine\UISystem.h" />
+    <ClInclude Include="src\Engine\TransformSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp">
@@ -398,6 +418,9 @@
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Physics.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\PhysicsSystem.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Platform.cpp">
@@ -514,7 +537,7 @@
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scripting\MonoScripting.cpp">
+    <ClCompile Include="src\Scripting\MonoScriptContext.cpp">
       <Filter>Scripting</Filter>
     </ClCompile>
     <ClCompile Include="src\Sound\FMod\FModSoundChannel.cpp">
@@ -539,6 +562,17 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Engine\PhysicsSystem.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXActors.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXShapes.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXScene.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClassField.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptObject.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClass.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptDomain.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptArray.cpp" />
+    <ClCompile Include="src\Engine\Animator.cpp" />
+    <ClCompile Include="src\Engine\SkeletalSystem.cpp" />
+    <ClCompile Include="src\Engine\UISystem.cpp" />
+    <ClCompile Include="src\Engine\TransformSystem.cpp" />
   </ItemGroup>
 </Project>

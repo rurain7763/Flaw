@@ -11,6 +11,7 @@
 #include "Prefab.h"
 
 #include <yaml-cpp/yaml.h>
+#include <unordered_map>
 
 namespace flaw {
 	class Entity;
@@ -22,7 +23,11 @@ namespace flaw {
 	void Serialize(YAML::Emitter& out, Scene& scene);
 
 	void Deserialize(const YAML::Node& node, ProjectConfig& config);
-	void Deserialize(const YAML::Node& node, Entity& entity);
+	void Deserialize(
+		const YAML::Node& node, 
+		Entity& entity, 
+		const std::unordered_map<std::string, std::function<void(const YAML::iterator::value_type&, Entity&)>>& userComponentDeserializer = std::unordered_map<std::string, std::function<void(const YAML::iterator::value_type&, Entity&)>>()
+	);
 	void Deserialize(const YAML::Node& node, Scene& scene);
 }
 
@@ -39,6 +44,7 @@ namespace YAML {
 			node.push_back(rhs.y);
 			return node;
 		}
+
 		static bool decode(const Node& node, vec2& rhs) {
 			if (!node.IsSequence() || node.size() != 2) {
 				return false;

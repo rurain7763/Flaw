@@ -1,14 +1,15 @@
 #pragma once
 
 #include <Flaw.h>
+#include "Editor.h"
 
 namespace flaw {
-	class OutlinerEditor {
+	class OutlinerEditor : public Editor {
 	public:
-		OutlinerEditor(Application& app);
+		OutlinerEditor(Application& app, const std::string& name);
 		~OutlinerEditor();
 
-		void OnRender();
+		void OnRender() override;
 
 		void SetScene(const Ref<Scene>& scene);
 		const Entity& GetSelectedEntity() const { return _selectedEntt; }
@@ -19,6 +20,8 @@ namespace flaw {
 	private:
 		Application& _app;
 		EventDispatcher& _eventDispatcher;
+
+		std::string _name;
 
 		Ref<Scene> _scene;
 		Entity _selectedEntt;

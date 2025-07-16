@@ -25,19 +25,13 @@ namespace flaw {
 
         CreateRequiredTextures();
 
-        _mvpConstantBuffer = _graphicsContext.CreateConstantBuffer(sizeof(MVPMatrices));
+        _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { 
+			if (&evn.entity.GetScene() != _scene.get()) {
+				return;
+			}
+            _selectedEntt = evn.entity; 
+        }, PID(this));
 
-		Ref<GraphicsShader> shader = _graphicsContext.CreateGraphicsShader("Resources/Shaders/std3d_outline.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-        shader->AddInputElement<float>("POSITION", 3);
-		shader->AddInputElement<float>("NORMAL", 3);
-        shader->CreateInputLayout();
-        
-        _outlineGraphicsPipeline = _graphicsContext.CreateGraphicsPipeline();
-		_outlineGraphicsPipeline->SetShader(shader);
-        _outlineGraphicsPipeline->SetDepthTest(DepthTest::Less, false);
-		_outlineGraphicsPipeline->SetCullMode(CullMode::Front);
-
-        _eventDispatcher.Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
         _eventDispatcher.Register<WindowResizeEvent>([this](const WindowResizeEvent& evn) { CreateRequiredTextures(); }, PID(this));
 		_eventDispatcher.Register<OnSceneStateChangeEvent>([this](const OnSceneStateChangeEvent& evn) { _useEditorCamera = evn.state == SceneState::Edit; }, PID(this));
 		_eventDispatcher.Register<OnScenePauseEvent>([this](const OnScenePauseEvent& evn) { _useEditorCamera = evn.pause; }, PID(this));
@@ -96,7 +90,6 @@ namespace flaw {
         }
 
         if (_selectedEntt) {
-            DrawOulineOfSelectedEntity(viewMatrix, projectionMatrix);
             DrawDebugComponent();
         }
 
@@ -106,8 +99,6 @@ namespace flaw {
         renderTargetTex->CopyTo(_captureRenderTargetTexture);
 
         auto dxTexture = std::static_pointer_cast<DXTexture2D>(_captureRenderTargetTexture);
-
-        // NOTE: 마우스 피킹 render target 테스트
 
         if (_selectionEnabled) {
 		    vec2 mousePos = vec2(Input::GetMouseX(), Input::GetMouseY());
@@ -269,12 +260,12 @@ namespace flaw {
 
 		if (_selectedEntt.HasComponent<BoxColliderComponent>()) {
 			BoxColliderComponent& boxColliderComp = _selectedEntt.GetComponent<BoxColliderComponent>();
-			DebugRender::DrawCube(transComp.worldTransform * ModelMatrix(vec3(0.0f), vec3(0.0f), boxColliderComp.size), vec3(0.0, 1.0, 0.0));
+			DebugRender::DrawCube(transComp.worldTransform * ModelMatrix(boxColliderComp.offset, vec3(0.0f), boxColliderComp.size), vec3(0.0, 1.0, 0.0));
 		}
 
 		if (_selectedEntt.HasComponent<SphereColliderComponent>()) {
 			SphereColliderComponent& sphereColliderComp = _selectedEntt.GetComponent<SphereColliderComponent>();
-			DebugRender::DrawSphere(transComp.worldTransform, sphereColliderComp.radius + 0.01f, vec3(0.0, 1.0, 0.0));
+			DebugRender::DrawSphere(transComp.worldTransform * ModelMatrix(sphereColliderComp.offset, vec3(0.0f), vec3(1.0f)), sphereColliderComp.radius + 0.01f, vec3(0.0, 1.0, 0.0));
 		}
 
         if (_selectedEntt.HasComponent<PointLightComponent>()) {
@@ -301,40 +292,15 @@ namespace flaw {
             }
         }
 
-		Renderer2D::End();
-    }
-
-    void ViewportEditor::DrawOulineOfSelectedEntity(const mat4& view, const mat4& proj) {
-        if (!_selectedEntt.HasComponent<StaticMeshComponent>() || !_selectedEntt.HasComponent<SkeletalMeshComponent>()) {
-            return;
+        if (_selectedEntt.HasComponent<CanvasComponent>()) {
+			auto& rectLayoutComp = _selectedEntt.GetComponent<RectLayoutComponent>();
+            Renderer2D::DrawLineRect(
+                _selectedEntt,
+                transComp.worldTransform * ModelMatrix(vec3(0.0), vec3(0.0), vec3(rectLayoutComp.sizeDelta, 0.0)),
+                vec4(1.0, 1.0, 1.0, 1.0)
+            );
         }
 
-		AssetHandle meshHandle = _selectedEntt.GetComponent<SkeletalMeshComponent>().mesh;
-		auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(meshHandle);
-		if (!meshAsset) {
-			return;
-		}
-
-		auto& mainPass = Graphics::GetMainRenderPass();
-        auto& cmdQueue = _graphicsContext.GetCommandQueue();
-
-		Ref<Mesh> mesh = meshAsset->GetMesh();
-
-		mainPass->SetBlendMode(0, BlendMode::Disabled, false);
-		mainPass->Bind(false, false);
-
-		MVPMatrices mvp;
-		mvp.world = _selectedEntt.GetComponent<TransformComponent>().worldTransform;
-		mvp.view = view;
-		mvp.projection = proj;
-		_mvpConstantBuffer->Update(&mvp, sizeof(MVPMatrices));
-
-		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
-		cmdQueue.SetPipeline(_outlineGraphicsPipeline);
-		cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
-		cmdQueue.SetConstantBuffer(_mvpConstantBuffer, 0);
-		cmdQueue.DrawIndexed(mesh->GetGPUIndexBuffer(), mesh->GetGPUIndexBuffer()->IndexCount());
-
-        cmdQueue.Execute();
+		Renderer2D::End();
     }
 }

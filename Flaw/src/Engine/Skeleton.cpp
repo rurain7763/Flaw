@@ -87,83 +87,238 @@ namespace flaw {
 		return -1;
 	}
 
-	Skeleton::Skeleton(const mat4& globalInvMatrix, const std::vector<SkeletonNode>& bones, const std::unordered_map<std::string, SkeletonBoneNode>& boneMap)
-		: _globalInvMatrix(globalInvMatrix)
-		, _nodes(bones)
-		, _boneMap(boneMap)
+	Skeleton::Skeleton(const Descriptor& desc)
+		: _globalInvMatrix(desc.globalInvMatrix)
+		, _nodes(desc.nodes)
 	{
-		GenerateBindingPosMatrices();
+		_bones.resize(desc.bones.size());
+		for (const auto& boneNode : desc.bones) {
+			const auto& node = _nodes[boneNode.nodeIndex];
+			_bones[boneNode.boneIndex] = boneNode;
+			_boneNameToIndexMap[node.name] = boneNode.boneIndex;
+		}
+
+		for (const auto& socket : desc.sockets) {
+			_socketMap[socket.name] = socket;
+		}
 	}
 
-	void Skeleton::ComputeTransformationMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, std::vector<mat4>& result) const {
+	bool Skeleton::HasSocket(const std::string& socketName) const {
+		return _socketMap.find(socketName) != _socketMap.end();
+	}
+
+	const SkeletonBoneSocket& Skeleton::GetSocket(const std::string& socketName) const {
+		auto it = _socketMap.find(socketName);
+		if (it != _socketMap.end()) {
+			return it->second;
+		}
+
+		throw std::runtime_error("Bone socket not found: " + socketName);
+	}
+
+	void Skeleton::ComputeMatricesInHierachy(const std::function<mat4(int32_t)>& getNodeTransformMatrixFunc, const std::function<void(const mat4&, const mat4&, int32_t)>& hanldeFunc) const {
 		std::vector<mat4> parentMatrices(_nodes.size());
 
-		result.resize(_boneMap.size());
 		for (int32_t i = 0; i < _nodes.size(); ++i) {
 			const auto& node = _nodes[i];
 			mat4 localMatrix = getNodeTransformMatrixFunc(i);
 			mat4 transformMatrix = node.IsRoot() ? localMatrix : parentMatrices[node.parentIndex] * localMatrix;
 			
-			auto it = _boneMap.find(node.name);
-			if (it != _boneMap.end()) {
-				result[it->second.boneIndex] = _globalInvMatrix * transformMatrix * it->second.offsetMatrix;
+			auto it = _boneNameToIndexMap.find(node.name);
+			if (it != _boneNameToIndexMap.end()) {
+				int32_t boneIndex = it->second;
+				const auto& boneNode = _bones[boneIndex];
+
+				hanldeFunc(transformMatrix, boneNode.offsetMatrix, boneIndex);
 			}
 
 			parentMatrices[i] = transformMatrix;
 		}
 	}
 
-	void Skeleton::GenerateBindingPosMatrices() {
-		std::vector<mat4> transformationMatrices;
-		ComputeTransformationMatricesInHierachy([this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; }, transformationMatrices);
-
-		StructuredBuffer::Descriptor desc = {};
-		desc.elmSize = sizeof(mat4);
-		desc.count = transformationMatrices.size();
-		desc.bindFlags = BindFlag::ShaderResource;
-		desc.initialData = transformationMatrices.data();
-
-		_bindPosGPUBuffer = Graphics::CreateStructuredBuffer(desc);
-	}
-
-	void Skeleton::GetAnimationMatrices(const Ref<SkeletalAnimation>& animation, float timeSec, std::vector<mat4>& out) const {
-		ComputeTransformationMatricesInHierachy([this, &animation, &timeSec](int32_t nodeIndex) {
-			int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
-			if (animationNodeIndex != -1) {
-				return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+	void Skeleton::GetBindingPoseBoneMatrices(std::vector<mat4>& out) const {
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; },
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = transformMatrix;
 			}
-			// NOTE: identity matrix for non-animated nodes, this is work for now but tutorial says to use the node.transformMatrix.
-			// return mat4(1.0f); 
-			return _nodes[nodeIndex].transformMatrix;
-		}, out);
+		);
 	}
 
-	void Skeleton::GetBlendedAnimationMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const {
+	void Skeleton::GetAnimatedBoneMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const {
+		const float timeSec = animation->GetDurationSec() * normalizedTime;
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation, &timeSec](int32_t nodeIndex) {
+				int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
+				if (animationNodeIndex != -1) {
+					return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+				}
+				return _nodes[nodeIndex].transformMatrix;
+			},
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = transformMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetBindingPoseSkinMatrices(std::vector<mat4>& out) const {
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; },
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetBlendedAnimatedBoneMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const {
 		const float timeSec1 = animation1->GetDurationSec() * normalizedTime;
 		const float timeSec2 = animation2->GetDurationSec() * normalizedTime;
 
-		ComputeTransformationMatricesInHierachy([this, &animation1, &animation2, &normalizedTime, &blendFactor, &timeSec1, &timeSec2](int32_t nodeIndex) {
-			int32_t animationNodeIndex1 = animation1->GetNodeIndex(_nodes[nodeIndex].name);
-			int32_t animationNodeIndex2 = animation2->GetNodeIndex(_nodes[nodeIndex].name);
-
-			if (animationNodeIndex1 != -1 && animationNodeIndex2 != -1) {
-				const auto& animationNode1 = animation1->GetAnimationNodeAt(animationNodeIndex1);
-				const auto& animationNode2 = animation2->GetAnimationNodeAt(animationNodeIndex2);
-
-				const vec3 position = mix(animationNode1.InterpolatePosition(timeSec1), animationNode2.InterpolatePosition(timeSec2), blendFactor);
-				const quat rotation = normalize(slerp(animationNode1.InterpolateRotation(timeSec1), animationNode2.InterpolateRotation(timeSec2), blendFactor));
-				const vec3 scale = mix(animationNode1.InterpolateScale(timeSec1), animationNode2.InterpolateScale(timeSec2), blendFactor);
-
-				return ModelMatrix(position, rotation, scale);
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation1, &animation2, &normalizedTime, &blendFactor, &timeSec1, &timeSec2](int32_t nodeIndex) {
+				int32_t animationNodeIndex1 = animation1->GetNodeIndex(_nodes[nodeIndex].name);
+				int32_t animationNodeIndex2 = animation2->GetNodeIndex(_nodes[nodeIndex].name);
+				if (animationNodeIndex1 != -1 && animationNodeIndex2 != -1) {
+					const auto& animationNode1 = animation1->GetAnimationNodeAt(animationNodeIndex1);
+					const auto& animationNode2 = animation2->GetAnimationNodeAt(animationNodeIndex2);
+					const vec3 position = mix(animationNode1.InterpolatePosition(timeSec1), animationNode2.InterpolatePosition(timeSec2), blendFactor);
+					const quat rotation = normalize(slerp(animationNode1.InterpolateRotation(timeSec1), animationNode2.InterpolateRotation(timeSec2), blendFactor));
+					const vec3 scale = mix(animationNode1.InterpolateScale(timeSec1), animationNode2.InterpolateScale(timeSec2), blendFactor);
+					return ModelMatrix(position, rotation, scale);
+				}
+				else if (animationNodeIndex1 != -1) {
+					return animation1->GetAnimationNodeAt(animationNodeIndex1).GetTransformMatrix(timeSec1);
+				}
+				else if (animationNodeIndex2 != -1) {
+					return animation2->GetAnimationNodeAt(animationNodeIndex2).GetTransformMatrix(timeSec2);
+				}
+				return _nodes[nodeIndex].transformMatrix;
+			},
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = transformMatrix;
 			}
-			else if (animationNodeIndex1 != -1) {
-				return animation1->GetAnimationNodeAt(animationNodeIndex1).GetTransformMatrix(timeSec1);
-			}
-			else if (animationNodeIndex2 != -1) {
-				return animation2->GetAnimationNodeAt(animationNodeIndex2).GetTransformMatrix(timeSec2);
-			}
+		);
+	}
 
-			return _nodes[nodeIndex].transformMatrix;
-		}, out);
+	void Skeleton::GetAnimatedSkinMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& out) const {
+		const float timeSec = animation->GetDurationSec() * normalizedTime;
+		
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation, &timeSec](int32_t nodeIndex) {
+				int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
+				if (animationNodeIndex != -1) {
+					return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+				}
+				return _nodes[nodeIndex].transformMatrix;
+			},
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetBlendedAnimatedSkinMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& out) const {
+		const float timeSec1 = animation1->GetDurationSec() * normalizedTime;
+		const float timeSec2 = animation2->GetDurationSec() * normalizedTime;
+
+		out.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation1, &animation2, &normalizedTime, &blendFactor, &timeSec1, &timeSec2](int32_t nodeIndex) {
+				int32_t animationNodeIndex1 = animation1->GetNodeIndex(_nodes[nodeIndex].name);
+				int32_t animationNodeIndex2 = animation2->GetNodeIndex(_nodes[nodeIndex].name);
+
+				if (animationNodeIndex1 != -1 && animationNodeIndex2 != -1) {
+					const auto& animationNode1 = animation1->GetAnimationNodeAt(animationNodeIndex1);
+					const auto& animationNode2 = animation2->GetAnimationNodeAt(animationNodeIndex2);
+
+					const vec3 position = mix(animationNode1.InterpolatePosition(timeSec1), animationNode2.InterpolatePosition(timeSec2), blendFactor);
+					const quat rotation = normalize(slerp(animationNode1.InterpolateRotation(timeSec1), animationNode2.InterpolateRotation(timeSec2), blendFactor));
+					const vec3 scale = mix(animationNode1.InterpolateScale(timeSec1), animationNode2.InterpolateScale(timeSec2), blendFactor);
+
+					return ModelMatrix(position, rotation, scale);
+				}
+				else if (animationNodeIndex1 != -1) {
+					return animation1->GetAnimationNodeAt(animationNodeIndex1).GetTransformMatrix(timeSec1);
+				}
+				else if (animationNodeIndex2 != -1) {
+					return animation2->GetAnimationNodeAt(animationNodeIndex2).GetTransformMatrix(timeSec2);
+				}
+
+				return _nodes[nodeIndex].transformMatrix;
+			}, 
+			[this, &out](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				out[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetBindingPoseBoneAndSkinMatrices(std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const {
+		boneOut.resize(_bones.size());
+		skinOut.resize(_bones.size());
+
+		ComputeMatricesInHierachy(
+			[this](int32_t nodeIndex) { return _nodes[nodeIndex].transformMatrix; },
+			[this, &boneOut, &skinOut](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				boneOut[boneIndex] = transformMatrix;
+				skinOut[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetAnimatedBoneAndSkinMatrices(const Ref<SkeletalAnimation>& animation, float normalizedTime, std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const {
+		const float timeSec = animation->GetDurationSec() * normalizedTime;
+		boneOut.resize(_bones.size());
+		skinOut.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation, &timeSec](int32_t nodeIndex) {
+				int32_t animationNodeIndex = animation->GetNodeIndex(_nodes[nodeIndex].name);
+				if (animationNodeIndex != -1) {
+					return animation->GetAnimationNodeAt(animationNodeIndex).GetTransformMatrix(timeSec);
+				}
+				return _nodes[nodeIndex].transformMatrix;
+			},
+			[this, &boneOut, &skinOut](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				boneOut[boneIndex] = transformMatrix;
+				skinOut[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
+	}
+
+	void Skeleton::GetBlendedAnimatedBoneAndSkinMatrices(const Ref<SkeletalAnimation>& animation1, const Ref<SkeletalAnimation>& animation2, float normalizedTime, float blendFactor, std::vector<mat4>& boneOut, std::vector<mat4>& skinOut) const {
+		const float timeSec1 = animation1->GetDurationSec() * normalizedTime;
+		const float timeSec2 = animation2->GetDurationSec() * normalizedTime;
+
+		boneOut.resize(_bones.size());
+		skinOut.resize(_bones.size());
+		ComputeMatricesInHierachy(
+			[this, &animation1, &animation2, &normalizedTime, &blendFactor, &timeSec1, &timeSec2](int32_t nodeIndex) {
+				int32_t animationNodeIndex1 = animation1->GetNodeIndex(_nodes[nodeIndex].name);
+				int32_t animationNodeIndex2 = animation2->GetNodeIndex(_nodes[nodeIndex].name);
+				if (animationNodeIndex1 != -1 && animationNodeIndex2 != -1) {
+					const auto& animationNode1 = animation1->GetAnimationNodeAt(animationNodeIndex1);
+					const auto& animationNode2 = animation2->GetAnimationNodeAt(animationNodeIndex2);
+					const vec3 position = mix(animationNode1.InterpolatePosition(timeSec1), animationNode2.InterpolatePosition(timeSec2), blendFactor);
+					const quat rotation = normalize(slerp(animationNode1.InterpolateRotation(timeSec1), animationNode2.InterpolateRotation(timeSec2), blendFactor));
+					const vec3 scale = mix(animationNode1.InterpolateScale(timeSec1), animationNode2.InterpolateScale(timeSec2), blendFactor);
+					return ModelMatrix(position, rotation, scale);
+				}
+				else if (animationNodeIndex1 != -1) {
+					return animation1->GetAnimationNodeAt(animationNodeIndex1).GetTransformMatrix(timeSec1);
+				}
+				else if (animationNodeIndex2 != -1) {
+					return animation2->GetAnimationNodeAt(animationNodeIndex2).GetTransformMatrix(timeSec2);
+				}
+				return _nodes[nodeIndex].transformMatrix;
+			},
+			[this, &boneOut, &skinOut](const mat4& transformMatrix, const mat4& offsetMatrix, int32_t boneIndex) {
+				boneOut[boneIndex] = transformMatrix;
+				skinOut[boneIndex] = _globalInvMatrix * transformMatrix * offsetMatrix;
+			}
+		);
 	}
 }

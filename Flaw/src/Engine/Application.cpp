@@ -128,7 +128,6 @@ namespace flaw {
 				}
 			}
 
-			Physics::Update();
 			Sounds::Update();
 			Input::Update();
 

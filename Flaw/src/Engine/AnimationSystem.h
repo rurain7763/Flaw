@@ -5,66 +5,52 @@
 #include "Graphics.h"
 #include "Utils/UUID.h"
 #include "Skeleton.h"
+#include "Animator.h"
 
 namespace flaw {
 	class Application;
 	class Scene;
 
-	class SkeletalAnimationData {
-	public:
-		SkeletalAnimationData() = default;
+	struct AnimatorJobContext {
+		Ref<AnimatorRuntime> runtimeAnimator;
 
-		Ref<StructuredBuffer> GetBoneMatrices() {
-			if (_boneMatricesSB != _bindingPosMatrices) {
-				std::lock_guard<std::mutex> lock(_mutex);
+		std::vector<mat4> animatedBoneMatrices0;
+		std::vector<mat4> animatedBoneMatrices1;
 
-				if (_animationMatricesDirty) {
-					_animationMatricesSB->Update(_animationMatrices.data(), _animationMatrices.size() * sizeof(mat4));
-					_animationMatricesDirty = false;
-				}
+		std::vector<mat4>* frontAnimatedBoneMatrices;
+		std::vector<mat4>* backAnimatedBoneMatrices;
 
-				_boneMatricesSB = _animationMatricesSB;
-			}
+		std::vector<mat4> animatedSkinMatrices0;
+		std::vector<mat4> animatedSkinMatrices1;
 
-			return _boneMatricesSB;
-		}
+		std::vector<mat4>* frontAnimatedSkinMatrices;
+		std::vector<mat4>* backAnimatedSkinMatrices;
 
-	private:
-		friend class AnimationSystem;
+		std::atomic<bool> isBackBufferReady;
 
-		Ref<StructuredBuffer> _bindingPosMatrices;
-
-		bool _animationMatricesDirty = true;
-		std::vector<mat4> _animationMatrices;
-		Ref<StructuredBuffer> _animationMatricesSB;
-
-		float _animationTime = 0.0f;
-
-		std::mutex _mutex;
-		Ref<StructuredBuffer> _boneMatricesSB;
+		Ref<StructuredBuffer> animatedSkinMatricesSB;
 	};
 
 	class AnimationSystem {
 	public:
 		AnimationSystem(Application& app, Scene& scene);
-		~AnimationSystem();
 
+		void Start();
+		void Update();
+		void End();
+
+		bool HasAnimatorJobContext(entt::entity entity) const;
+		AnimatorJobContext& GetAnimatorJobContext(entt::entity entity);
+
+	private:
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);
 
-		void Update();
-
-		SkeletalAnimationData& GetSkeletalAnimationData(entt::entity entt) {
-			return *_skeletonAnimations[entt];
-		}
-
 	private:
-		static constexpr uint32_t MaxSkeletonBoneCount = 100;
-
 		Application& _app;
 		Scene& _scene;
 
-		std::unordered_map<entt::entity, Ref<SkeletalAnimationData>> _skeletonAnimations;
+		std::unordered_map<entt::entity, Ref<AnimatorJobContext>> _animatorJobContexts;
 	};
 }
 

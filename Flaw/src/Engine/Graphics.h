@@ -13,6 +13,8 @@ namespace flaw {
 	constexpr uint32_t ReservedTextureStartSlot = 50;
 	constexpr uint32_t CubeTextureStartSlot = 57;
 	constexpr uint32_t TextureArrayStartSlot = 61;
+	
+	constexpr static uint32_t MaxBatchedDataCount = 10000;
 
 	enum class GraphicsType {
 		DX11
@@ -63,18 +65,6 @@ namespace flaw {
 		float ambientIntensity;
 	};
 
-	struct MaterialConstants {
-		uint32_t reservedTextureBitMask = 0;
-		uint32_t cubeTextureBitMask = 0;
-		uint32_t textureArrayBitMask = 0;
-		uint32_t paddingMaterialConstants;
-
-		int32_t intConstants[4];
-		float floatConstants[4];
-		vec2 vec2Constants[4];
-		vec4 vec4Constants[4];
-	};
-
 	struct SkyLight {
 		vec3 color = vec3(0.0f);
 		float intensity = 0.0f;
@@ -84,6 +74,10 @@ namespace flaw {
 		mat4 transform;
 		mat4 inverseTransform;
 		uint32_t textureID;
+	};
+
+	struct BatchedData {
+		mat4 worldMatrix;
 	};
 
 	class Graphics {
@@ -133,6 +127,11 @@ namespace flaw {
 
 		static void CaptureTexture(const Ref<Texture2D>& srcTex, std::vector<uint8_t>& outData);
 		static void CaptureTextureArray(const Ref<Texture2DArray>& srcTex, std::vector<uint8_t>& outData);
+
+		static Ref<ConstantBuffer> GetGlobalConstantsCB();
+		static Ref<ConstantBuffer> GetMaterialConstantsCB();
+		
+		static Ref<StructuredBuffer> GetBatchedDataSB();
 
 		static GraphicsContext& GetGraphicsContext();
 	};

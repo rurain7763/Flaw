@@ -18,7 +18,7 @@ namespace flaw {
 	static Ref<VertexBuffer> g_textVB;
 	static Ref<IndexBuffer> g_ib;
 	static Ref<ConstantBuffer> g_vpCB;
-	static Ref<ConstantBuffer> g_globalCB;
+	static Ref<ConstantBuffer> g_globalConstantsCB;
 	static Ref<GraphicsPipeline> g_quadPipeline;
 	static Ref<GraphicsPipeline> g_circlePipeline;
 	static Ref<GraphicsPipeline> g_linePipeline;
@@ -79,7 +79,7 @@ namespace flaw {
 		g_ib = context.CreateIndexBuffer(ibDesc);
 
 		g_vpCB = context.CreateConstantBuffer(sizeof(CameraConstants));
-		g_globalCB = context.CreateConstantBuffer(sizeof(GlobalConstants));
+		g_globalConstantsCB = context.CreateConstantBuffer(sizeof(GlobalConstants));
 
 		Ref<GraphicsShader> shader = context.CreateGraphicsShader("Resources/Shaders/std2d.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
 		shader->AddInputElement<float>("POSITION", 3);
@@ -153,7 +153,7 @@ namespace flaw {
 		globalConstants.screenResolution = vec2((float)width, (float)height);
 		globalConstants.time = Time::GetTime();
 		globalConstants.deltaTime = Time::DeltaTime();
-		g_globalCB->Update(&globalConstants, sizeof(GlobalConstants));
+		g_globalConstantsCB->Update(&globalConstants, sizeof(GlobalConstants));
 
 		g_quadVertices.clear();
 		g_quadTextures.clear();
@@ -183,7 +183,7 @@ namespace flaw {
 		g_textVB->Update(g_textVertices.data(), sizeof(QuadVertex), g_textVertices.size());
 
 		commandQueue.SetConstantBuffer(g_vpCB, 0);
-		commandQueue.SetConstantBuffer(g_globalCB, 1);
+		commandQueue.SetConstantBuffer(g_globalConstantsCB, 1);
 
 		if (g_quadIndexCount) {
 			commandQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);

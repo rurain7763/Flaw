@@ -120,7 +120,7 @@ namespace flaw {
 		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
 
 		const Ref<Font>& GetFont() const { return _font; }
-		const Ref<Texture2D>& GetFontAtlas() const { return _fontAtlas; }
+		const Ref<Texture2D>& GetFontAtlasTex2D() const { return _fontAtlas; }
 
 	private:
 		std::function<void(Descriptor&)> _getDesc;
@@ -258,6 +258,8 @@ namespace flaw {
 			AssetHandle metallicTexture;
 			AssetHandle roughnessTexture;
 			AssetHandle ambientOcclusionTexture;
+
+			vec3 baseColor;
 		};
 
 		MaterialAsset(const std::function<void(Descriptor&)>& getDesc) : _getDesc(getDesc) {}
@@ -283,7 +285,8 @@ namespace flaw {
 		struct Descriptor {
 			mat4 globalInvMatrix;
 			std::vector<SkeletonNode> nodes;
-			std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+			std::vector<SkeletonBoneNode> bones;
+			std::vector<SkeletonBoneSocket> sockets;
 			std::vector<AssetHandle> animationHandles;
 		};
 

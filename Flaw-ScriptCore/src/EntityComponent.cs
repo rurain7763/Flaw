@@ -2,7 +2,7 @@
 {
     public class EntityComponent
     {
-        internal ulong entityId;
+        internal EntityID entityId;
 
         public Entity Owner
         {
@@ -11,20 +11,25 @@
 
         public EntityComponent()
         {
-            entityId = ulong.MaxValue;
+            entityId = EntityID.Invalid;
         }
 
-        internal EntityComponent(ulong id)
+        internal EntityComponent(EntityID id)
         {
             entityId = id;
         }
 
-        public bool HasComponent<T>() where T : EntityComponent, new()
+        public bool HasComponent<T>() where T : EntityComponent
         {
             return Owner.HasComponent<T>();
         }
 
-        public T GetComponent<T>() where T : EntityComponent, new()
+        public bool TryGetComponent<T>(out T component) where T : EntityComponent
+        {
+            return Owner.TryGetComponent<T>(out component);
+        }
+
+        public T GetComponent<T>() where T : EntityComponent
         {
             return Owner.GetComponent<T>();
         }

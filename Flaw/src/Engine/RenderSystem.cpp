@@ -10,6 +10,7 @@
 #include "AnimationSystem.h"
 #include "ShadowSystem.h"
 #include "SkyBoxSystem.h"
+#include "SkeletalSystem.h"
 
 // TODO: remove this
 #include "Renderer2D.h"
@@ -234,24 +235,15 @@ namespace flaw {
 
 	void RenderSystem::CreateConstantBuffers() {
 		_vpCB = Graphics::CreateConstantBuffer(sizeof(CameraConstants));
-		_globalCB = Graphics::CreateConstantBuffer(sizeof(GlobalConstants));
 		_lightCB = Graphics::CreateConstantBuffer(sizeof(LightConstants));
-		_materialCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
 		_directionalLightUniformCB = Graphics::CreateConstantBuffer(sizeof(DirectionalLightUniforms));
 		_spotLightUniformCB = Graphics::CreateConstantBuffer(sizeof(SpotLightUniforms));
 		_pointLightUniformCB = Graphics::CreateConstantBuffer(sizeof(PointLightUniforms));
 	}
 
 	void RenderSystem::CreateStructuredBuffers() {
-		// Create a structured buffer for batched transforms
-		StructuredBuffer::Descriptor sbDesc = {};
-		sbDesc.elmSize = sizeof(mat4);
-		sbDesc.count = MaxBatchTransformCount;
-		sbDesc.bindFlags = BindFlag::ShaderResource;
-		sbDesc.accessFlags = AccessFlag::Write;
-		_batchedTransformSB = Graphics::CreateStructuredBuffer(sbDesc);
-
 		// Create a structured buffer for decals
+		StructuredBuffer::Descriptor sbDesc = {};
 		sbDesc.elmSize = sizeof(Decal);
 		sbDesc.count = MaxDecalCount;
 		sbDesc.accessFlags = AccessFlag::Write;
@@ -301,17 +293,8 @@ namespace flaw {
 	}
 
 	void RenderSystem::UpdateSystems() {
-		int32_t width, height;
-		Graphics::GetSize(width, height);
-
-		_globalConstants.screenResolution = vec2((float)width, (float)height);
-		_globalConstants.time = Time::GetTime();
-		_globalConstants.deltaTime = Time::DeltaTime();
-		_globalCB->Update(&_globalConstants, sizeof(GlobalConstants));
-
-		_scene.GetAnimationSystem().Update();
 		_scene.GetLandscapeSystem().Update();
-		_scene.GetParticleSystem().Update(_globalCB);
+		_scene.GetParticleSystem().Update();
 		_scene.GetSkyBoxSystem().Update();
 		_scene.GetShadowSystem().Update();
 
@@ -371,11 +354,15 @@ namespace flaw {
 	}
 
 	void RenderSystem::GatherRenderableObjects() {
+		auto& enttRegistry = _scene.GetRegistry();
+		auto& animationSys = _scene.GetAnimationSystem();
+		auto& skeletalSys = _scene.GetSkeletalSystem();
+
 		for (auto& [depth, stage] : _renderStages) {
 			stage.renderQueue.Open();
 
 			// submit mesh
-			for (auto&& [entity, transform, staticMeshCom] : _scene.GetRegistry().view<TransformComponent, StaticMeshComponent>().each()) {
+			for (auto&& [entity, transform, staticMeshCom] : enttRegistry.view<TransformComponent, StaticMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<StaticMeshAsset>(staticMeshCom.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -399,7 +386,7 @@ namespace flaw {
 				}
 			}
 
-			for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
+			for (auto&& [entity, transform, skeletalMeshComp] : enttRegistry.view<TransformComponent, SkeletalMeshComponent>().each()) {
 				auto meshAsset = AssetManager::GetAsset<SkeletalMeshAsset>(skeletalMeshComp.mesh);
 				if (meshAsset == nullptr) {
 					continue;
@@ -413,9 +400,22 @@ namespace flaw {
 					continue;
 				}
 
-				auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData(entity);
-				auto boneMatrices = skeletalAnimData.GetBoneMatrices();
-				if (boneMatrices == nullptr) {
+				Ref<StructuredBuffer> boneMatricesSB;
+
+				auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
+				if (!skeletonAsset) {
+					continue;
+				}
+
+				if (animationSys.HasAnimatorJobContext(entity)) {
+					boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animatedSkinMatricesSB;
+				}
+				else {
+					auto& skeletonUniforms = skeletalSys.GetSkeletonUniforms(skeletonAsset->GetSkeleton());
+					boneMatricesSB = skeletonUniforms.bindingPoseSkinMatricesSB;
+				}
+
+				if (!boneMatricesSB) {
 					continue;
 				}
 
@@ -427,7 +427,7 @@ namespace flaw {
 						continue;
 					}
 
-					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), boneMatrices);
+					stage.renderQueue.Push(mesh, i, transform.worldTransform, materialAsset->GetMaterial(), boneMatricesSB);
 				}
 			}
 
@@ -445,62 +445,35 @@ namespace flaw {
 			_vpCB->Update(&_cameraConstansCB, sizeof(CameraConstants));
 
 			_scene.GetSkyBoxSystem().Render(_vpCB);
-			_scene.GetShadowSystem().Render(stage, _batchedTransformSB);
+			_scene.GetShadowSystem().Render(stage.cameraPosition, stage.frustum);
 
 			RenderGeometry(stage);
 			RenderDecal(stage);
 			RenderDefferdLighting(stage);
 			RenderTransparent(stage);
 			FinalizeRender(stage);
-		}
-	}
 
-	void RenderSystem::UpdateMateraialConstants(GraphicsCommandQueue& cmdQueue, const Ref<Material>& material) {
-		_materialConstants.reservedTextureBitMask = 0;
-		if (material->albedoTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
-			cmdQueue.SetTexture(material->albedoTexture, ReservedTextureStartSlot);
-		}
-		if (material->normalTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
-			cmdQueue.SetTexture(material->normalTexture, ReservedTextureStartSlot + 1);
-		}
-		if (material->emissiveTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
-			cmdQueue.SetTexture(material->emissiveTexture, ReservedTextureStartSlot + 2);
-		}
-		if (material->heightTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Height;
-			cmdQueue.SetTexture(material->heightTexture, ReservedTextureStartSlot + 3);
-		}
-		if (material->metallicTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Metallic;
-			cmdQueue.SetTexture(material->metallicTexture, ReservedTextureStartSlot + 4);
-		}
-		if (material->roughnessTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::Roughness;
-			cmdQueue.SetTexture(material->roughnessTexture, ReservedTextureStartSlot + 5);
-		}
-		if (material->ambientOcclusionTexture) {
-			_materialConstants.reservedTextureBitMask |= MaterialTextureType::AmbientOcclusion;
-			cmdQueue.SetTexture(material->ambientOcclusionTexture, ReservedTextureStartSlot + 6);
-		}
-		for (int32_t i = 0; i < material->cubeTextures.size(); ++i) {
-			if (material->cubeTextures[i]) {
-				_materialConstants.cubeTextureBitMask |= (1 << i);
-				cmdQueue.SetTexture(material->cubeTextures[i], CubeTextureStartSlot + i);
+			// TODO: test
+#if true
+			auto& enttRegistry = _scene.GetRegistry();
+
+			Renderer2D::Begin(stage.viewMatrix, stage.projectionMatrix);
+
+			for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
+				auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
+				if (!textureAsset) {
+					Renderer2D::DrawQuad(entity, transComp.worldTransform, sprComp.color);
+				}
+				else {
+					Renderer2D::DrawQuad(entity, transComp.worldTransform, textureAsset->GetTexture());
+				}
 			}
-		}
-		for (int32_t i = 0; i < material->textureArrays.size(); ++i) {
-			if (material->textureArrays[i]) {
-				_materialConstants.textureArrayBitMask |= (1 << i);
-				cmdQueue.SetTexture(material->textureArrays[i], TextureArrayStartSlot + i);
-			}
-		}
 
-		std::memcpy(_materialConstants.intConstants, material->intConstants, sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4);
+			Renderer2D::End();
+#endif
 
-		_materialCB->Update(&_materialConstants, sizeof(MaterialConstants));
+			_scene.GetParticleSystem().Render(_vpCB);
+		}
 	}
 
 	void RenderSystem::RenderGeometry(CameraRenderStage& stage) {
@@ -508,6 +481,8 @@ namespace flaw {
 
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+		auto materialCB = Graphics::GetMaterialConstantsCB();
+		auto batchedTransformSB = Graphics::GetBatchedDataSB();
 
 		while (!stage.renderQueue.Empty()) {
 			auto& entry = stage.renderQueue.Front();
@@ -521,13 +496,49 @@ namespace flaw {
 			pipeline->SetCullMode(entry.material->cullMode);
 			pipeline->SetDepthTest(entry.material->depthTest, entry.material->depthWrite);
 
+			MaterialConstants materialConstants;
+			entry.material->FillMaterialConstants(materialConstants);
+			materialCB->Update(&materialConstants, sizeof(MaterialConstants));
+
 			cmdQueue.SetPipeline(pipeline);
 			cmdQueue.SetConstantBuffer(_vpCB, 0);
-			cmdQueue.SetConstantBuffer(_globalCB, 1);
+			cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 			cmdQueue.SetConstantBuffer(_lightCB, 2);
-			UpdateMateraialConstants(cmdQueue, entry.material);
-			cmdQueue.SetConstantBuffer(_materialCB, 3);
-			cmdQueue.SetStructuredBuffer(_batchedTransformSB, 0);
+			cmdQueue.SetConstantBuffer(materialCB, 3);
+			cmdQueue.SetStructuredBuffer(batchedTransformSB, 0);
+
+			if (entry.material->albedoTexture) {
+				cmdQueue.SetTexture(entry.material->albedoTexture, ReservedTextureStartSlot);
+			}
+			if (entry.material->normalTexture) {
+				cmdQueue.SetTexture(entry.material->normalTexture, ReservedTextureStartSlot + 1);
+			}
+			if (entry.material->emissiveTexture) {
+				cmdQueue.SetTexture(entry.material->emissiveTexture, ReservedTextureStartSlot + 2);
+			}
+			if (entry.material->heightTexture) {
+				cmdQueue.SetTexture(entry.material->heightTexture, ReservedTextureStartSlot + 3);
+			}
+			if (entry.material->metallicTexture) {
+				cmdQueue.SetTexture(entry.material->metallicTexture, ReservedTextureStartSlot + 4);
+			}
+			if (entry.material->roughnessTexture) {
+				cmdQueue.SetTexture(entry.material->roughnessTexture, ReservedTextureStartSlot + 5);
+			}
+			if (entry.material->ambientOcclusionTexture) {
+				cmdQueue.SetTexture(entry.material->ambientOcclusionTexture, ReservedTextureStartSlot + 6);
+			}
+			for (int32_t i = 0; i < entry.material->cubeTextures.size(); ++i) {
+				if (entry.material->cubeTextures[i]) {
+					cmdQueue.SetTexture(entry.material->cubeTextures[i], CubeTextureStartSlot + i);
+				}
+			}
+			for (int32_t i = 0; i < entry.material->textureArrays.size(); ++i) {
+				if (entry.material->textureArrays[i]) {
+					cmdQueue.SetTexture(entry.material->textureArrays[i], TextureArrayStartSlot + i);
+				}
+			}
+
 			cmdQueue.Execute();
 
 			// instancing draw
@@ -535,7 +546,7 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+				batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
@@ -549,7 +560,7 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				_batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+				batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);
@@ -589,11 +600,9 @@ namespace flaw {
 			std::vector<PointVertex> vertices;
 			std::vector<uint32_t> indices;
 			GenerateCube([&vertices](vec3 pos, vec2 uv, vec3 normal, vec3 tangent, vec3 binormal) {
-					PointVertex vertex = { pos };
-					vertices.push_back(vertex);
-				},
-				indices
-			);
+				PointVertex vertex = { pos };
+				vertices.push_back(vertex);
+			}, indices);
 
 			VertexBuffer::Descriptor vbDesc = {};
 			vbDesc.elmSize = sizeof(PointVertex);
@@ -620,7 +629,7 @@ namespace flaw {
 
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetStructuredBuffer(_decalSB, 0);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 1);
@@ -693,7 +702,7 @@ namespace flaw {
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetConstantBuffer(_directionalLightUniformCB, 3);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
@@ -705,26 +714,34 @@ namespace flaw {
 
 		for (auto&& [entity, transform, directionalLightComp] : enttRegistry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = shadowSys.GetDirectionalLightShadowMap(entity);
-			
+
 			DirectionalLightUniforms uniforms = {};
-			uniforms.view0 = shadowMap.lightVPMatrices[0].view;
-			uniforms.projection0 = shadowMap.lightVPMatrices[0].projection;
-			uniforms.cascadeDist0 = shadowMap.cascadeDistances[0];
 
-			uniforms.view1 = shadowMap.lightVPMatrices[1].view;
-			uniforms.projection1 = shadowMap.lightVPMatrices[1].projection;
-			uniforms.cascadeDist1 = shadowMap.cascadeDistances[1];
+			struct CascadeInfo {
+				mat4& view;
+				mat4& projection;
+				float& cascadeDist;
+			};
 
-			uniforms.view2 = shadowMap.lightVPMatrices[2].view;
-			uniforms.projection2 = shadowMap.lightVPMatrices[2].projection;
-			uniforms.cascadeDist2 = shadowMap.cascadeDistances[2];
+			CascadeInfo cascadeInfos[] = {
+				{ uniforms.view0, uniforms.projection0, uniforms.cascadeDist0 },
+				{ uniforms.view1, uniforms.projection1, uniforms.cascadeDist1 },
+				{ uniforms.view2, uniforms.projection2, uniforms.cascadeDist2 }
+			};
+
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
+				auto& cascadeInfo = cascadeInfos[i];
+				cascadeInfo.view = shadowMap.lightVPMatrices[i].view;
+				cascadeInfo.projection = shadowMap.lightVPMatrices[i].projection;
+				cascadeInfo.cascadeDist = shadowMap.cascadeDistances[i];
+			}
 
 			uniforms.lightColor = vec4(directionalLightComp.color, 1.0);
 			uniforms.lightDirection = vec4(transform.GetWorldFront(), 0.0f);
 			uniforms.lightIntensity = directionalLightComp.intensity;
 			_directionalLightUniformCB->Update(&uniforms, sizeof(DirectionalLightUniforms));
 	
-			for (int32_t i = 0; i < 3; ++i) {
+			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
 				cmdQueue.SetTexture(shadowMap.renderPasses[i]->GetRenderTargetTex(0), 4 + i);
 			}
 
@@ -743,7 +760,7 @@ namespace flaw {
 
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetConstantBuffer(_pointLightUniformCB, 3);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
@@ -779,7 +796,7 @@ namespace flaw {
 
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetConstantBuffer(_spotLightUniformCB, 3);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
@@ -884,7 +901,7 @@ namespace flaw {
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 		cmdQueue.SetPipeline(pipeline);
 		cmdQueue.SetConstantBuffer(_vpCB, 0);
-		cmdQueue.SetConstantBuffer(_globalCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetConstantBuffer(_lightCB, 2);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryPosition), 0);
 		cmdQueue.SetTexture(_geometryPass->GetRenderTargetTex(GeometryNormal), 1);
@@ -902,32 +919,5 @@ namespace flaw {
 		cmdQueue.DrawIndexed(g_fullscreenQuadIB, g_fullscreenQuadIB->IndexCount());
 
 		cmdQueue.Execute();
-
-		// TODO: test
-#if true
-		auto& enttRegistry = _scene.GetRegistry();
-
-		Renderer2D::Begin(stage.viewMatrix, stage.projectionMatrix);
-
-		for (auto&& [entity, transComp, sprComp] : enttRegistry.view<TransformComponent, SpriteRendererComponent>().each()) {
-			auto textureAsset = AssetManager::GetAsset<Texture2DAsset>(sprComp.texture);
-			if (!textureAsset) {
-				Renderer2D::DrawQuad(entity, transComp.worldTransform, sprComp.color);
-			}
-			else {
-				Renderer2D::DrawQuad(entity, transComp.worldTransform, textureAsset->GetTexture());
-			}
-		}
-
-		for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
-			auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
-			if (fontAsset) {
-				Renderer2D::DrawString(entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
-			}
-		}
-		Renderer2D::End();
-#endif
-
-		_scene.GetParticleSystem().Render(_vpCB, _globalCB);
 	}
 }

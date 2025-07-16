@@ -260,16 +260,23 @@ namespace flaw {
 
 	struct RigidbodyComponent {
 		PhysicsBodyType bodyType = PhysicsBodyType::Static;
-		float density = 1.0f;
-		float staticFriction = 0.0f;
-		float dynamicFriction = 0.5f;
-		float restitution = 0.1f;
+
+		bool isKinematic = false;
+
+		float mass = 1.0f;
 
 		RigidbodyComponent() = default;
 		RigidbodyComponent(const RigidbodyComponent& other) = default;
 	};
 
 	struct BoxColliderComponent {
+		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
+		vec3 offset = vec3(0.0f);
 		vec3 size = vec3(1.0f);
 
 		BoxColliderComponent() = default;
@@ -277,6 +284,13 @@ namespace flaw {
 	};
 
 	struct SphereColliderComponent {
+		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
+		vec3 offset = vec3(0.0f);
 		float radius = 0.5f;
 
 		SphereColliderComponent() = default;
@@ -284,19 +298,16 @@ namespace flaw {
 	};
 
 	struct MeshColliderComponent {
+		bool isTrigger = false;
+
+		float staticFriction = 0.0f;
+		float dynamicFriction = 0.5f;
+		float restitution = 0.1f;
+
 		AssetHandle mesh;
 
 		MeshColliderComponent() = default;
 		MeshColliderComponent(const MeshColliderComponent& other) = default;
-	};
-
-	struct TextComponent {
-		std::wstring text;
-		AssetHandle font;
-		vec4 color = vec4(1.0f);
-
-		TextComponent() = default;
-		TextComponent(const TextComponent& other) = default;
 	};
 
 	struct SoundListenerComponent {
@@ -397,9 +408,6 @@ namespace flaw {
 		std::vector<AssetHandle> materials;
 		AssetHandle skeleton;
 
-		// TODO: 임시 테스트
-		float blendFactor = 0.0f;
-
 		bool castShadow = true;
 
 		SkeletalMeshComponent() = default;
@@ -488,5 +496,83 @@ namespace flaw {
 			lodDistanceRange = other.lodDistanceRange;
 			return *this;
 		}
+	};
+
+	struct AnimatorComponent {
+		AssetHandle animatorAsset;
+		
+		// TODO: 임시로 사용
+		AssetHandle skeletonAsset;
+
+		AnimatorComponent() = default;
+		AnimatorComponent(const AssetHandle& animatorAsset) : animatorAsset(animatorAsset) {}
+		AnimatorComponent(const AnimatorComponent& other) = default;
+	};
+
+	// ui
+	struct CanvasComponent {
+		enum class RenderMode {
+			ScreenSpaceOverlay,
+			ScreenSpaceCamera,
+			WorldSpace
+		};
+
+		RenderMode renderMode = RenderMode::ScreenSpaceOverlay;
+
+		UUID renderCamera;
+		float planeDistance = 1.0f;
+
+		CanvasComponent() = default;
+		CanvasComponent(const CanvasComponent& other) = default;
+	};
+
+	struct CanvasScalerComponent {
+		enum class ScaleMode {
+			ConstantPixelSize,
+			ScaleWithScreenSize
+		};
+
+		ScaleMode scaleMode = ScaleMode::ConstantPixelSize;
+
+		float scaleFactor = 1.0f;
+		vec2 referenceResolution = vec2(1920.0f, 1080.0f);
+
+		CanvasScalerComponent() = default;
+		CanvasScalerComponent(const CanvasScalerComponent& other) = default;
+	};
+
+	struct RectLayoutComponent {
+		vec2 anchorMin = vec2(0.5f, 0.5f);
+		vec2 anchorMax = vec2(0.5f, 0.5f);
+		vec2 pivot = vec2(0.5f, 0.5f);
+		vec2 sizeDelta = vec2(1.0);
+
+		RectLayoutComponent() = default;
+		RectLayoutComponent(const RectLayoutComponent& other) = default;
+
+		bool IsLRStretched() const {
+			return !EpsilonEqual(anchorMin.x, anchorMax.x);
+		}
+
+		bool IsTBStretched() const {
+			return !EpsilonEqual(anchorMin.y, anchorMax.y);
+		}
+	};
+
+	struct ImageComponent {
+		AssetHandle texture;
+		vec4 color = vec4(1.0f);
+
+		ImageComponent() = default;
+		ImageComponent(const ImageComponent& other) = default;
+	};
+
+	struct TextComponent {
+		std::wstring text;
+		AssetHandle font;
+		vec4 color = vec4(1.0f);
+
+		TextComponent() = default;
+		TextComponent(const TextComponent& other) = default;
 	};
 }

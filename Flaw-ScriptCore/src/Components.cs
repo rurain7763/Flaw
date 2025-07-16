@@ -101,4 +101,83 @@
             return worldPosition;
         }
     }
+
+    public class ColliderComponent : EntityComponent
+    {
+        // Collider specific properties and methods can be added here
+    }
+
+    public class BoxColliderComponent : ColliderComponent
+    {
+        public Vec3 Offset
+        {
+            get
+            {
+                return Vec3.Zero; // Placeholder, actual implementation should retrieve offset from the internal call
+            }
+            set
+            {
+                // Placeholder, actual implementation should set offset using an internal call
+            }
+        }
+
+        public Vec3 Size 
+        { 
+            get
+            {
+                return Vec3.Zero; // Placeholder, actual implementation should retrieve size from the internal call
+            }
+            set
+            {
+                // Placeholder, actual implementation should set size using an internal call
+            }
+        }
+    }
+
+    public class SphereColliderComponent : ColliderComponent
+    {
+        public Vec3 Offset
+        {
+            get
+            {
+                return Vec3.Zero; // Placeholder, actual implementation should retrieve offset from the internal call
+            }
+            set
+            {
+                // Placeholder, actual implementation should set offset using an internal call
+            }
+        }
+        public float Radius
+        {
+            get
+            {
+                return 0f; // Placeholder, actual implementation should retrieve radius from the internal call
+            }
+            set
+            {
+                // Placeholder, actual implementation should set radius using an internal call
+            }
+        }
+    }
+
+    public class MeshColliderComponent : ColliderComponent
+    {
+        // MeshCollider specific properties and methods can be added here
+    }
+
+    public class AnimatorComponent : EntityComponent
+    {
+        public void PlayState(int stateIndex)
+        {
+            InternalCalls.PlayState_Animator(entityId, stateIndex);
+        }
+    }
+
+    public class SkeletalMeshComponent : EntityComponent
+    {
+        public void AttachEntityToSocket(Entity entity, string socketName)
+        {
+            InternalCalls.AttachEntityToSocket_SkeletalMesh(entityId, entity.id, socketName);
+        }
+    }
 }

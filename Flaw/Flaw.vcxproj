@@ -79,7 +79,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>FL_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FL_ENABLE_ASSERTS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>src;Vendor\include;D:\Vendor\vcpkg\installed\x64-windows\include;D:\Vendor\vcpkg\installed\x64-windows\include\Imath;D:\Vendor\vcpkg\installed\x64-windows\include\physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -106,6 +106,7 @@
     <ClInclude Include="src\Debug\Instrumentor.h" />
     <ClInclude Include="src\ECS\ECS.h" />
     <ClInclude Include="src\Engine\AnimationSystem.h" />
+    <ClInclude Include="src\Engine\Animator.h" />
     <ClInclude Include="src\Engine\Application.h" />
     <ClInclude Include="src\Engine\Asset.h" />
     <ClInclude Include="src\Engine\AssetManager.h" />
@@ -135,9 +136,12 @@
     <ClInclude Include="src\Engine\Scripting.h" />
     <ClInclude Include="src\Engine\Serialization.h" />
     <ClInclude Include="src\Engine\ShadowSystem.h" />
+    <ClInclude Include="src\Engine\SkeletalSystem.h" />
     <ClInclude Include="src\Engine\Skeleton.h" />
     <ClInclude Include="src\Engine\SkyBoxSystem.h" />
     <ClInclude Include="src\Engine\Sounds.h" />
+    <ClInclude Include="src\Engine\TransformSystem.h" />
+    <ClInclude Include="src\Engine\UISystem.h" />
     <ClInclude Include="src\Event\EventDispatcher.h" />
     <ClInclude Include="src\Flaw.h" />
     <ClInclude Include="src\Font\Font.h" />
@@ -177,7 +181,11 @@
     <ClInclude Include="src\Physics\Physics.h" />
     <ClInclude Include="src\Physics\Physics2D.h" />
     <ClInclude Include="src\Physics\PhysicsContext.h" />
+    <ClInclude Include="src\Physics\PhysicsTypes.h" />
     <ClInclude Include="src\Physics\PhysicsX\Helper.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXActors.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXScene.h" />
+    <ClInclude Include="src\Physics\PhysicsX\PhysXShapes.h" />
     <ClInclude Include="src\Physics\PhysicsX\PhysXContext.h" />
     <ClInclude Include="src\Platform\FileDialogs.h" />
     <ClInclude Include="src\Platform\FileSystem.h" />
@@ -185,7 +193,13 @@
     <ClInclude Include="src\Platform\PlatformContext.h" />
     <ClInclude Include="src\Platform\PlatformEvents.h" />
     <ClInclude Include="src\Platform\Windows\WindowsContext.h" />
-    <ClInclude Include="src\Scripting\MonoScripting.h" />
+    <ClInclude Include="src\Scripting\MonoScriptArray.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClass.h" />
+    <ClInclude Include="src\Scripting\MonoScriptClassField.h" />
+    <ClInclude Include="src\Scripting\MonoScriptDomain.h" />
+    <ClInclude Include="src\Scripting\MonoScriptContext.h" />
+    <ClInclude Include="src\Scripting\MonoScriptObject.h" />
+    <ClInclude Include="src\Scripting\MonoScriptTypes.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundChannel.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundSource.h" />
     <ClInclude Include="src\Sound\FMod\FModSoundsContext.h" />
@@ -195,6 +209,8 @@
     <ClInclude Include="src\Time\Time.h" />
     <ClInclude Include="src\Utils\Easing.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
+    <ClInclude Include="src\Utils\HandlerRegistry.h" />
+    <ClInclude Include="src\Utils\BiMap.h" />
     <ClInclude Include="src\Utils\Raycast.h" />
     <ClInclude Include="src\Utils\Search.h" />
     <ClInclude Include="src\Utils\SerializationArchive.h" />
@@ -204,6 +220,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\AnimationSystem.cpp" />
+    <ClCompile Include="src\Engine\Animator.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\AssetManager.cpp" />
     <ClCompile Include="src\Engine\Assets.cpp" />
@@ -228,9 +245,12 @@
     <ClCompile Include="src\Engine\Scripting.cpp" />
     <ClCompile Include="src\Engine\Serialization.cpp" />
     <ClCompile Include="src\Engine\ShadowSystem.cpp" />
+    <ClCompile Include="src\Engine\SkeletalSystem.cpp" />
     <ClCompile Include="src\Engine\Skeleton.cpp" />
     <ClCompile Include="src\Engine\SkyBoxSystem.cpp" />
     <ClCompile Include="src\Engine\Sounds.cpp" />
+    <ClCompile Include="src\Engine\TransformSystem.cpp" />
+    <ClCompile Include="src\Engine\UISystem.cpp" />
     <ClCompile Include="src\Event\EventDispatcher.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFont.cpp" />
     <ClCompile Include="src\Font\MSDF\MSDFFontsContext.cpp" />
@@ -252,11 +272,19 @@
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Log\Log.cpp" />
     <ClCompile Include="src\Model\Model.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXActors.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXScene.cpp" />
+    <ClCompile Include="src\Physics\PhysicsX\PhysXShapes.cpp" />
     <ClCompile Include="src\Physics\PhysicsX\PhysXContext.cpp" />
     <ClCompile Include="src\Platform\Windows\FileDialogs.cpp" />
     <ClCompile Include="src\Platform\Windows\FileSystem.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsContext.cpp" />
-    <ClCompile Include="src\Scripting\MonoScripting.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptArray.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClass.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptDomain.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptObject.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptClassField.cpp" />
+    <ClCompile Include="src\Scripting\MonoScriptContext.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundChannel.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundSource.cpp" />
     <ClCompile Include="src\Sound\FMod\FModSoundsContext.cpp" />

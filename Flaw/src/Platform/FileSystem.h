@@ -16,5 +16,6 @@ namespace flaw {
 		static uint64_t FileIndex(const char* path);
 
 		static std::string GetUniqueFilePath(const char* expectedPath);
+		static std::string GetUniqueFolderPath(const char* expectedPath);
 	};
 }

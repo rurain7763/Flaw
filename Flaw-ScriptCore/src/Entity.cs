@@ -2,27 +2,59 @@
 
 namespace Flaw
 {
-    public class Entity
+    public readonly struct EntityID
     {
-        internal ulong id;
+        public readonly ulong id;
 
-        public Entity()
-        {
-            id = ulong.MaxValue;
-        }
-
-        public Entity(ulong id)
+        public EntityID(ulong id)
         {
             this.id = id;
         }
 
-        public bool HasComponent<T>() where T : EntityComponent, new()
+        public static EntityID Invalid => new EntityID(ulong.MaxValue);
+
+        public static implicit operator EntityID(ulong id) => new EntityID(id);
+        public static implicit operator ulong(EntityID entityId) => entityId.id;
+    }
+
+    public class Entity
+    {
+        internal EntityID id;
+
+        public string Name
+        {
+            get { return InternalCalls.GetEntityName_Entity(id); }
+        }
+
+        public Entity()
+        {
+            id = EntityID.Invalid;
+        }
+
+        public Entity(EntityID id)
+        {
+            this.id = id;
+        }
+
+        public bool HasComponent<T>() where T : EntityComponent
         {
             Type type = typeof(T);
             return InternalCalls.HasComponent(id, type);
         }
 
-        public T GetComponent<T>() where T : EntityComponent, new()
+        public bool TryGetComponent<T>(out T component) where T : EntityComponent
+        {
+            Type type = typeof(T);
+            if (InternalCalls.HasComponent(id, type))
+            {
+                component = (T)InternalCalls.GetComponentInstance(id, type);
+                return true;
+            }
+            component = null;
+            return false;
+        }
+
+        public T GetComponent<T>() where T : EntityComponent
         {
             Type type = typeof(T);
             return (T)InternalCalls.GetComponentInstance(id, type);
@@ -38,7 +70,7 @@ namespace Flaw
             if (entity.id != ulong.MaxValue)
             {
                 InternalCalls.DestroyEntity(entity.id);
-                entity.id = ulong.MaxValue; // Mark as destroyed
+                entity.id = EntityID.Invalid;
             }
         }
 

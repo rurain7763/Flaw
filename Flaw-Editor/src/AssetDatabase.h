@@ -74,6 +74,8 @@ namespace flaw {
 		AssetHandle roughnessTexture;
 		AssetHandle ambientOcclusionTexture;
 
+		vec3 baseColor;
+
 		MaterialCreateSettings() {
 			type = Type::Material;
 		}
@@ -82,7 +84,8 @@ namespace flaw {
 	struct SkeletonCreateSettings : public AssetCreateSettings {
 		mat4 globalInvMatrix = mat4(1.0f);
 		std::vector<SkeletonNode> nodes;
-		std::unordered_map<std::string, SkeletonBoneNode> boneMap;
+		std::vector<SkeletonBoneNode> bones;
+		std::vector<SkeletonBoneSocket> sockets;
 		std::vector<AssetHandle> animationHandles;
 
 		SkeletonCreateSettings() {
@@ -187,6 +190,10 @@ namespace flaw {
 	struct ModelImportSettings : public AssetImportSettings {
 		std::string srcPath;
 
+		bool withoutSkin; // If this is true, only import animations
+
+		std::function<bool(float)> progressHandler;
+
 		ModelImportSettings() {
 			type = Type::Model;
 		}
@@ -210,6 +217,8 @@ namespace flaw {
 		static void Refresh(const char* folderPath, bool recursive);
 
 		static bool GetAssetMetadata(const char* assetFile, AssetMetadata& outMetaData);
+
+		static void SetFileWatchState(bool enabled);
 
 		static const std::filesystem::path& GetContentsDirectory();
 

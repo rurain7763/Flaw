@@ -5,6 +5,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/ProgressHandler.hpp>
 
 namespace flaw {
 	constexpr uint32_t LoadOptFlags =
@@ -21,6 +22,18 @@ namespace flaw {
 		aiProcess_SortByPType | 
 		aiProcess_ConvertToLeftHanded;
 
+	class CustomProgressHandler : public Assimp::ProgressHandler {
+	public:
+		CustomProgressHandler(const std::function<bool(float)>& progressHandler) : _progressHandler(progressHandler) {}
+
+		bool Update(float pPercentage) override {
+			return _progressHandler(pPercentage);
+		}
+
+	private:
+		std::function<bool(float)> _progressHandler;
+	};
+
 	mat4 ToMat4(const aiMatrix4x4& mat) {
 		return mat4(
 			mat.a1, mat.b1, mat.c1, mat.d1,
@@ -30,7 +43,9 @@ namespace flaw {
 		);
 	}
 
-	Model::Model(const char* filePath) {
+	Model::Model(const char* filePath, const std::function<bool(float)>& progressHandler) 
+		: _loaded(false)
+	{
 		std::string extension = std::filesystem::path(filePath).extension().generic_string();
 
 		_type = ModelType::Unknown;
@@ -40,18 +55,36 @@ namespace flaw {
 		else if (extension == ".fbx") {
 			_type = ModelType::Fbx;
 		}
-		
+
 		Assimp::Importer importer;
+		Scope<CustomProgressHandler> userProgressHandler;
+
+		if (progressHandler) {
+			userProgressHandler = CreateScope<CustomProgressHandler>(progressHandler);
+			importer.SetProgressHandler(userProgressHandler.get());
+		}
+
 		const aiScene* scene = importer.ReadFile(filePath, LoadOptFlags);
-		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-			Log::Error("ASSIMP: %s", importer.GetErrorString());
+		if (!scene || !scene->mRootNode) {
+			Log::Error("[ASSIMP] %s", importer.GetErrorString());
+			return;
+		}
+
+		if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE && scene->mAnimations == nullptr) {
+			Log::Error("[ASSIMP] Incomplete scene: %s", importer.GetErrorString());
 			return;
 		}
 
 		ParseScene(std::filesystem::path(filePath).parent_path(), scene);
+
+		importer.SetProgressHandler(nullptr);
+
+		_loaded = true;
 	}
 
-	Model::Model(ModelType type, const char* basePath, const char* memory, size_t size) {
+	Model::Model(ModelType type, const char* basePath, const char* memory, size_t size) 
+		: _loaded(false)
+	{
 		_type = type;
 
 		Assimp::Importer importer;
@@ -62,6 +95,8 @@ namespace flaw {
 		}
 
 		ParseScene(std::filesystem::path(basePath), scene);
+
+		_loaded = true;
 	}
 
 	void Model::ParseScene(std::filesystem::path basePath, const aiScene* scene) {
@@ -101,6 +136,13 @@ namespace flaw {
 	}
 
 	void Model::ParseMaterial(const aiScene* scene, const std::filesystem::path& basePath, const aiMaterial* aiMaterial, ModelMaterial& material) {	
+		material.name = aiMaterial->GetName().C_Str();
+
+		aiColor3D color(0.f, 0.f, 0.f);
+		if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
+			material.baseColor = vec3(color.r, color.g, color.b);
+		}
+		
 		aiString path;
 		if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS) {
 			material.diffuse = GetImageOrCreate(scene, basePath / path.C_Str());

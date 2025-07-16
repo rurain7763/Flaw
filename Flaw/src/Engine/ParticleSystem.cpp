@@ -49,7 +49,7 @@ namespace flaw {
 		registry.on_destroy<ParticleComponent>().disconnect<&ParticleSystem::UnregisterEntity>(*this);
 	}
 
-	void ParticleSystem::Update(const Ref<ConstantBuffer>& globalConstantsCB) {
+	void ParticleSystem::Update() {
 		auto& registry = _scene.GetRegistry();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
@@ -79,7 +79,7 @@ namespace flaw {
 			compResources.particleUniformBuffer->Update(&_particleUniform, sizeof(ParticleUniform));
 
 			cmdQueue.SetComputePipeline(_computePipeline);
-			cmdQueue.SetComputeConstantBuffer(globalConstantsCB, 1);
+			cmdQueue.SetComputeConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 			cmdQueue.SetComputeStructuredBuffer(compResources.particleUniformBuffer, BindFlag::UnorderedAccess, 0);
 			cmdQueue.SetComputeStructuredBuffer(compResources.particleBuffer, BindFlag::UnorderedAccess, 1);
 			
@@ -281,14 +281,14 @@ namespace flaw {
 		}
 	}
 
-	void ParticleSystem::Render(const Ref<ConstantBuffer>& vpMatricesCB, const Ref<ConstantBuffer>& globalConstantsCB) {
+	void ParticleSystem::Render(const Ref<ConstantBuffer>& vpMatricesCB) {
 		auto& registry = _scene.GetRegistry();
 		auto& cmdQueue = Graphics::GetCommandQueue();
 
 		cmdQueue.SetPrimitiveTopology(PrimitiveTopology::PointList);
 		cmdQueue.SetPipeline(_graphicsPipeline);
 		cmdQueue.SetConstantBuffer(vpMatricesCB, 0);
-		cmdQueue.SetConstantBuffer(globalConstantsCB, 1);
+		cmdQueue.SetConstantBuffer(Graphics::GetGlobalConstantsCB(), 1);
 		cmdQueue.SetVertexBuffer(_vertexBuffer);
 
 		for (auto&& [entity, particleComp] : registry.view<entt::entity, ParticleComponent>().each()) {

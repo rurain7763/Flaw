@@ -71,11 +71,19 @@ namespace flaw {
 
 	std::string FileSystem::GetUniqueFilePath(const char* expectedPath) {
 		std::filesystem::path path(expectedPath);
-		std::string uniquePath = path.generic_string();
 		int counter = 1;
-		while (std::filesystem::exists(uniquePath)) {
-			uniquePath = (path.parent_path() / (path.stem().generic_string() + "_" + std::to_string(counter++) + path.extension().generic_string())).generic_string();
+		while (std::filesystem::exists(path)) {
+			path = path.parent_path() / (path.stem().generic_u8string() + "_" + std::to_string(counter++) + path.extension().generic_string());
 		}
-		return uniquePath;
+		return path.generic_u8string();
+	}
+
+	std::string FileSystem::GetUniqueFolderPath(const char* expectedPath) {
+		std::filesystem::path path(expectedPath);
+		int counter = 1;
+		while (std::filesystem::exists(path)) {
+			path = path.parent_path() / (path.stem().generic_u8string() + "_" + std::to_string(counter++));
+		}
+		return path.generic_u8string();
 	}
 }

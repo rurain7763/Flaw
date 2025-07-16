@@ -8,6 +8,8 @@ namespace flaw {
 
 	class AssetManager {
 	public:
+		static constexpr const char* DefaultStaticQuadMeshKey = "default_static_quad_mesh";
+
 		static void Init();
 		static void Cleanup();
 

@@ -178,8 +178,8 @@ namespace flaw {
 		ParticleSystem(Scene& scene);
 		~ParticleSystem();
 
-		void Update(const Ref<ConstantBuffer>& globalConstantsCB);
-		void Render(const Ref<ConstantBuffer>& vpMatricesCB, const Ref<ConstantBuffer>& globalConstantsCB);
+		void Update();
+		void Render(const Ref<ConstantBuffer>& vpMatricesCB);
 
 		void RegisterEntity(entt::registry& registry, entt::entity entity);
 		void UnregisterEntity(entt::registry& registry, entt::entity entity);

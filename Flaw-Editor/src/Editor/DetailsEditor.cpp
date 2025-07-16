@@ -5,10 +5,16 @@
 #include "ParticleComponentDrawer.h"
 
 namespace flaw {
-	DetailsEditor::DetailsEditor(Application& app)
+	DetailsEditor::DetailsEditor(Application& app, const std::string& editorName)
 		: _app(app)
+		, _editorName(editorName)
 	{
-		_app.GetEventDispatcher().Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { _selectedEntt = evn.entity; }, PID(this));
+		_app.GetEventDispatcher().Register<OnSelectEntityEvent>([this](const OnSelectEntityEvent& evn) { 
+			if (&evn.entity.GetScene() != _scene.get()) {
+				return;
+			}
+			_selectedEntt = evn.entity; 
+		}, PID(this));
 	}
 
 	DetailsEditor::~DetailsEditor() {
@@ -21,7 +27,7 @@ namespace flaw {
 	}
 
 	void DetailsEditor::OnRender() {
-		ImGui::Begin("Details");
+		ImGui::Begin(_editorName.c_str(), &_isOpen);
 
 		if (_selectedEntt) {
 			auto& entityComp = _selectedEntt.GetComponent<EntityComponent>();
@@ -41,7 +47,7 @@ namespace flaw {
 				}
 
 				vec3 degreeRotation = glm::degrees(transformComp.rotation);
-				if (EditorHelper::DrawVec3("Rotation", degreeRotation, 0.f, 100.f)) {
+				if (EditorHelper::DrawVec3("Rotation", degreeRotation)) {
 					transformComp.dirty = true;
 					transformComp.rotation = glm::radians(degreeRotation);
 				}
@@ -49,7 +55,14 @@ namespace flaw {
 				if (EditorHelper::DrawVec3("Scale", transformComp.scale)) {
 					transformComp.dirty = true;
 				}
-				});
+			});
+
+			DrawComponent<RectLayoutComponent>(_selectedEntt, [this](RectLayoutComponent& rectLayoutComp) {
+				EditorHelper::DrawVec2("Anchor Min", rectLayoutComp.anchorMin);
+				EditorHelper::DrawVec2("Anchor Max", rectLayoutComp.anchorMax);
+				EditorHelper::DrawVec2("Pivot", rectLayoutComp.pivot);
+				EditorHelper::DrawVec2("Size Delta", rectLayoutComp.sizeDelta);
+			});
 
 			DrawComponent<CameraComponent>(_selectedEntt, [](CameraComponent& cameraComp) {
 				bool perspective = cameraComp.perspective;
@@ -72,7 +85,7 @@ namespace flaw {
 				ImGui::DragFloat("Aspect Ratio", &cameraComp.aspectRatio, 0.1f);
 				ImGui::DragFloat("Near Clip", &cameraComp.nearClip, 0.1f);
 				ImGui::DragFloat("Far Clip", &cameraComp.farClip, 0.1f);
-				});
+			});
 
 			DrawComponent<SpriteRendererComponent>(_selectedEntt, [this](SpriteRendererComponent& spriteComp) {
 				ImGui::ColorEdit4("Color", &spriteComp.color.x);
@@ -122,26 +135,28 @@ namespace flaw {
 
 			DrawComponent<RigidbodyComponent>(_selectedEntt, [](RigidbodyComponent& rigidbodyComp) {
 				int32_t bodyTypeSelected = (int32_t)rigidbodyComp.bodyType;
-				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic", "Kinematic" })) {
+				if (EditorHelper::DrawCombo("Body Type", bodyTypeSelected, { "Static", "Dynamic" })) {
 					rigidbodyComp.bodyType = (PhysicsBodyType)bodyTypeSelected;
 				}
-
-				ImGui::DragFloat("Density", &rigidbodyComp.density, 0.1f);
-				ImGui::DragFloat("Static Friction", &rigidbodyComp.staticFriction, 0.1f);
-				ImGui::DragFloat("Dynamic Friction", &rigidbodyComp.dynamicFriction, 0.1f);
-				ImGui::DragFloat("Restitution", &rigidbodyComp.restitution, 0.1f);
+				EditorHelper::DrawCheckbox("Is Kinematic", rigidbodyComp.isKinematic);
+				EditorHelper::DrawNumericInput("Mass", rigidbodyComp.mass, 0.1f, 0.1f);
 			});
 
 			DrawComponent<BoxColliderComponent>(_selectedEntt, [](BoxColliderComponent& boxColliderComp) {
-				ImGui::DragFloat3("Size", glm::value_ptr(boxColliderComp.size), 0.1f);
+				EditorHelper::DrawCheckbox("Is Trigger", boxColliderComp.isTrigger);
+				EditorHelper::DrawVec3("Offset", boxColliderComp.offset, 0.1f);
+				EditorHelper::DrawVec3("Size", boxColliderComp.size, 1.0f);
 			});
 
 			DrawComponent<SphereColliderComponent>(_selectedEntt, [](SphereColliderComponent& sphereColliderComp) {
-				ImGui::DragFloat("Radius", &sphereColliderComp.radius, 0.1f);
+				EditorHelper::DrawCheckbox("Is Trigger", sphereColliderComp.isTrigger);
+				EditorHelper::DrawVec3("Offset", sphereColliderComp.offset, 0.1f);
+				EditorHelper::DrawNumericInput("Radius", sphereColliderComp.radius, 0.1f, 0.1f);
 			});
 
 			DrawComponent<MeshColliderComponent>(_selectedEntt, [](MeshColliderComponent& meshColliderComp) {
 				// TODO: Implement MeshColliderComponent details
+				ImGui::Text("Mesh Collider is not implemented yet.");
 			});
 
 			DrawComponent<MonoScriptComponent>(_selectedEntt, [this](MonoScriptComponent& monoScriptComp) {
@@ -172,35 +187,136 @@ namespace flaw {
 
 				MonoScriptClass& selectedScriptClass = Scripting::GetMonoClass(monoScriptComp.name.c_str());
 
-				auto& monoScriptSys = _scene->GetMonoScriptSystem();
-				MonoScriptObject scriptObj;
 				std::unordered_map<std::string, AssetHandle> assetRefs;
 				std::unordered_map<std::string, UUID> componentRefs;
 				std::unordered_map<std::string, UUID> entityRefs;
+				std::function<void(MonoScriptObject& scriptObj)> drawFieldsFunc = [&](MonoScriptObject& scriptObj) {
+					std::vector<MonoScriptComponent::FieldInfo> newFieldInfos;
+					selectedScriptClass.EachFieldsRecursive([this, &scriptObj, &assetRefs, &componentRefs, &entityRefs, &newFieldInfos](std::string_view fieldName, MonoScriptClassField& field) {
+						auto fieldClass = field.GetClass();
+
+						MonoScriptComponent::FieldInfo newFieldInfo;
+						newFieldInfo.fieldName = fieldName.data();
+						newFieldInfo.fieldType = fieldClass.GetTypeName();
+
+						if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
+							float value = field.GetValue<float>(scriptObj);
+							if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0.0f, 0.1f)) {
+								field.SetValue(scriptObj, &value);
+							}
+							newFieldInfo.SetValue(value);
+						}
+						else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
+							int32_t value = field.GetValue<int32_t>(scriptObj);
+							if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0, 1)) {
+								field.SetValue(scriptObj, &value);
+							}
+							newFieldInfo.SetValue(value);
+						}
+						else if (fieldClass == Scripting::GetMonoAssetClass(AssetType::Prefab)) {
+							auto fieldObjView = MonoScriptObjectView(fieldClass, field.GetValue<MonoObject*>(scriptObj));
+							auto handleField = fieldClass.GetFieldRecursive("handle");
+							AssetHandle handle;
+							if (fieldObjView) {
+								handle = handleField.GetValue<AssetHandle>(fieldObjView);
+							}
+							else {
+								auto it = assetRefs.find(fieldName.data());
+								if (it != assetRefs.end()) { handle = it->second; }
+							}
+
+							EditorHelper::DrawAssetPayloadTarget(fieldName.data(), handle, [&handle](const char* filepath) {
+								AssetMetadata metadata;
+								if (AssetDatabase::GetAssetMetadata(filepath, metadata) && metadata.type == AssetType::Prefab) {
+									handle = metadata.handle;
+								}
+								});
+
+							newFieldInfo.SetValue(handle);
+						}
+						else if (Scripting::IsMonoComponent(fieldClass)) {
+							auto fieldObjView = MonoScriptObjectView(fieldClass, field.GetValue<MonoObject*>(scriptObj));
+							auto entityIdField = fieldClass.GetFieldRecursive("entityId");
+							UUID uuid;
+							if (fieldObjView) {
+								uuid = entityIdField.GetValue<UUID>(fieldObjView);
+							}
+							else {
+								auto it = componentRefs.find(fieldName.data());
+								if (it != componentRefs.end()) {
+									uuid = it->second;
+								}
+							}
+
+							auto checkComponents = [&fieldClass](Entity entity) {
+								if (Scripting::IsMonoProjectComponent(fieldClass)) {
+									return entity.HasComponent<MonoScriptComponent>() && entity.GetComponent<MonoScriptComponent>().name == fieldClass.GetTypeName();
+								}
+								else {
+									return Scripting::HasEngineComponent(entity, fieldClass.GetTypeName().data());
+								}
+							};
+
+							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkComponents);
+
+							newFieldInfo.SetValue(uuid);
+						}
+						else if (fieldClass == Scripting::GetMonoClass(Scripting::MonoEntityClassName)) {
+							auto fieldObjView = MonoScriptObjectView(fieldClass, field.GetValue<MonoObject*>(scriptObj));
+							auto idField = fieldClass.GetFieldRecursive("id");
+							UUID uuid;
+							if (fieldObjView) {
+								uuid = idField.GetValue<UUID>(fieldObjView);
+							}
+							else {
+								auto it = entityRefs.find(fieldName.data());
+								if (it != entityRefs.end()) {
+									uuid = it->second;
+								}
+							}
+
+							EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, [](Entity entity) { return true; });
+
+							newFieldInfo.SetValue(uuid);
+						}
+
+						newFieldInfos.emplace_back(newFieldInfo);
+					});
+
+					monoScriptComp.fields = std::move(newFieldInfos);
+				};
+
+				auto& monoScriptSys = _scene->GetMonoScriptSystem();
 				if (monoScriptSys.IsMonoEntityExists(_selectedEntt.GetUUID())) {
 					auto monoEntt = monoScriptSys.GetMonoEntity(_selectedEntt.GetUUID());
-					scriptObj = monoEntt->GetComponent(monoScriptComp.name.c_str())->GetScriptObject();
+					MonoScriptObject& scriptObj = monoEntt->GetComponent(monoScriptComp.name.c_str())->GetScriptObject();
+					drawFieldsFunc(scriptObj);
 				}
 				else {
-					scriptObj = MonoScriptObject(&selectedScriptClass);
+					MonoScriptObject scriptObj(selectedScriptClass);
 					scriptObj.Instantiate();
 
 					for (auto it = monoScriptComp.fields.begin(); it != monoScriptComp.fields.end(); ) {
 						auto& filedInfo = *it;
 						auto field = selectedScriptClass.GetField(filedInfo.fieldName.c_str());
-						if (!field || field.GetTypeName() != filedInfo.fieldType) {
+						if (!field) {
 							it = monoScriptComp.fields.erase(it);
 							continue;
 						}
 
-						MonoScriptClass fieldClass(scriptObj.GetMonoDomain(), field.GetMonoClass());
+						auto fieldClass = field.GetClass();
+						if (fieldClass.GetTypeName() != filedInfo.fieldType) {
+							it = monoScriptComp.fields.erase(it);
+							continue;
+						}
+
 						if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
 							float value = filedInfo.As<float>();
-							field.SetValue(&scriptObj, &value);
+							field.SetValue(scriptObj, &value);
 						}
 						else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
 							int32_t value = filedInfo.As<int32_t>();
-							field.SetValue(&scriptObj, &value);
+							field.SetValue(scriptObj, &value);
 						}
 						else if (Scripting::IsMonoAsset(fieldClass)) {
 							AssetHandle assetHandle = filedInfo.As<AssetHandle>();
@@ -217,106 +333,9 @@ namespace flaw {
 
 						it++;
 					}
+
+					drawFieldsFunc(scriptObj);
 				}
-
-				std::vector<MonoScriptComponent::FieldInfo> newFieldInfos;
-				selectedScriptClass.EachFieldsRecursive([this, &scriptObj, &assetRefs, &componentRefs, &entityRefs, &newFieldInfos](std::string_view fieldName, MonoScriptClassField& field) {
-					MonoScriptClass fieldClass(field.GetMonoDomain(), field.GetMonoClass());
-
-					MonoScriptComponent::FieldInfo newFieldInfo;
-					newFieldInfo.fieldName = fieldName.data();
-					newFieldInfo.fieldType = field.GetTypeName();
-
-					if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Float)) {
-						float value = field.GetValue<float>(&scriptObj);
-						if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0.0f, 0.1f)) {
-							field.SetValue(&scriptObj, &value);
-						}
-						newFieldInfo.SetValue(value);
-					}
-					else if (fieldClass == Scripting::GetMonoSystemClass(MonoSystemType::Int32)) {
-						int32_t value = field.GetValue<int32_t>(&scriptObj);
-						if (EditorHelper::DrawNumericInput(fieldName.data(), value, 0, 1)) {
-							field.SetValue(&scriptObj, &value);
-						}
-						newFieldInfo.SetValue(value);
-					}
-					else if (fieldClass == Scripting::GetMonoAssetClass(AssetType::Prefab)) {
-						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
-						auto handleField = fieldClass.GetFieldRecursive("handle");
-						AssetHandle handle;
-						if (fieldObj.IsValid()) {
-							handle = handleField.GetValue<AssetHandle>(&fieldObj);
-						}
-						else {
-							auto it = assetRefs.find(fieldName.data());
-							if (it != assetRefs.end()) { handle = it->second; }
-						}
-
-						EditorHelper::DrawAssetPayloadTarget(fieldName.data(), handle, [&handle](const char* filepath) {
-							AssetMetadata metadata;
-							if (AssetDatabase::GetAssetMetadata(filepath, metadata) && metadata.type == AssetType::Prefab) {
-								handle = metadata.handle;
-							}
-						});
-
-						newFieldInfo.SetValue(handle);
-					}
-					else if (Scripting::IsMonoComponent(fieldClass)) {
-						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
-						auto entityIdField = fieldClass.GetFieldRecursive("entityId");
-						UUID uuid;
-						if (fieldObj.IsValid()) {
-							uuid = entityIdField.GetValue<UUID>(&fieldObj);
-						}
-						else {
-							auto it = componentRefs.find(fieldName.data());
-							if (it != componentRefs.end()) { 
-								uuid = it->second; 
-							}
-						}
-
-						auto checkComponents = [&fieldClass](Entity entity) {
-							if (Scripting::IsMonoProjectComponent(fieldClass)) {
-								return entity.HasComponent<MonoScriptComponent>() && entity.GetComponent<MonoScriptComponent>().name == fieldClass.GetTypeName();
-							}
-							else {
-								return Scripting::HasEngineComponent(entity, fieldClass.GetTypeName().data());
-							}
-						};
-
-						auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
-
-						EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkComponents, onDrop);
-
-						newFieldInfo.SetValue(uuid);
-					}
-					else if (fieldClass == Scripting::GetMonoClass(Scripting::EntityClassName)) {
-						auto fieldObj = MonoScriptObject(&fieldClass, field.GetValue<MonoObject*>(&scriptObj));
-						auto idField = fieldClass.GetFieldRecursive("id");
-						UUID uuid;
-						if (fieldObj.IsValid()) {
-							uuid = idField.GetValue<UUID>(&fieldObj);
-						}
-						else {
-							auto it = entityRefs.find(fieldName.data());
-							if (it != entityRefs.end()) { 
-								uuid = it->second; 
-							}
-						}
-						
-						auto checkEntity = [](Entity entity) { return true; };
-						auto onDrop = [&uuid](Entity entity) { uuid = entity.GetUUID(); };
-
-						EditorHelper::DrawEntityPayloadTarget(fieldName.data(), _scene, uuid, checkEntity, onDrop);
-
-						newFieldInfo.SetValue(uuid);
-					}
-
-					newFieldInfos.emplace_back(newFieldInfo);
-				});
-
-				monoScriptComp.fields = std::move(newFieldInfos);
 			});
 
 			DrawComponent<TextComponent>(_selectedEntt, [](TextComponent& textComp) {
@@ -367,116 +386,62 @@ namespace flaw {
 				ImGui::Checkbox("Loop", &soundSourceComp.loop);
 				ImGui::Checkbox("Auto Play", &soundSourceComp.autoPlay);
 				ImGui::DragFloat("Volume", &soundSourceComp.volume, 0.01f, 0.f, 1.f);
-				});
+			});
 
 			DrawComponent<ParticleComponent>(_selectedEntt, [this](ParticleComponent& particleComp) {
 				ParticleComponentDrawer::Draw(_selectedEntt);
-				});
+			});
 
 			DrawComponent<StaticMeshComponent>(_selectedEntt, [](StaticMeshComponent& staticMeshComp) {
-				ImGui::Text("Mesh");
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::StaticMesh) {
-								auto asset = AssetManager::GetAsset<StaticMeshAsset>(metadata.handle);
-								staticMeshComp.mesh = metadata.handle;
-								staticMeshComp.materials = asset->GetMaterialHandles();
-							}
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
+				EditorHelper::DrawAssetPayloadTarget("Static Mesh", staticMeshComp.mesh, [&staticMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::StaticMesh) {
+						staticMeshComp.mesh = metadata.handle;
 
-				if (ImGui::CollapsingHeader("Materials")) {
-					for (size_t i = 0; i < staticMeshComp.materials.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(staticMeshComp.materials[i])) {
-							ImGui::Text("Material %zu", i);
-						}
-						else {
-							ImGui::Text("Material Invalid##%d", i);
-						}
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-								AssetMetadata metadata;
-								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-									if (metadata.type == AssetType::Material) {
-										staticMeshComp.materials[i] = metadata.handle;
-									}
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
+						auto asset = AssetManager::GetAsset<StaticMeshAsset>(metadata.handle);
+						staticMeshComp.materials = asset->GetMaterialHandles();
 					}
-				}
+				});
+
+				EditorHelper::DrawList<AssetHandle>("Materials", staticMeshComp.materials, [](AssetHandle& handle) {
+					return EditorHelper::DrawAssetPayloadTarget("Material", handle, [&handle](const char* filePath) {
+						AssetMetadata metadata;
+						if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Material) {
+							handle = metadata.handle;
+						}
+					});
+				});
 
 				ImGui::Checkbox("Cast Shadow", &staticMeshComp.castShadow);
 			});
 
 			DrawComponent<SkeletalMeshComponent>(_selectedEntt, [](SkeletalMeshComponent& skeletalMeshComp) {
-				ImGui::Text("Mesh");
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
+				EditorHelper::DrawAssetPayloadTarget("Skeletal Mesh", skeletalMeshComp.mesh, [&skeletalMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::SkeletalMesh) {
+						skeletalMeshComp.mesh = metadata.handle;
+
+						auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
+						skeletalMeshComp.materials = asset->GetMaterialHandles();
+						skeletalMeshComp.skeleton = asset->GetSkeletonHandle();
+					}
+				});
+
+				EditorHelper::DrawList<AssetHandle>("Materials", skeletalMeshComp.materials, [](AssetHandle& handle) {
+					return EditorHelper::DrawAssetPayloadTarget("Material", handle, [&handle](const char* filePath) {
 						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
-								auto asset = AssetManager::GetAsset<SkeletalMeshAsset>(metadata.handle);
-								skeletalMeshComp.mesh = metadata.handle;
-								skeletalMeshComp.materials = asset->GetMaterialHandles();
-								skeletalMeshComp.skeleton = asset->GetSkeletonHandle();
-							}
+						if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Material) {
+							handle = metadata.handle;
 						}
-					}
-					ImGui::EndDragDropTarget();
-				}
+					});
+				});
 
-				if (ImGui::CollapsingHeader("Materials")) {
-					for (size_t i = 0; i < skeletalMeshComp.materials.size(); ++i) {
-						if (AssetManager::IsAssetRegistered(skeletalMeshComp.materials[i])) {
-							ImGui::Text("Material %zu", i);
-						}
-						else {
-							ImGui::Text("Material Invalid##%d", i);
-						}
-						
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-								AssetMetadata metadata;
-								if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-									if (metadata.type == AssetType::Material) {
-										skeletalMeshComp.materials[i] = metadata.handle;
-									}
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
+				EditorHelper::DrawAssetPayloadTarget("Skeleton", skeletalMeshComp.skeleton, [&skeletalMeshComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Skeleton) {
+						skeletalMeshComp.skeleton = metadata.handle;
 					}
-				}
-
-				if (AssetManager::IsAssetRegistered(skeletalMeshComp.skeleton)) {
-					ImGui::Text("Skeleton");
-				}
-				else {
-					ImGui::Text("Skeleton Invalid");
-				}
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_FILE_PATH")) {
-						AssetMetadata metadata;
-						if (AssetDatabase::GetAssetMetadata((const char*)payload->Data, metadata)) {
-							if (metadata.type == AssetType::SkeletalMesh) {
-								skeletalMeshComp.skeleton = metadata.handle;
-							}
-						}
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				// TODO: 임시 테스트
-				ImGui::Text("Blend Factor");
-				if (ImGui::DragFloat("Blend Factor", &skeletalMeshComp.blendFactor, 0.1f, 0.0, 1.0)) {
-					skeletalMeshComp.blendFactor = glm::clamp(skeletalMeshComp.blendFactor, 0.f, 1.f);
-				}
+				});
 
 				ImGui::Checkbox("Cast Shadow", &skeletalMeshComp.castShadow);
 			});
@@ -595,6 +560,59 @@ namespace flaw {
 				}
 			});
 
+			DrawComponent<AnimatorComponent>(_selectedEntt, [](AnimatorComponent& animatorComp) {
+				EditorHelper::DrawAssetPayloadTarget("Skeleton Asset", animatorComp.skeletonAsset, [&animatorComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Skeleton) {
+						animatorComp.skeletonAsset = metadata.handle;
+					}
+				});
+			});
+
+			DrawComponent<CanvasComponent>(_selectedEntt, [this](CanvasComponent& canvasComp) {
+				std::vector<std::string> renderModes = { "Screen Space Overlay", "Screen Space Camera", "World Space" };
+
+				int32_t renderModeSelected = (int32_t)canvasComp.renderMode;
+				if (EditorHelper::DrawCombo("Render Mode", renderModeSelected, renderModes)) {
+					canvasComp.renderMode = (CanvasComponent::RenderMode)renderModeSelected;
+				}
+
+				if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
+					EditorHelper::DrawEntityPayloadTarget("Camera", _scene, canvasComp.renderCamera, [](Entity entity) { return entity.HasComponent<CameraComponent>(); } );
+					EditorHelper::DrawNumericInput("Plane Distance", canvasComp.planeDistance, 0.1f, 0.1f);
+				}
+				else if (canvasComp.renderMode == CanvasComponent::RenderMode::WorldSpace) {
+					EditorHelper::DrawEntityPayloadTarget("Camera", _scene, canvasComp.renderCamera, [](Entity entity) { return entity.HasComponent<CameraComponent>(); });
+				}
+			});
+
+			DrawComponent<CanvasScalerComponent>(_selectedEntt, [this](CanvasScalerComponent& scalerComp) {
+				std::vector<std::string> uiScaleModes = { "Constant Pixel Size", "Scale With Screen Size" };
+
+				int32_t scaleModeSelected = (int32_t)scalerComp.scaleMode;
+				if (EditorHelper::DrawCombo("UI Scale Mode", scaleModeSelected, uiScaleModes)) {
+					scalerComp.scaleMode = (CanvasScalerComponent::ScaleMode)scaleModeSelected;
+				}
+
+				if (scalerComp.scaleMode == CanvasScalerComponent::ScaleMode::ConstantPixelSize) {
+					EditorHelper::DrawNumericInput("Scale Factor", scalerComp.scaleFactor, 0.1f, 0.1f);
+				}
+				else if (scalerComp.scaleMode == CanvasScalerComponent::ScaleMode::ScaleWithScreenSize) {
+					EditorHelper::DrawVec2("Reference Resolution", scalerComp.referenceResolution);
+				}
+			});
+
+			DrawComponent<ImageComponent>(_selectedEntt, [](ImageComponent& imageComp) {
+				EditorHelper::DrawAssetPayloadTarget("Image Texture", imageComp.texture, [&imageComp](const char* filePath) {
+					AssetMetadata metadata;
+					if (AssetDatabase::GetAssetMetadata(filePath, metadata) && metadata.type == AssetType::Texture2D) {
+						imageComp.texture = metadata.handle;
+					}
+				});
+
+				ImGui::ColorEdit4("Color", &imageComp.color.x);
+			});
+
 			ImGui::Separator();
 
 			// add component
@@ -627,6 +645,11 @@ namespace flaw {
 				DrawAddComponentItem<SkyBoxComponent>(_selectedEntt);
 				DrawAddComponentItem<DecalComponent>(_selectedEntt);
 				DrawAddComponentItem<LandscapeComponent>(_selectedEntt);
+				DrawAddComponentItem<AnimatorComponent>(_selectedEntt);
+				DrawAddComponentItem<CanvasComponent>(_selectedEntt);
+				DrawAddComponentItem<CanvasScalerComponent>(_selectedEntt);
+				DrawAddComponentItem<RectLayoutComponent>(_selectedEntt);
+				DrawAddComponentItem<ImageComponent>(_selectedEntt);
 
 				ImGui::EndPopup();
 			}

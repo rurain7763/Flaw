@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Scripting/MonoScripting.h"
 #include "Entity.h"
 #include "Math/Math.h"
 #include "Input/Input.h"
@@ -17,6 +16,8 @@ namespace flaw {
 	uint64_t CreateEntity_Prefab(AssetHandle prefab);
 	uint64_t CreateEntityWithTransform_Prefab(AssetHandle prefab, vec3& position, vec3& rotation, vec3& scale);
 	
+	MonoString* GetEntityName_Entity(UUID uuid);
+
 	void GetPosition_Transform(UUID uuid, vec3& position);
 	void SetPosition_Transform(UUID uuid, vec3& position);
 	void GetRotation_Transform(UUID uuid, vec3& rotation);
@@ -35,6 +36,13 @@ namespace flaw {
 	bool GetKeyUp_Input(KeyCode key);
 	bool GetKey_Input(KeyCode key);
 	void GetMousePosition_Input(float& x, float& y);
+	bool GetMouseButtonDown_Input(MouseButton button);
+	bool GetMouseButtonUp_Input(MouseButton button);
+	bool GetMouseButton_Input(MouseButton button);
 
 	bool Raycast_Physics(const Ray& ray, RayHit& hit);
+
+	void PlayState_Animator(UUID uuid, int32_t stateIndex);
+
+	void AttachEntityToSocket_SkeletalMesh(UUID uuid, UUID target, MonoString* socketName);
 }

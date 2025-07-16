@@ -21,6 +21,21 @@ namespace flaw {
 		AmbientOcclusion = 0x40,
 	};
 
+	struct MaterialConstants {
+		uint32_t reservedTextureBitMask = 0;
+		uint32_t cubeTextureBitMask = 0;
+		uint32_t textureArrayBitMask = 0;
+		uint32_t paddingMaterialConstants;
+
+		int32_t intConstants[4];
+		float floatConstants[4];
+		vec2 vec2Constants[4];
+		vec4 vec4Constants[4];
+
+		vec3 baseColor;
+		float padding;
+	};
+
 	struct Material {
 		RenderMode renderMode = RenderMode::Opaque;
 
@@ -29,6 +44,8 @@ namespace flaw {
 		bool depthWrite = true;
 
 		Ref<GraphicsShader> shader;
+
+		vec3 baseColor;
 
 		Ref<Texture2D> albedoTexture;
 		Ref<Texture2D> normalTexture;
@@ -45,5 +62,48 @@ namespace flaw {
 		float floatConstants[4];
 		vec2 vec2Constants[4];
 		vec4 vec4Constants[4];
+
+		inline void FillMaterialConstants(MaterialConstants& outConstants) const {
+			outConstants.reservedTextureBitMask = 0;
+			if (albedoTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Albedo;
+			}
+			if (normalTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Normal;
+			}
+			if (emissiveTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Emissive;
+			}
+			if (heightTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Height;
+			}
+			if (metallicTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Metallic;
+			}
+			if (roughnessTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::Roughness;
+			}
+			if (ambientOcclusionTexture) {
+				outConstants.reservedTextureBitMask |= MaterialTextureType::AmbientOcclusion;
+			}
+			for (int32_t i = 0; i < cubeTextures.size(); ++i) {
+				if (cubeTextures[i]) {
+					outConstants.cubeTextureBitMask |= (1 << i);
+				}
+			}
+			for (int32_t i = 0; i < textureArrays.size(); ++i) {
+				if (textureArrays[i]) {
+					outConstants.textureArrayBitMask |= (1 << i);
+				}
+			}
+
+			std::memcpy(
+				outConstants.intConstants, 
+				intConstants, 
+				sizeof(uint32_t) * 4 + sizeof(float) * 4 + sizeof(vec2) * 4 + sizeof(vec4) * 4
+			);
+
+			outConstants.baseColor = baseColor;
+		}
 	};
 }

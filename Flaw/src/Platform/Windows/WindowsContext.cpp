@@ -212,29 +212,29 @@ namespace flaw {
 		// init hInstance
 		HINSTANCE hInstance = GetModuleHandleA(nullptr);
 
+		std::wstring wAppName = L"FlawEngine";
+		std::wstring wTitle = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(title);
+
 		// Register class
 		WNDCLASSEX wcex;
-
 		wcex.cbSize = sizeof(WNDCLASSEX);
-
 		wcex.style = CS_HREDRAW | CS_VREDRAW;
 		wcex.lpfnWndProc = WndProc;
 		wcex.cbClsExtra = 0;
 		wcex.cbWndExtra = 0;
 		wcex.hInstance = hInstance;
-		wcex.hIcon = NULL;
-		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wcex.hIcon = (HICON)LoadImage(NULL, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR);
+		wcex.hIconSm = (HICON)LoadImage(NULL, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR);
+		wcex.hCursor = (HCURSOR)LoadImage(NULL, IDC_ARROW, IMAGE_CURSOR, 0, 0, LR_SHARED);
 		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 		wcex.lpszMenuName = nullptr;
-		wcex.lpszClassName = L"CLIENT";
-		wcex.hIconSm = NULL;
+		wcex.lpszClassName = wAppName.c_str();
 
 		RegisterClassEx(&wcex);
 
-		_hWnd = CreateWindowEx(
-			0,
-			L"CLIENT",
-			std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(title).c_str(),
+		_hWnd = CreateWindow(
+			wAppName.c_str(),
+			wTitle.c_str(),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -265,6 +265,8 @@ namespace flaw {
 		ShowWindow(_hWnd, SW_SHOW);
 		UpdateWindow(_hWnd);
 		
+		_x = x;
+		_y = y;
 		_width = width;
 		_height = height;
 		CalculateFrameBufferSize();

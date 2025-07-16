@@ -5,6 +5,9 @@
 #include "AssetManager.h"
 #include "Assets.h"
 #include "Physics.h"
+#include "PhysicsSystem.h"
+#include "AnimationSystem.h"
+#include "SkeletalSystem.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/reflection.h>
@@ -54,77 +57,77 @@ namespace flaw {
 		return entity.GetUUID();
 	}
 
+	MonoString* GetEntityName_Entity(UUID uuid) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto& comp = entity.GetComponent<EntityComponent>();
+		return mono_string_new(Scripting::GetMonoScriptDomain().GetMonoDomain(), comp.name.c_str());
+	}
+
 	void GetPosition_Transform(UUID uuid, vec3& position) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			position = comp.position;
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		position = comp.GetWorldPosition();
 	}
 
 	void SetPosition_Transform(UUID uuid, vec3& position) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.position = position;
-			comp.dirty = true;
+		auto& comp = entity.GetComponent<TransformComponent>();
+
+		vec3 parentWorldpos = vec3(0.0);
+		if (entity.HasParent()) {
+			parentWorldpos = entity.GetParent().GetComponent<TransformComponent>().GetWorldPosition();
 		}
+
+		comp.position = position - parentWorldpos;
+		comp.dirty = true;
 	}
 
 	void GetRotation_Transform(UUID uuid, vec3& rotation) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			rotation = comp.rotation;
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		rotation = comp.rotation;
 	}
 
 	void SetRotation_Transform(UUID uuid, vec3& rotation) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.rotation = rotation;
-			comp.dirty = true;
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		comp.rotation = rotation;
+		comp.dirty = true;
 	}
 
 	void GetScale_Transform(UUID uuid, vec3& scale) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			scale = comp.scale;
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		scale = comp.scale;
 	}
 
 	void SetScale_Transform(UUID uuid, vec3& scale) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			comp.scale = scale;
-			comp.dirty = true;
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		comp.scale = scale;
+		comp.dirty = true;
 	}
 
 	void GetForward_Transform(UUID uuid, vec3& forward) {
 		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
 		FASSERT(entity, "Entity not found with UUID");
 
-		if (entity.HasComponent<TransformComponent>()) {
-			auto& comp = entity.GetComponent<TransformComponent>();
-			forward = comp.GetWorldFront();
-		}
+		auto& comp = entity.GetComponent<TransformComponent>();
+		forward = comp.GetWorldFront();
 	}
 
 	void GetBodyType_RigidBody2D(UUID uuid, int32_t& bodyType) {
@@ -174,8 +177,20 @@ namespace flaw {
 		y = Input::GetMouseY();
 	}
 
+	bool GetMouseButtonDown_Input(MouseButton button) {
+		return Input::GetMouseButtonDown(button);
+	}
+
+	bool GetMouseButtonUp_Input(MouseButton button) {
+		return Input::GetMouseButtonUp(button);
+	}
+
+	bool GetMouseButton_Input(MouseButton button) {
+		return Input::GetMouseButton(button);
+	}
+
 	bool Raycast_Physics(const Ray& ray, RayHit& hit) {
-		return Physics::Raycast(ray, hit);
+		return Scripting::GetScene().GetPhysicsSystem().GetPhysicsScene().Raycast(ray, hit);
 	}
 
 	void ScreenToWorld_Camera(UUID uuid, vec2& screenPos, vec3& worldPos) {
@@ -193,6 +208,36 @@ namespace flaw {
 			mat4 projectionMatrix = cameraComp.GetProjectionMatrix();
 			
 			worldPos = ScreenToWorld(screenPos, viewPort, projectionMatrix, viewMatrix);
+		}
+	}
+
+	void PlayState_Animator(UUID uuid, int32_t stateIndex) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto& animationSys = Scripting::GetScene().GetAnimationSystem();
+		if (!animationSys.HasAnimatorJobContext(entity)) {
+			return;
+		}
+	
+		auto runtimeAnimator = animationSys.GetAnimatorJobContext(entity).runtimeAnimator;
+		runtimeAnimator->PlayState(stateIndex);
+	}
+
+	void AttachEntityToSocket_SkeletalMesh(UUID uuid, UUID target, MonoString* socketName) {
+		auto entity = Scripting::GetScene().FindEntityByUUID(uuid);
+		FASSERT(entity, "Entity not found with UUID");
+
+		auto targetEntity = Scripting::GetScene().FindEntityByUUID(target);
+		FASSERT(targetEntity, "Target entity not found with UUID");
+
+		if (entity.HasComponent<SkeletalMeshComponent>()) {
+			auto& skeletalSys = Scripting::GetScene().GetSkeletalSystem();
+			char* socketNameStr = mono_string_to_utf8(socketName);
+
+			skeletalSys.AttachEntityToSocket(entity, targetEntity, socketNameStr);
+
+			mono_free(socketNameStr);
 		}
 	}
 }

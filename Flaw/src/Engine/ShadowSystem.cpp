@@ -1,11 +1,10 @@
 #include "pch.h"
 #include "ShadowSystem.h"
 #include "Scene.h"
-#include "Components.h"
 #include "AssetManager.h"
 #include "Assets.h"
 #include "AnimationSystem.h"
-#include "RenderSystem.h"
+#include "SkeletalSystem.h"
 #include "Graphics/GraphicsFunc.h"
 
 namespace flaw {
@@ -35,8 +34,6 @@ namespace flaw {
 		shadowMapShader->AddInputElement<float>("TANGENT", 3);
 		shadowMapShader->AddInputElement<float>("NORMAL", 3);
 		shadowMapShader->AddInputElement<float>("BINORMAL", 3);
-		shadowMapShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		shadowMapShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		shadowMapShader->CreateInputLayout();
 
 		_shadowMapStaticMaterial = CreateRef<Material>();
@@ -57,22 +54,22 @@ namespace flaw {
 		_lightVPMatricesSB = Graphics::CreateStructuredBuffer(sbDesc);
 
 		auto& registry = _scene.GetRegistry();
-		registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<DirectionalLightComponent>().connect<&ShadowSystem::RegisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_destroy<DirectionalLightComponent>().connect<&ShadowSystem::UnregisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_construct<PointLightComponent>().connect<&ShadowSystem::RegisterEntity<PointLightComponent>>(*this);
+		registry.on_destroy<PointLightComponent>().connect<&ShadowSystem::UnregisterEntity<PointLightComponent>>(*this);
+		registry.on_construct<SpotLightComponent>().connect<&ShadowSystem::RegisterEntity<SpotLightComponent>>(*this);
+		registry.on_destroy<SpotLightComponent>().connect<&ShadowSystem::UnregisterEntity<SpotLightComponent>>(*this);
 	}
 
 	ShadowSystem::~ShadowSystem() {
 		auto& registry = _scene.GetRegistry();
-		registry.on_construct<DirectionalLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<DirectionalLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<PointLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<PointLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
-		registry.on_construct<SpotLightComponent>().disconnect<&ShadowSystem::RegisterEntity>(*this);
-		registry.on_destroy<SpotLightComponent>().disconnect<&ShadowSystem::UnregisterEntity>(*this);
+		registry.on_construct<DirectionalLightComponent>().disconnect<&ShadowSystem::RegisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_destroy<DirectionalLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<DirectionalLightComponent>>(*this);
+		registry.on_construct<PointLightComponent>().disconnect<&ShadowSystem::RegisterEntity<PointLightComponent>>(*this);
+		registry.on_destroy<PointLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<PointLightComponent>>(*this);
+		registry.on_construct<SpotLightComponent>().disconnect<&ShadowSystem::RegisterEntity<SpotLightComponent>>(*this);
+		registry.on_destroy<SpotLightComponent>().disconnect<&ShadowSystem::UnregisterEntity<SpotLightComponent>>(*this);
 	}
 
 	Ref<GraphicsRenderPass> ShadowSystem::CreateDirectionalLightShadowMapRenderPass(uint32_t width, uint32_t height) {
@@ -150,34 +147,10 @@ namespace flaw {
 		return Graphics::CreateRenderPass(shadowMapDesc);
 	}
 
-	void ShadowSystem::RegisterEntity(entt::registry& registry, entt::entity entity) {
-		if (registry.any_of<DirectionalLightComponent>(entity)) {
-			auto& shadowMap = _directionalShadowMaps[entity];
-
-			for (int32_t i = 0; i < CascadeShadowCount; ++i) {
-				shadowMap.renderPasses[i] = CreateDirectionalLightShadowMapRenderPass(ShadowMapSize >> i, ShadowMapSize >> i);
-			}
-		}
-
-		if (registry.any_of<SpotLightComponent>(entity)) {
-			auto& shadowMap = _spotLightShadowMaps[entity];
-			shadowMap.renderPass = CreateSpotLightShadowMapRenderPass();
-		}
-
-		if (registry.any_of<PointLightComponent>(entity)) {
-			auto& shadowMap = _pointLightShadowMaps[entity];
-			shadowMap.renderPass = CreatePointLightShadowMapRenderPass();
-		}
-	}
-
-	void ShadowSystem::UnregisterEntity(entt::registry& registry, entt::entity entity) {
-		_directionalShadowMaps.erase(entity);
-		_spotLightShadowMaps.erase(entity);
-		_pointLightShadowMaps.erase(entity);
-	}
-
 	void ShadowSystem::Update() {
 		auto& registry = _scene.GetRegistry();
+		auto& animationSys = _scene.GetAnimationSystem();
+		auto& skeletalSys = _scene.GetSkeletalSystem();
 
 		for (auto&& [entity, transComp, lightComp] : registry.view<TransformComponent, DirectionalLightComponent>().each()) {
 			auto& shadowMap = _directionalShadowMaps[entity];
@@ -234,7 +207,7 @@ namespace flaw {
 			}
 		}
 
-		for (auto&& [entity, transform, skeletalMeshComp] : _scene.GetRegistry().view<TransformComponent, SkeletalMeshComponent>().each()) {
+		for (auto&& [entity, transform, skeletalMeshComp] : registry.view<TransformComponent, SkeletalMeshComponent>().each()) {
 			if (!skeletalMeshComp.castShadow) {
 				continue;
 			}
@@ -246,13 +219,26 @@ namespace flaw {
 
 			Ref<Mesh> mesh = meshAsset->GetMesh();
 
-			auto& skeletalAnimData = _scene.GetAnimationSystem().GetSkeletalAnimationData((entt::entity)entity);
-			auto boneMatrices = skeletalAnimData.GetBoneMatrices();
-			if (boneMatrices == nullptr) {
+			Ref<StructuredBuffer> boneMatricesSB;
+
+			auto skeletonAsset = AssetManager::GetAsset<SkeletonAsset>(meshAsset->GetSkeletonHandle());
+			if (!skeletonAsset) {
 				continue;
 			}
 
-			_shadowMapRenderQueue.Push(mesh, transform.worldTransform, _shadowMapSkeletalMaterial, boneMatrices);
+			if (animationSys.HasAnimatorJobContext(entity)) {
+				boneMatricesSB = animationSys.GetAnimatorJobContext(entity).animatedSkinMatricesSB;
+			}
+			else {
+				auto& skeletonUniforms = skeletalSys.GetSkeletonUniforms(skeletonAsset->GetSkeleton());
+				boneMatricesSB = skeletonUniforms.bindingPoseSkinMatricesSB;
+			}
+
+			if (!boneMatricesSB) {
+				continue;
+			}
+
+			_shadowMapRenderQueue.Push(mesh, transform.worldTransform, _shadowMapSkeletalMaterial, boneMatricesSB);
 		}
 
 		_shadowMapRenderQueue.Close();
@@ -384,8 +370,8 @@ namespace flaw {
 		outProjection = Orthographic(minCornerInLightView.x, maxCornerInLightView.x, minCornerInLightView.y, maxCornerInLightView.y, minCornerInLightView.z, maxCornerInLightView.z);
 	}
 
-	void ShadowSystem::Render(CameraRenderStage& stage, Ref<StructuredBuffer>& batchedTransformSB) {
-		auto worldSpaceCornersArr = GetCascadeFrustumCorners(stage.frustum);
+	void ShadowSystem::Render(const vec3& cameraPos, const Frustum& cameraFrustum) {
+		auto worldSpaceCornersArr = GetCascadeFrustumCorners(cameraFrustum);
 		
 		while (!_shadowMapRenderQueue.Empty()) {
 			auto& entry = _shadowMapRenderQueue.Front();
@@ -402,31 +388,32 @@ namespace flaw {
 					vec3 p1 = glm::mix(worldSpaceCorners.bottomLeftFar, worldSpaceCorners.bottomRightFar, 0.5f);
 					vec3 center = glm::mix(p0, p1, 0.5f);
 					
-					shadowMap.cascadeDistances[i] = glm::length(center - stage.cameraPosition);
+					shadowMap.cascadeDistances[i] = glm::length(center - cameraPos);
 
 					shadowMap.renderPasses[i]->Bind(false, false);
-					DrawRenderEntry(entry, batchedTransformSB, &vpMatrix, 1);
+					DrawRenderEntry(entry, &vpMatrix, 1);
 					shadowMap.renderPasses[i]->Unbind();
 				}
 			}
 
 			for (const auto& [entt, shadowMap] : _spotLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, &shadowMap.lightVPMatrix, 1);
+				DrawRenderEntry(entry, &shadowMap.lightVPMatrix, 1);
 				shadowMap.renderPass->Unbind();
 			}
 
 			for (const auto& [entt, shadowMap] : _pointLightShadowMaps) {
 				shadowMap.renderPass->Bind(false, false);
-				DrawRenderEntry(entry, batchedTransformSB, shadowMap.lightVPMatrices.data(), 6);
+				DrawRenderEntry(entry, shadowMap.lightVPMatrices.data(), 6);
 				shadowMap.renderPass->Unbind();
 			}
 		}
 	}
 
-	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, Ref<StructuredBuffer>& batchedTransformSB, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
+	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
+		auto batchedTransformSB = Graphics::GetBatchedDataSB();
 		
 		pipeline->SetShader(entry.material->shader);
 		pipeline->SetFillMode(FillMode::Solid);
@@ -451,7 +438,7 @@ namespace flaw {
 			auto& mesh = obj.mesh;
 			auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-			batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+			batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 			cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 			cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
@@ -463,7 +450,7 @@ namespace flaw {
 			auto& mesh = obj.mesh;
 			auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-			batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+			batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 			cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 			cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 2);

@@ -18,6 +18,9 @@
 #include "Engine/SkyBoxSystem.h"
 #include "Engine/LandscapeSystem.h"
 #include "Engine/MonoScriptSystem.h"
+#include "Engine/SkeletalSystem.h"
+#include "Engine/TransformSystem.h"
+#include "Engine/UISystem.h"
 #include "Engine/Mesh.h"
 #include "Engine/Material.h"
 #include "Engine/Camera.h"
@@ -31,6 +34,7 @@
 #include "Platform/PlatformEvents.h"
 #include "Platform/FileDialogs.h"
 #include "Platform/Windows/WindowsContext.h"
+#include "Platform/FileSystem.h"
 
 #include "Graphics/GraphicsType.h"
 #include "Graphics/GraphicsContext.h"
