@@ -120,7 +120,7 @@ namespace flaw {
 		void GetDescriptor(Descriptor& desc) const { _getDesc(desc); }
 
 		const Ref<Font>& GetFont() const { return _font; }
-		const Ref<Texture2D>& GetFontAtlas() const { return _fontAtlas; }
+		const Ref<Texture2D>& GetFontAtlasTex2D() const { return _fontAtlas; }
 
 	private:
 		std::function<void(Descriptor&)> _getDesc;

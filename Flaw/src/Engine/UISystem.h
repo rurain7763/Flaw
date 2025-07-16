@@ -9,9 +9,22 @@
 #include "RenderQueue.h"
 #include "Material.h"
 #include "Camera.h"
+#include "Fonts.h"
 
 namespace flaw {
 	class Scene;
+
+	struct ImageRenderDataEntry {
+		Ref<Material> material;
+		std::vector<BatchedData> batchedDatas;
+	};
+
+	struct TextRenderDataEntry {
+		Ref<Material> material;
+		std::vector<Vertex3D> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<BatchedData> batchedDatas;
+	};
 
 	struct Canvas {
 		CanvasComponent::RenderMode renderMode = CanvasComponent::RenderMode::ScreenSpaceOverlay;
@@ -19,6 +32,9 @@ namespace flaw {
 		Entity renderCamera;
 
 		vec2 size;
+
+		std::unordered_map<Ref<Texture2D>, ImageRenderDataEntry> _imageRenderDataMap;
+		std::unordered_map<Ref<Font>, TextRenderDataEntry> _textRenderDataMap;
 
 		RenderQueue _renderQueue;
 	};
@@ -33,19 +49,22 @@ namespace flaw {
 		void Render(Ref<Camera> camera);
 
 	private:
-		void UpdateUIObjectsRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity);
+		void UpdateCanvasScalers();
+		void UpdateCanvases();
+
+		void UpdateUIObjectsInCanvasRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity);
 		void HandleImageComponentIfExists(Canvas& canvas, Entity entity, const mat4& worldTransform);
+		void HandleTextComponentIfExists(Canvas& canvas, Entity entity, const mat4& worldTransform);
 
 		void RenderImpl(CameraConstants& cameraConstants, DepthTest depthTest, bool depthWrite, RenderQueue& queue);
 
 	private:
 		Scene& _scene;
 
-		Ref<GraphicsShader> _defaultUIImageShader;
+		Ref<GraphicsShader> _defaultImageUIShader;
+		Ref<GraphicsShader> _defaultTextUIShader;
 
 		Ref<ConstantBuffer> _cameraConstantCB;
-
-		std::unordered_map<Ref<Texture2D>, Ref<Material>> _uiImageMaterialMap;
 
 		std::vector<Canvas> _canvases;
 	};

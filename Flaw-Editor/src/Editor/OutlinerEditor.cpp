@@ -143,6 +143,13 @@ namespace flaw {
 				newEntity.AddComponent<ImageComponent>();
 			}
 
+			if (ImGui::MenuItem("Create Text")) {
+				Entity newEntity = _scene->CreateEntity();
+				newEntity.GetComponent<EntityComponent>().name = "New Text";
+				newEntity.AddComponent<RectLayoutComponent>();
+				newEntity.AddComponent<TextComponent>();
+			}
+
 			ImGui::EndPopup();
 		}
 

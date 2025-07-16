@@ -10,10 +10,21 @@ namespace flaw {
 	UISystem::UISystem(Scene& scene)
 		: _scene(scene)
 	{
-		_defaultUIImageShader = Graphics::CreateGraphicsShader("Resources/Shaders/stdui_image.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
-		_defaultUIImageShader->AddInputElement<float>("POSITION", 3);
-		_defaultUIImageShader->AddInputElement<float>("TEXCOORD", 2);
-		_defaultUIImageShader->CreateInputLayout();
+		_defaultImageUIShader = Graphics::CreateGraphicsShader("Resources/Shaders/stdui_image.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		_defaultImageUIShader->AddInputElement<float>("POSITION", 3);
+		_defaultImageUIShader->AddInputElement<float>("TEXCOORD", 2);
+		_defaultImageUIShader->AddInputElement<float>("TANGENT", 3);
+		_defaultImageUIShader->AddInputElement<float>("NORMAL", 3);
+		_defaultImageUIShader->AddInputElement<float>("BINORMAL", 3);
+		_defaultImageUIShader->CreateInputLayout();
+
+		_defaultTextUIShader = Graphics::CreateGraphicsShader("Resources/Shaders/stdui_text.fx", ShaderCompileFlag::Vertex | ShaderCompileFlag::Pixel);
+		_defaultTextUIShader->AddInputElement<float>("POSITION", 3);
+		_defaultTextUIShader->AddInputElement<float>("TEXCOORD", 2);
+		_defaultTextUIShader->AddInputElement<float>("TANGENT", 3);
+		_defaultTextUIShader->AddInputElement<float>("NORMAL", 3);
+		_defaultTextUIShader->AddInputElement<float>("BINORMAL", 3);
+		_defaultTextUIShader->CreateInputLayout();
 
 		_cameraConstantCB = Graphics::CreateConstantBuffer(sizeof(CameraConstants));
 	}
@@ -22,12 +33,12 @@ namespace flaw {
 	}
 
 	void UISystem::Update() {
-		auto& registry = _scene.GetRegistry();
+		UpdateCanvasScalers();
+		UpdateCanvases();
+	}
 
-		_uiImageMaterialMap.clear();
-		_canvases.clear();
-
-		for (auto&& [entity, transComp, rectLayoutComp, canvasComp, canvasScaler] : registry.view<TransformComponent, RectLayoutComponent, CanvasComponent, CanvasScalerComponent>().each()) {
+	void UISystem::UpdateCanvasScalers() {
+		for (auto&& [entity, transComp, rectLayoutComp, canvasComp, canvasScaler] : _scene.GetRegistry().view<TransformComponent, RectLayoutComponent, CanvasComponent, CanvasScalerComponent>().each()) {
 			Entity canvasEntt(entity, &_scene);
 
 			if (canvasEntt.HasParent()) {
@@ -56,7 +67,6 @@ namespace flaw {
 			else if (canvasComp.renderMode == CanvasComponent::RenderMode::ScreenSpaceCamera) {
 				Entity cameraEntt = _scene.FindEntityByUUID(canvasComp.renderCamera);
 				if (cameraEntt) {
-					// TODO: under from this line, codes must have performance issue
 					auto& cameraTransComp = cameraEntt.GetComponent<TransformComponent>();
 					auto& cameraComp = cameraEntt.GetComponent<CameraComponent>();
 
@@ -82,8 +92,12 @@ namespace flaw {
 
 			_scene.GetTransformSystem().UpdateTransformImmediate(canvasEntt);
 		}
+	}
 
-;		for (auto&& [entity, transComp, rectLayoutComp, canvasComp] : registry.view<TransformComponent, RectLayoutComponent, CanvasComponent>().each()) {
+	void UISystem::UpdateCanvases() {
+		_canvases.clear();
+
+		for (auto&& [entity, transComp, rectLayoutComp, canvasComp] : _scene.GetRegistry().view<TransformComponent, RectLayoutComponent, CanvasComponent>().each()) {
 			Entity canvasEntt(entity, &_scene);
 
 			if (canvasEntt.HasParent()) {
@@ -92,21 +106,38 @@ namespace flaw {
 
 			_canvases.resize(_canvases.size() + 1);
 
-			auto& canvas = _canvases.back();  
+			Canvas& canvas = _canvases.back();
 			canvas.renderMode = canvasComp.renderMode;
 			canvas.renderCamera = _scene.FindEntityByUUID(canvasComp.renderCamera);
 			canvas.size = rectLayoutComp.sizeDelta * vec2(transComp.GetWorldScale());
-			canvas._renderQueue.Open();
 
 			canvasEntt.EachChildren([this, &transComp, &rectLayoutComp, &canvas](const Entity& childEntity) {
-				UpdateUIObjectsRecurcive(canvas, rectLayoutComp.sizeDelta * vec2(transComp.scale), childEntity);
+				UpdateUIObjectsInCanvasRecurcive(canvas, rectLayoutComp.sizeDelta * vec2(transComp.scale), childEntity);
 			});
+		}
+
+		for (auto& canvas : _canvases) {
+			canvas._renderQueue.Open();
+
+			auto quadMeshAsset = AssetManager::GetAsset<StaticMeshAsset>(AssetManager::DefaultStaticQuadMeshKey);
+			for (auto& [tex2D, imageRenderDataEntry] : canvas._imageRenderDataMap) {
+				for (const auto& batchedData : imageRenderDataEntry.batchedDatas) {
+					canvas._renderQueue.Push(quadMeshAsset->GetMesh(), batchedData.worldMatrix, imageRenderDataEntry.material);
+				}
+			}
+
+			for (auto& [font, textRenderDataEntry] : canvas._textRenderDataMap) {
+				Ref<Mesh> textMesh = CreateRef<Mesh>(PrimitiveTopology::TriangleList, textRenderDataEntry.vertices, textRenderDataEntry.indices);
+				for (const auto& batchedData : textRenderDataEntry.batchedDatas) {
+					canvas._renderQueue.Push(textMesh, batchedData.worldMatrix, textRenderDataEntry.material);
+				}
+			}
 
 			canvas._renderQueue.Close();
 		}
 	}
 
-	void UISystem::UpdateUIObjectsRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity) {
+	void UISystem::UpdateUIObjectsInCanvasRecurcive(Canvas& canvas, const vec2& parentScaledSize, Entity entity) {
 		auto& transComp = entity.GetComponent<TransformComponent>();
 		auto& rectLayoutComp = entity.GetComponent<RectLayoutComponent>();
 
@@ -135,9 +166,10 @@ namespace flaw {
 		mat4 worldTransform = ModelMatrix(vec3(position, worldPos.z), worldRotation, vec3(size, 1.0));
 
 		HandleImageComponentIfExists(canvas, entity, worldTransform);
+		HandleTextComponentIfExists(canvas, entity, worldTransform);
 
 		entity.EachChildren([this, &canvas, &size](const Entity& childEntity) {
-			UpdateUIObjectsRecurcive(canvas, size, childEntity);
+			UpdateUIObjectsInCanvasRecurcive(canvas, size, childEntity);
 		});
 	}
 
@@ -153,30 +185,87 @@ namespace flaw {
 			return;
 		}
 
-		Ref<Material> material;
-		auto materialIt = _uiImageMaterialMap.find(texAsset->GetTexture());
-		if (materialIt == _uiImageMaterialMap.end()) {
-			material = CreateRef<Material>();
-			material->shader = _defaultUIImageShader;
-			material->renderMode = RenderMode::Transparent;
-			material->cullMode = CullMode::None;
-			material->albedoTexture = texAsset->GetTexture();
-			_uiImageMaterialMap[texAsset->GetTexture()] = material;
+		auto tex2D = texAsset->GetTexture();
+
+		ImageRenderDataEntry* imageRenderDataEntry = nullptr;
+
+		auto it = canvas._imageRenderDataMap.find(tex2D);
+		if (it == canvas._imageRenderDataMap.end()) {
+			imageRenderDataEntry = &canvas._imageRenderDataMap[tex2D];
+
+			imageRenderDataEntry->material = CreateRef<Material>();
+			imageRenderDataEntry->material->shader = _defaultImageUIShader;
+			imageRenderDataEntry->material->renderMode = RenderMode::Transparent;
+			imageRenderDataEntry->material->cullMode = CullMode::None;
+			imageRenderDataEntry->material->albedoTexture = texAsset->GetTexture();
 		}
 		else {
-			material = materialIt->second;
+			imageRenderDataEntry = &it->second;
 		}
 
-		auto quadMeshAsset = AssetManager::GetAsset<StaticMeshAsset>(AssetManager::DefaultStaticQuadMeshKey);
+		imageRenderDataEntry->batchedDatas.push_back(BatchedData{ worldTransform });
+	}
 
-		canvas._renderQueue.Push(quadMeshAsset->GetMesh(), worldTransform, material);
+	void UISystem::HandleTextComponentIfExists(Canvas& canvas, Entity entity, const mat4& worldTransform) {
+		if (!entity.HasComponent<TextComponent>()) {
+			return;
+		}
+
+		auto& textComp = entity.GetComponent<TextComponent>();
+		
+		auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
+		if (!fontAsset) {
+			return;
+		}
+
+		auto font = fontAsset->GetFont();
+		auto fontAtlas = fontAsset->GetFontAtlasTex2D();
+
+		TextRenderDataEntry* textRenderDataEntry = nullptr;
+		
+		auto it = canvas._textRenderDataMap.find(font);
+		if (it == canvas._textRenderDataMap.end()) {
+			textRenderDataEntry = &canvas._textRenderDataMap[font];
+
+			textRenderDataEntry->material = CreateRef<Material>();
+			textRenderDataEntry->material->shader = _defaultTextUIShader;
+			textRenderDataEntry->material->renderMode = RenderMode::Transparent;
+			textRenderDataEntry->material->cullMode = CullMode::None;
+			textRenderDataEntry->material->albedoTexture = fontAsset->GetFontAtlasTex2D();
+		}
+		else {
+			textRenderDataEntry = &it->second;
+		}
+
+		Fonts::GenerateFontMeshs(
+			font,
+			vec2(fontAtlas->GetWidth(), fontAtlas->GetHeight()),
+			textComp.text,
+			[textRenderDataEntry](const vec3& ltPos0, const vec2& ltTex0, const vec3& rtPos0, const vec2& rtTex0, const vec3& rbPos0, const vec2& rbTex0, const vec3& lbPos0, const vec2& lbTex0) {
+				uint32_t indexStart = (uint32_t)textRenderDataEntry->vertices.size();
+
+				textRenderDataEntry->vertices.push_back(Vertex3D{ ltPos0, ltTex0 });
+				textRenderDataEntry->vertices.push_back(Vertex3D{ rtPos0, rtTex0 });
+				textRenderDataEntry->vertices.push_back(Vertex3D{ rbPos0, rbTex0 });
+				textRenderDataEntry->vertices.push_back(Vertex3D{ lbPos0, lbTex0 });
+
+				textRenderDataEntry->indices.push_back(indexStart + 0);
+				textRenderDataEntry->indices.push_back(indexStart + 1);
+				textRenderDataEntry->indices.push_back(indexStart + 2);
+				textRenderDataEntry->indices.push_back(indexStart + 0);
+				textRenderDataEntry->indices.push_back(indexStart + 2);
+				textRenderDataEntry->indices.push_back(indexStart + 3);
+			}
+		);
+
+		textRenderDataEntry->batchedDatas.push_back(BatchedData{ worldTransform });
 	}
 
 	void UISystem::RenderImpl(CameraConstants& cameraConstants, DepthTest depthTest, bool depthWrite, RenderQueue& queue) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 		auto materialCB = Graphics::GetMaterialConstantsCB();
-		auto batchedTransformSB = Graphics::GetBatchedTransformSB();
+		auto batchedTransformSB = Graphics::GetBatchedDataSB();
 
 		_cameraConstantCB->Update(&cameraConstants, sizeof(CameraConstants));
 
@@ -236,7 +325,7 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+				batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 				cmdQueue.SetPrimitiveTopology(PrimitiveTopology::TriangleList);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());

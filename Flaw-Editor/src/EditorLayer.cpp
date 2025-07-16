@@ -447,7 +447,6 @@ namespace flaw {
     }
 
     void EditorLayer::UpdateSceneAsEditorMode(const Ref<Scene>& scene) {
-		auto& registry = scene->GetRegistry();
 		auto& transSys = scene->GetTransformSystem();
 		auto& renderSys = scene->GetRenderSystem();
 		auto& uiSys = scene->GetUISystem();

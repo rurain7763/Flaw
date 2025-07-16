@@ -51,7 +51,7 @@ namespace flaw {
 		Ref<Mesh> mesh;
 		int32_t segmentIndex = 0;
 
-		std::vector<mat4> modelMatrices;
+		std::vector<BatchedData> batchedDatas;
 		uint32_t instanceCount = 0;
 	};
 
@@ -59,7 +59,7 @@ namespace flaw {
 		Ref<Mesh> mesh;
 		int32_t segmentIndex = 0;
 
-		std::vector<mat4> modelMatrices;
+		std::vector<BatchedData> batchedDatas;
 		Ref<StructuredBuffer> skeletonBoneMatrices;
 		uint32_t instanceCount = 0;
 	};

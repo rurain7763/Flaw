@@ -34,8 +34,6 @@ namespace flaw {
 		shadowMapShader->AddInputElement<float>("TANGENT", 3);
 		shadowMapShader->AddInputElement<float>("NORMAL", 3);
 		shadowMapShader->AddInputElement<float>("BINORMAL", 3);
-		shadowMapShader->AddInputElement<int32_t>("BONEINDICES", 4);
-		shadowMapShader->AddInputElement<float>("BONEWEIGHTS", 4);
 		shadowMapShader->CreateInputLayout();
 
 		_shadowMapStaticMaterial = CreateRef<Material>();
@@ -415,7 +413,7 @@ namespace flaw {
 	void ShadowSystem::DrawRenderEntry(const RenderEntry& entry, const LightVPMatrix* lightVPMatrices, int32_t lightVPMatrixCount) {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
-		auto batchedTransformSB = Graphics::GetBatchedTransformSB();
+		auto batchedTransformSB = Graphics::GetBatchedDataSB();
 		
 		pipeline->SetShader(entry.material->shader);
 		pipeline->SetFillMode(FillMode::Solid);
@@ -440,7 +438,7 @@ namespace flaw {
 			auto& mesh = obj.mesh;
 			auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-			batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+			batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 			cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 			cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
@@ -452,7 +450,7 @@ namespace flaw {
 			auto& mesh = obj.mesh;
 			auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-			batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+			batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 			cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 			cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 2);

@@ -11,7 +11,6 @@
 #include "ShadowSystem.h"
 #include "SkyBoxSystem.h"
 #include "SkeletalSystem.h"
-#include "UISystem.h"
 
 // TODO: remove this
 #include "Renderer2D.h"
@@ -470,12 +469,6 @@ namespace flaw {
 				}
 			}
 
-			for (auto&& [entity, transComp, textComp] : enttRegistry.view<TransformComponent, TextComponent>().each()) {
-				auto fontAsset = AssetManager::GetAsset<FontAsset>(textComp.font);
-				if (fontAsset) {
-					Renderer2D::DrawString(entity, transComp.worldTransform, textComp.text, fontAsset->GetFont(), fontAsset->GetFontAtlas(), textComp.color);
-				}
-			}
 			Renderer2D::End();
 #endif
 
@@ -489,7 +482,7 @@ namespace flaw {
 		auto& cmdQueue = Graphics::GetCommandQueue();
 		auto& pipeline = Graphics::GetMainGraphicsPipeline();
 		auto materialCB = Graphics::GetMaterialConstantsCB();
-		auto batchedTransformSB = Graphics::GetBatchedTransformSB();
+		auto batchedTransformSB = Graphics::GetBatchedDataSB();
 
 		while (!stage.renderQueue.Empty()) {
 			auto& entry = stage.renderQueue.Front();
@@ -553,7 +546,7 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+				batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetVertexBuffer(mesh->GetGPUVertexBuffer());
@@ -567,7 +560,7 @@ namespace flaw {
 				auto& mesh = obj.mesh;
 				auto& meshSegment = mesh->GetMeshSegementAt(obj.segmentIndex);
 
-				batchedTransformSB->Update(obj.modelMatrices.data(), obj.modelMatrices.size() * sizeof(mat4));
+				batchedTransformSB->Update(obj.batchedDatas.data(), obj.batchedDatas.size() * sizeof(BatchedData));
 
 				cmdQueue.SetPrimitiveTopology(meshSegment.topology);
 				cmdQueue.SetStructuredBuffer(obj.skeletonBoneMatrices, 1);

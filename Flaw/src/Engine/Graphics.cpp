@@ -46,7 +46,7 @@ namespace flaw {
 	static Ref<ConstantBuffer> g_globalConstantsCB;
 	static Ref<ConstantBuffer> g_materialConstantsCB;
 
-	static Ref<StructuredBuffer> g_batchedTransformSB;
+	static Ref<StructuredBuffer> g_batchedDataSB;
 
 	static Ref<ComputeShader> g_raycastShader;
 	static Ref<ConstantBuffer> g_raycastUniformCB;
@@ -74,11 +74,11 @@ namespace flaw {
 		g_materialConstantsCB = Graphics::CreateConstantBuffer(sizeof(MaterialConstants));
 
 		StructuredBuffer::Descriptor batchedTransformSBDesc = {};
-		batchedTransformSBDesc.elmSize = sizeof(mat4);
-		batchedTransformSBDesc.count = MaxBatchTransformCount;
+		batchedTransformSBDesc.elmSize = sizeof(BatchedData);
+		batchedTransformSBDesc.count = MaxBatchedDataCount;
 		batchedTransformSBDesc.bindFlags = BindFlag::ShaderResource;
 		batchedTransformSBDesc.accessFlags = AccessFlag::Write;
-		g_batchedTransformSB = Graphics::CreateStructuredBuffer(batchedTransformSBDesc);
+		g_batchedDataSB = Graphics::CreateStructuredBuffer(batchedTransformSBDesc);
 
 		// NOTE: for raycasting
 		g_raycastShader = CreateComputeShader("Resources/Shaders/raycast.fx");
@@ -363,8 +363,8 @@ namespace flaw {
 		return g_materialConstantsCB;
 	}
 
-	Ref<StructuredBuffer> Graphics::GetBatchedTransformSB() {
-		return g_batchedTransformSB;
+	Ref<StructuredBuffer> Graphics::GetBatchedDataSB() {
+		return g_batchedDataSB;
 	}
 	
 	GraphicsContext& Graphics::GetGraphicsContext() {

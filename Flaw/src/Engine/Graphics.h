@@ -14,7 +14,7 @@ namespace flaw {
 	constexpr uint32_t CubeTextureStartSlot = 57;
 	constexpr uint32_t TextureArrayStartSlot = 61;
 	
-	constexpr static uint32_t MaxBatchTransformCount = 10000;
+	constexpr static uint32_t MaxBatchedDataCount = 10000;
 
 	enum class GraphicsType {
 		DX11
@@ -76,6 +76,10 @@ namespace flaw {
 		uint32_t textureID;
 	};
 
+	struct BatchedData {
+		mat4 worldMatrix;
+	};
+
 	class Graphics {
 	public:
 		static void Init(GraphicsType type);
@@ -127,7 +131,7 @@ namespace flaw {
 		static Ref<ConstantBuffer> GetGlobalConstantsCB();
 		static Ref<ConstantBuffer> GetMaterialConstantsCB();
 		
-		static Ref<StructuredBuffer> GetBatchedTransformSB();
+		static Ref<StructuredBuffer> GetBatchedDataSB();
 
 		static GraphicsContext& GetGraphicsContext();
 	};
